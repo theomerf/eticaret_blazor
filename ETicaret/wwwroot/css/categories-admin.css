@@ -1,0 +1,31 @@
+﻿.admincat-toggle-subcategories {
+    color: #6c757d;
+}
+
+    .admincat-toggle-subcategories:hover {
+        background-color: rgba(108, 117, 125, 0.1);
+    }
+
+.admincat-category-item {
+    transition: background-color 0.15s ease-in-out;
+}
+
+    .admincat-category-item:hover {
+        background-color: rgba(0,0,0,0.01);
+    }
+
+.admincat-subcategory-container {
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+.admincat-subcategory-item {
+    border-left: 3px solid #007bff;
+    margin-bottom: 0.25rem;
+    padding: 0.5rem 0.75rem;
+}
+
+    .admincat-subcategory-item:last-child {
+        margin-bottom: 0;
+    }

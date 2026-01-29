@@ -1,0 +1,178 @@
+﻿@using Application.DTOs
+@using ETicaret.Services
+@inject IFavouriteStateService FavState
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="p-3 sm:p-6 border-b border-gray-100 last:border-0 transition-all duration-400 group hover:bg-gradient-to-br hover:from-blue-500/[0.02] hover:to-indigo-500/[0.02] relative @(IsUpdating ? "opacity-50 pointer-events-none" : "") @(_optimisticClass) overflow-hidden">
+    <div class="absolute left-0 top-0 bottom-0 w-0 bg-primary transition-all duration-300 group-hover:w-1 rounded-r-xl"></div>
+
+    <div class="flex flex-row items-start sm:items-center gap-3 sm:gap-6">
+        <div class="w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0 flex items-center justify-center bg-gray-50 border-2 border-blue-500/10 rounded-xl sm:rounded-2xl overflow-hidden relative group-hover:border-blue-500/30 transition-all duration-300">
+            <img src="@Line.ImageUrl" class="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="@Line.ProductName" onerror="this.onerror=null;this.src='https://via.placeholder.com/100';">
+        </div>
+
+        <div class="flex-grow min-w-0 flex flex-col">
+            <h5 class="font-bold text-gray-900 group-hover:text-primary transition-colors duration-300 text-sm sm:text-lg lg:text-xl truncate" title="@Line.ProductName">
+                @Line.ProductName
+            </h5>
+            
+            <div class="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3 mt-0.5 sm:mt-1 text-gray-500">
+                <span class="text-[10px] sm:text-xs font-medium tracking-tight whitespace-nowrap">SKU: @Line.ProductId</span>
+                <span class="hidden sm:inline text-gray-300">•</span>
+                <span class="text-[10px] sm:text-sm font-semibold whitespace-nowrap">Birim: @Line.DiscountPrice?.ToString("C")</span>
+            </div>
+            
+            <div class="mt-2 sm:hidden">
+                <div class="cart-quantity-grp scale-90 origin-left">
+                    <button class="cart-qty-btn !w-8 !h-8" @onclick="() => DecreaseQuantity()" disabled="@IsUpdating">
+                        <i class="fa fa-minus text-[10px]"></i>
+                    </button>
+                    <div class="cart-qty-val !min-w-[30px] !h-8 text-xs">
+                        @if (IsUpdating)
+                        {
+                            <div class="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full font-bold"></div>
+                        }
+                        else
+                        {
+                            <span>@Line.Quantity</span>
+                        }
+                    </div>
+                    <button class="cart-qty-btn !w-8 !h-8" @onclick="() => IncreaseQuantity()" disabled="@IsUpdating">
+                        <i class="fa fa-plus text-[10px]"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="hidden sm:flex flex-wrap gap-2 mt-3">
+                <span class="cart-badge">Stokta</span>
+                <span class="cart-badge">Hızlı Teslimat</span>
+            </div>
+        </div>
+
+        <div class="hidden sm:block flex-shrink-0">
+            <div class="cart-quantity-grp">
+                <button class="cart-qty-btn" @onclick="() => DecreaseQuantity()" disabled="@IsUpdating">
+                    <i class="fa fa-minus text-xs"></i>
+                </button>
+                <div class="cart-qty-val">
+                    @if (IsUpdating)
+                    {
+                        <div class="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full font-bold"></div>
+                    }
+                    else
+                    {
+                        <span class="tabular-nums">@Line.Quantity</span>
+                    }
+                </div>
+                <button class="cart-qty-btn" @onclick="() => IncreaseQuantity()" disabled="@IsUpdating">
+                    <i class="fa fa-plus text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-shrink-0 flex flex-col items-end gap-1 sm:gap-1.5 sm:min-w-[120px]">
+            <div class="font-bold text-sm sm:text-xl lg:text-2xl text-primary bg-primary bg-clip-text text-transparent group-hover:scale-105 transition-transform tabular-nums">
+                @((Line.Quantity * Line.DiscountPrice)?.ToString("C"))
+            </div>
+
+            <div class="flex sm:hidden flex-col items-end gap-1 mb-1">
+                <span class="text-[8px] leading-none px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100 font-bold uppercase">Stokta</span>
+                <span class="text-[8px] leading-none px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded border border-indigo-100 font-bold uppercase">Hızlı Teslimat</span>
+            </div>
+
+            <div class="flex flex-row sm:flex-col gap-2 mt-1 sm:mt-2">
+                <div class="bg-red-50/30 hover:bg-red-50 p-2 sm:px-3 sm:py-2 rounded-xl shadow-sm border border-red-100/50 transition-all duration-300 cursor-pointer flex items-center justify-center group/btn sm:hover:-translate-x-1" @onclick="() => OnRemove.InvokeAsync(Line.ProductId)">
+                    <button type="button" class="cart-action-btn-danger !p-0 !m-0 flex items-center" disabled="@IsUpdating">
+                        <i class="fa fa-trash-alt text-[10px] sm:text-xs sm:mr-1.5"></i> 
+                        <span class="hidden sm:inline">Kaldır</span>
+                    </button>
+                </div>
+
+                @{
+                    bool isFav = FavState.IsFavourite(Line.ProductId);
+                }
+                <div @onclick="HandleFavoriteAction"
+                    class="@(isFav ? "bg-pink-50 border-pink-100" : "bg-slate-50 border-gray-200") p-2 sm:px-3 sm:py-2 rounded-xl shadow-sm border transition-all duration-300 cursor-pointer flex items-center justify-center group/btn sm:hover:-translate-x-1 @(isProcessingFav ? "opacity-50 pointer-events-none" : "")">
+                    <button type="button" class="@(isFav ? "text-pink-600" : "text-gray-400 hover:text-pink-500") text-[10px] sm:text-xs font-semibold flex items-center !p-0 !m-0">
+                        <i class="@(isFav ? "fas" : "far") fa-heart text-[10px] sm:text-xs sm:mr-1.5"></i> 
+                        <span class="hidden sm:inline">@(isFav ? "Kaydedildi" : "Kaydet")</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] 
+    public CartLineDto Line { get; set; } = default!;
+
+    [Parameter] 
+    public EventCallback<int> OnQuantityIncrease { get; set; }
+
+    [Parameter] 
+    public EventCallback<int> OnQuantityDecrease { get; set; }
+
+    [Parameter] 
+    public EventCallback<int> OnRemove { get; set; }
+
+    [Parameter] 
+    public bool IsUpdating { get; set; }
+
+    private string _optimisticClass = "";
+    private System.Threading.Timer? _optimisticTimer;
+    private bool isProcessingFav = false;
+
+    protected override void OnInitialized()
+    {
+        _optimisticClass = "";
+        FavState.OnChange += StateHasChanged;
+    }
+
+    private async Task IncreaseQuantity()
+    {
+        SetOptimisticUpdate();
+        await OnQuantityIncrease.InvokeAsync(Line.ProductId);
+    }
+
+    private async Task DecreaseQuantity()
+    {
+        SetOptimisticUpdate();
+        await OnQuantityDecrease.InvokeAsync(Line.ProductId);
+    }
+
+    private async Task HandleFavoriteAction()
+    {
+        isProcessingFav = true;
+        bool isFav = FavState.IsFavourite(Line.ProductId);
+        
+        if (isFav)
+            await FavState.RemoveFromFavouritesAsync(Line.ProductId);
+        else
+            await FavState.AddToFavouritesAsync(Line.ProductId);
+
+        await JSRuntime.InvokeVoidAsync("showToast", isFav ? "Favorilerden çıkarıldı" : "Favorilere eklendi", isFav ? "info" : "success");
+        await JSRuntime.InvokeVoidAsync("updateCounter", "favourites-summary", isFav ? -1 : 1);
+        isProcessingFav = false;
+    }
+
+    private void SetOptimisticUpdate()
+    {
+        _optimisticClass = "optimistic-update";
+        StateHasChanged();
+
+        _optimisticTimer?.Dispose();
+        _optimisticTimer = new System.Threading.Timer(_ =>
+        {
+            _optimisticClass = "";
+            InvokeAsync(StateHasChanged);
+        }, null, 1000, Timeout.Infinite);
+    }
+
+    public void Dispose()
+    {
+        _optimisticTimer?.Dispose();
+        FavState.OnChange -= StateHasChanged;
+    }
+}

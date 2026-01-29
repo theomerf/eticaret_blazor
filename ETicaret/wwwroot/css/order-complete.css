@@ -1,0 +1,320 @@
+﻿:root {
+    --primary-gradient: linear-gradient(45deg, #6a11cb, #2575fc);
+    --primary-light: #e6e9ff;
+    --primary-dark: #5a11a8;
+    --white: #ffffff;
+    --gray-light: #f8f9fa;
+    --gray-medium: #e2e6ea;
+}
+
+.complete-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: var(--white);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(106, 17, 203, 0.1);
+}
+
+.complete-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.complete-title {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.complete-subtitle {
+    font-size: 18px;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.complete-checkmark {
+    width: 80px;
+    height: 80px;
+    background: var(--primary-gradient);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 25px;
+    box-shadow: 0 5px 15px rgba(106, 17, 203, 0.3);
+}
+
+    .complete-checkmark i {
+        font-size: 40px;
+        color: var(--white);
+    }
+
+.complete-order-info {
+    background-color: var(--gray-light);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.complete-order-number {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+    .complete-order-number strong {
+        margin-right: 10px;
+        color: #555;
+    }
+
+    .complete-order-number span {
+        font-weight: 600;
+        font-size: 18px;
+        color: var(--primary-dark);
+    }
+
+.complete-order-date {
+    color: #777;
+    margin-bottom: 10px;
+}
+
+.complete-order-email {
+    color: #777;
+}
+
+.complete-divider {
+    height: 1px;
+    background: var(--gray-medium);
+    margin: 20px 0;
+}
+
+.complete-summary-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #444;
+}
+
+.complete-order-summary {
+    margin-bottom: 30px;
+}
+
+.complete-product-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.complete-product-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    background-color: var(--gray-light);
+    overflow: hidden;
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .complete-product-image img {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+.complete-product-details {
+    flex-grow: 1;
+}
+
+.complete-product-name {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.complete-product-variant {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 3px;
+}
+
+.complete-product-price {
+    font-weight: 600;
+    text-align: right;
+    min-width: 80px;
+}
+
+.complete-price-summary {
+    margin-top: 20px;
+}
+
+.complete-price-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 15px;
+    color: #555;
+}
+
+.complete-price-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--gray-medium);
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.complete-shipping-info {
+    margin-bottom: 30px;
+}
+
+.complete-address-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.complete-address-box {
+    background-color: var(--gray-light);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+    .complete-address-box h4 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #444;
+    }
+
+.complete-address-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #666;
+}
+
+.complete-estimated-delivery {
+    background: linear-gradient(45deg, rgba(106, 17, 203, 0.1), rgba(37, 117, 252, 0.1));
+    border-radius: 10px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+    .complete-estimated-delivery i {
+        font-size: 24px;
+        margin-right: 15px;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+.complete-delivery-text {
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.complete-delivery-date {
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+.complete-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+.complete-btn {
+    display: inline-block;
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    text-align: center;
+}
+
+.complete-btn-primary {
+    background: var(--primary-gradient);
+    color: var(--white);
+    border: none;
+    box-shadow: 0 5px 15px rgba(106, 17, 203, 0.3);
+}
+
+    .complete-btn-primary:hover {
+        box-shadow: 0 8px 20px rgba(106, 17, 203, 0.4);
+        transform: translateY(-2px);
+    }
+
+.complete-btn-outline {
+    background: transparent;
+    color: #6a11cb;
+    border: 2px solid rgba(106, 17, 203, 0.3);
+}
+
+    .complete-btn-outline:hover {
+        background: rgba(106, 17, 203, 0.05);
+        border-color: rgba(106, 17, 203, 0.5);
+    }
+
+.complete-help-section {
+    margin-top: 40px;
+    text-align: center;
+}
+
+.complete-help-text {
+    font-size: 15px;
+    color: #777;
+    margin-bottom: 15px;
+}
+
+.complete-help-links {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.complete-help-link {
+    color: var(--primary-dark);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+    .complete-help-link:hover {
+        color: #6a11cb;
+        text-decoration: underline;
+    }
+
+@media (max-width: 768px) {
+    .complete-container {
+        margin: 20px;
+        padding: 20px;
+    }
+
+    .complete-address-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .complete-buttons {
+        flex-direction: column;
+    }
+
+    .complete-btn {
+        width: 100%;
+    }
+}

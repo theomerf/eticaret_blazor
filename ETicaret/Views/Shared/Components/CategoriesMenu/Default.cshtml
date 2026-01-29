@@ -1,0 +1,145 @@
+﻿@using Application.DTOs
+@model IEnumerable<CategoryDto>
+
+@{
+    var categoryIdFromUrl = Context.Request.Query["categoryId"].ToString();
+}
+
+<div class="w-[280px] flex-shrink-0">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-0">
+            <ul class="list-none m-0 p-0" id="categoriesMainList">
+                <li class="border-b border-gray-200 last:border-b-0 @(string.IsNullOrEmpty(categoryIdFromUrl) ? "bg-blue-50" : "")" 
+                    data-category="all">
+                    <a asp-controller="Products" asp-action="Index" 
+                       class="flex items-center justify-between p-4 no-underline text-gray-800 hover:bg-gray-50 transition-colors duration-200">
+                        <span class="flex items-center font-medium">
+                            <i class="fa-solid fa-globe mr-2 text-blue-600"></i>
+                            Tüm Ürünler
+                        </span>
+                        <span class="bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full">
+                            Tümü
+                        </span>
+                    </a>
+                </li>
+
+                @foreach (var cat in Model.Where(c => c.ParentId == null))
+                {
+                    var isMainCategorySelected = categoryIdFromUrl == cat.CategoryId.ToString();
+                    var hasSelectedSubcategory = Model.Any(c => c.ParentId == cat.CategoryId && categoryIdFromUrl == c.CategoryId.ToString());
+                    var isSelected = isMainCategorySelected || hasSelectedSubcategory;
+                    
+                    <li class="border-b border-gray-200 last:border-b-0 @(isSelected ? "bg-blue-50" : "")"
+                        data-category="@cat.CategoryId">
+                        <a asp-controller="Products" 
+                           asp-action="Index" 
+                           asp-route-categoryId="@cat.CategoryId"
+                           class="flex items-center justify-between p-4 no-underline text-gray-800 hover:bg-gray-50 transition-colors duration-200">
+                            <span class="flex items-center font-medium">
+                                @if (cat.CategoryName.Contains("Telefon"))
+                                {
+                                    <i class="fa-solid fa-mobile-alt mr-2 text-blue-600"></i>
+                                }
+                                else if (cat.CategoryName.Contains("Bilgisayar"))
+                                {
+                                    <i class="fa-solid fa-laptop mr-2 text-blue-600"></i>
+                                }
+                                else if (cat.CategoryName.Contains("Tablet"))
+                                {
+                                    <i class="fa-solid fa-tablet-alt mr-2 text-blue-600"></i>
+                                }
+                                else if (cat.CategoryName.Contains("Kamera"))
+                                {
+                                    <i class="fa-solid fa-camera mr-2 text-blue-600"></i>
+                                }
+                                else if (cat.CategoryName.Contains("TV"))
+                                {
+                                    <i class="fa-solid fa-tv mr-2 text-blue-600"></i>
+                                }
+                                else
+                                {
+                                    <i class="fa-solid fa-box mr-2 text-blue-600"></i>
+                                }
+                                @cat.CategoryName
+                            </span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="flex-1 pl-6" id="subcategoriesContainer">
+    <div class="categoriesmenu-subcategory-panel block" data-category="all">
+        <h4 class="text-xl font-semibold text-gray-800 mb-4">Tüm Ürünler</h4>
+        
+        <div class="grid grid-cols-6 gap-3">
+            <a href="#" class="group no-underline">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 text-center transition-all duration-200 hover:shadow-md hover:border-blue-300 aspect-square flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 mx-auto mb-2 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-star text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="text-xs font-medium text-gray-700 group-hover:text-blue-600">
+                        Öne Çıkanlar
+                    </div>
+                </div>
+            </a>
+
+            <a href="#" class="group no-underline">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 text-center transition-all duration-200 hover:shadow-md hover:border-blue-300 aspect-square flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 mx-auto mb-2 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-percent text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="text-xs font-medium text-gray-700 group-hover:text-blue-600">
+                        İndirimli
+                    </div>
+                </div>
+            </a>
+
+            <a href="#" class="group no-underline">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 text-center transition-all duration-200 hover:shadow-md hover:border-blue-300 aspect-square flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 mx-auto mb-2 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-fire text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="text-xs font-medium text-gray-700 group-hover:text-blue-600">
+                        Çok Satanlar
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    @foreach (var parentCategory in Model.Where(c => c.ParentId == null))
+    {
+        var shouldShowPanel = categoryIdFromUrl == parentCategory.CategoryId.ToString() || 
+                             Model.Any(c => c.ParentId == parentCategory.CategoryId && categoryIdFromUrl == c.CategoryId.ToString());
+        
+        <div class="categoriesmenu-subcategory-panel @(shouldShowPanel ? "block" : "hidden")" data-category="@parentCategory.CategoryId">
+            <h4 class="text-xl font-semibold text-gray-800 mb-4">@parentCategory.CategoryName</h4>
+            
+            <div class="grid grid-cols-6 gap-3">
+                @foreach (var childCategory in Model.Where(c => c.ParentId == parentCategory.CategoryId))
+                {
+                    var isSubcategorySelected = categoryIdFromUrl == childCategory.CategoryId.ToString();
+                    
+                    <a asp-controller="Products" 
+                       asp-action="Index" 
+                       asp-route-categoryId="@childCategory.CategoryId" 
+                       class="group no-underline"
+                       data-subcategory="@childCategory.CategoryId"
+                       data-parent-category="@parentCategory.CategoryId">
+                        <div class="bg-white border @(isSubcategorySelected ? "border-blue-500 shadow-md" : "border-gray-200") rounded-lg p-3 text-center transition-all duration-200 hover:shadow-md hover:border-blue-300 aspect-square flex flex-col items-center justify-center">
+                            <div class="w-12 h-12 mx-auto mb-2 @(isSubcategorySelected ? "bg-blue-200" : "bg-blue-100") rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-box text-blue-600 text-xl"></i>
+                            </div>
+                            <div class="text-xs font-medium @(isSubcategorySelected ? "text-blue-600 font-semibold" : "text-gray-700") group-hover:text-blue-600 line-clamp-2">
+                                @childCategory.CategoryName
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+</div>

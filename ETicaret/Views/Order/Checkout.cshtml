@@ -1,0 +1,259 @@
+﻿@using Application.DTOs
+@model OrderDto
+@{
+	ViewData["Title"] = "Ödeme Yap";
+}
+
+@section Styles {
+	<link asp-append-version="true" href="~/css/checkout.css" rel="stylesheet" />
+}
+
+<div class="container checkout-container">
+	<div class="row justify-content-center">
+		<div class="col-lg-10">
+			<div class="row">
+				<!-- Sol Taraf - Ödeme Formu -->
+				<div class="col-md-7 mb-4">
+					<div class="checkout-card">
+						<div class="checkout-header">
+							<h3><i class="fas fa-credit-card me-2"></i> Ödeme Bilgileri</h3>
+						</div>
+						<div class="checkout-body">
+							<div class="text-danger" asp-validation-summary="All"></div>
+							<form method="post" asp-action="Checkout">
+								<div class="mb-4">
+									<label asp-for="Name" class="checkout-form-label">Ad Soyad</label>
+									<input class="form-control checkout-form-control" asp-for="Name" placeholder="Adınız ve soyadınız" />
+									<span asp-validation-for="Name" class="text-danger"></span>
+								</div>
+
+								<div class="checkout-order-title">Adres Bilgileri</div>
+
+								<div class="checkout-form-row">
+									<div class="checkout-form-group">
+										<label asp-for="City" class="checkout-form-label">Şehir</label>
+										<input class="form-control checkout-form-control" asp-for="City" placeholder="Şehir" />
+										<span asp-validation-for="City" class="text-danger"></span>
+									</div>
+									<div class="checkout-form-group">
+										<label asp-for="Line1" class="checkout-form-label">İlçe</label>
+										<input class="form-control checkout-form-control" asp-for="Line1" placeholder="İlçe" />
+										<span asp-validation-for="Line1" class="text-danger"></span>
+									</div>
+								</div>
+
+								<div class="mb-3">
+									<label asp-for="Line2" class="checkout-form-label">Mahalle</label>
+									<input class="form-control checkout-form-control" asp-for="Line2" placeholder="Mahalle" />
+									<span asp-validation-for="Line2" class="text-danger"></span>
+								</div>
+
+								<div class="mb-4">
+									<label asp-for="Line3" class="checkout-form-label">Sokak ve Bina No</label>
+									<input class="form-control checkout-form-control" asp-for="Line3" placeholder="Sokak adı, bina no, daire no" />
+									<span asp-validation-for="Line3" class="text-danger"></span>
+								</div>
+
+								<div class="checkout-order-title">Ödeme Yöntemi</div>
+
+								<div class="checkout-payment-methods">
+									<div class="checkout-payment-method">
+										<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" />
+									</div>
+									<div class="checkout-payment-method">
+										<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png" alt="Mastercard" />
+									</div>
+								</div>
+
+								<div class="checkout-form-row">
+									<div class="checkout-form-group">
+										<label class="checkout-form-label">Kart Üzerindeki İsim</label>
+										<input type="text" class="form-control checkout-form-control" placeholder="Kart üzerindeki ad soyad" />
+									</div>
+								</div>
+
+								<div class="checkout-form-row">
+									<div class="checkout-form-group">
+										<label class="checkout-form-label">Kart Numarası</label>
+										<input type="text" class="form-control checkout-form-control" placeholder="1234 5678 9012 3456" />
+									</div>
+								</div>
+
+								<div class="checkout-form-row">
+									<div class="checkout-form-group">
+										<label class="checkout-form-label">Son Kullanma Tarihi</label>
+										<input type="text" class="form-control checkout-form-control" placeholder="AA/YY" />
+									</div>
+									<div class="checkout-form-group">
+										<label class="checkout-form-label">CVV</label>
+										<input type="text" class="form-control checkout-form-control" placeholder="123" />
+									</div>
+								</div>
+
+								<div class="checkout-gift-check">
+									<input asp-for="GiftWrap" class="form-check-input checkout-gift-input" />
+									<label asp-for="GiftWrap" class="checkout-gift-label">
+										<i class="fas fa-gift me-2"></i> Bu ürünleri hediye paketi olarak gönder
+									</label>
+								</div>
+
+								<div class="text-center">
+									<button type="submit" class="btn checkout-submit-btn">
+										Siparişi Tamamla <i class="fas fa-check-circle ms-2"></i>
+									</button>
+									<div class="checkout-secure mt-3">
+										<i class="fas fa-lock"></i> Güvenli ödeme sistemleri ile korunmaktadır
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+
+				<!-- Sağ Taraf - Sipariş Özeti -->
+				<div class="col-md-5">
+					<div class="checkout-card">
+						<div class="checkout-header">
+							<h3><i class="fas fa-shopping-cart me-2"></i> Sipariş Özeti</h3>
+						</div>
+						<div class="checkout-body">
+							<div class="checkout-order-summary">
+								<!-- Örnek ürün listesi -->
+								<div class="d-flex justify-content-between align-items-center mb-2">
+									<div>
+										<strong>Ürün Adı 1</strong>
+										<div class="text-muted small">2 adet</div>
+									</div>
+									<div>₺240.00</div>
+								</div>
+								<div class="d-flex justify-content-between align-items-center mb-2">
+									<div>
+										<strong>Ürün Adı 2</strong>
+										<div class="text-muted small">1 adet</div>
+									</div>
+									<div>₺150.00</div>
+								</div>
+								<hr>
+								<div class="d-flex justify-content-between mb-2">
+									<div>Ara Toplam</div>
+									<div>₺390.00</div>
+								</div>
+								<div class="d-flex justify-content-between mb-2">
+									<div>Kargo</div>
+									<div>₺15.00</div>
+								</div>
+								<div class="d-flex justify-content-between mb-2">
+									<div>Vergiler</div>
+									<div>₺70.20</div>
+								</div>
+								<div class="d-flex justify-content-between mt-3 pt-3 border-top">
+									<div><strong>Toplam</strong></div>
+									<div><strong>₺475.20</strong></div>
+								</div>
+							</div>
+
+							<div class="mb-4">
+								<label class="checkout-form-label">İndirim Kuponu</label>
+								<div class="input-group">
+									<input type="text" class="form-control checkout-form-control" placeholder="Kupon kodunuz">
+									<button class="btn checkout-submit-btn" type="button">Uygula</button>
+								</div>
+							</div>
+
+							<div class="checkout-order-title">Teslimat Bilgileri</div>
+							<div class="mb-3">
+								<div class="d-flex align-items-center mb-2">
+									<i class="fas fa-truck me-2" style="color: var(--primary-color)"></i>
+									<div>Standart Teslimat</div>
+								</div>
+								<div class="text-muted small">Tahmini teslimat: 3-5 iş günü</div>
+							</div>
+
+							<hr>
+
+							<div class="d-flex flex-column gap-2 mt-3">
+								<div class="d-flex align-items-center">
+									<i class="fas fa-undo me-2" style="color: var(--primary-color)"></i>
+									<div>30 gün içinde ücretsiz iade</div>
+								</div>
+								<div class="d-flex align-items-center">
+									<i class="fas fa-shield-alt me-2" style="color: var(--primary-color)"></i>
+									<div>Orijinal ürün garantisi</div>
+								</div>
+								<div class="d-flex align-items-center">
+									<i class="fas fa-headset me-2" style="color: var(--primary-color)"></i>
+									<div>7/24 müşteri desteği</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- EKLENEBİLCEK KISIMLAR BURDA KALSIN-->
+
+
+<!-- Kargo ve Kupon Alanı -->
+<div class="cart-glass-card p-6 sm:p-8">
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+		<!-- Kargo Seçenekleri -->
+		<div class="space-y-5">
+			<h5 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+				<i class="fas fa-truck text-primary"></i> Kargo Seçenekleri
+			</h5>
+			<div class="space-y-3">
+				<label class="flex items-center gap-4 cursor-pointer p-3 rounded-xl border-2 border-transparent hover:border-blue-500/10 hover:bg-blue-50/30 transition-all">
+					<input type="radio" name="shippingOption" checked class="w-5 h-5 accent-primary">
+					<div class="flex flex-col">
+						<span class="font-bold text-gray-800 text-sm">Standart Kargo</span>
+						<span class="text-xs text-gray-500 italic">2-4 İş Günü • Ücretsiz</span>
+					</div>
+				</label>
+				<label class="flex items-center gap-4 cursor-pointer p-3 rounded-xl border-2 border-transparent hover:border-blue-500/10 hover:bg-blue-50/30 transition-all">
+					<input type="radio" name="shippingOption" class="w-5 h-5 accent-primary">
+					<div class="flex flex-col">
+						<span class="font-bold text-gray-800 text-sm">Ekspres Kargo</span>
+						<span class="text-xs text-gray-500 italic">1 İş Günü • 29.90₺</span>
+					</div>
+				</label>
+				<label class="flex items-center gap-4 cursor-pointer p-3 rounded-xl border-2 border-transparent hover:border-blue-500/10 hover:bg-blue-50/30 transition-all">
+					<input type="radio" name="shippingOption" class="w-5 h-5 accent-primary">
+					<div class="flex flex-col">
+						<span class="font-bold text-gray-800 text-sm">Mağazadan Teslim Alma</span>
+						<span class="text-xs text-gray-500 italic">Anında • Ücretsiz</span>
+					</div>
+				</label>
+			</div>
+		</div>
+
+		<!-- Kupon Alanı -->
+		<div class="space-y-5">
+			<h5 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+				<i class="fas fa-ticket-alt text-primary"></i> İndirim Kuponu
+			</h5>
+			<div class="relative group">
+				<input type="text" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 pl-5 pr-32 focus:outline-none focus:border-primary focus:bg-white transition-all text-sm font-semibold" placeholder="Kupon Kodunuz">
+				<button class="absolute right-2 top-2 bottom-2 bg-primary text-white px-6 rounded-xl font-bold text-xs hover:bg-primary-dark transition-colors shadow-lg shadow-blue-500/20 active:scale-95">Uygula</button>
+			</div>
+			<div class="pt-2">
+				<span class="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block mb-2 px-1">Önerilen Kuponlar</span>
+				<div class="flex flex-wrap gap-2">
+					<span class="cart-badge uppercase cursor-pointer">ILKALIS10</span>
+					<span class="cart-badge uppercase cursor-pointer">YAZFIRSATI25</span>
+					<span class="cart-badge uppercase cursor-pointer">BEDAVA_KARGO</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="mt-6 p-6 cart-glass-card border-dashed border-2 border-primary/20 bg-blue-50/30">
+	<h6 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+		<i class="fas fa-gift text-primary"></i> Hediye Paketi
+	</h6>
+	<p class="text-xs text-gray-400 font-medium mb-4 italic">Sevdikleriniz için siparişinizi özel bir hediye paketine dönüştürelim (+9.90₺)</p>
+	<button class="w-full p-3 rounded-xl border border-primary/30 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all">Hediye Paketi Ekle</button>
+</div>

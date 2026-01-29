@@ -1,0 +1,129 @@
+﻿@page "/admin/categories"
+@using Application.DTOs
+@inject ICategoryService CategoryService
+@inject ILogger<Categories> _logger
+
+<HeadContent>
+    <link rel="stylesheet" href="/css/categories-admin.css" />
+</HeadContent>
+
+<div class="admin-header mt-4">
+    <h1><i class="fa-solid fa-gears"></i> Kategori Yönetimi</h1>
+    <a asp-action="MainCategoryCreate" class="admin-btn admin-btn-create">
+        <i class="fas fa-plus"></i> Yeni Kategori Ekle
+    </a>
+</div>
+
+<div class="col-lg-12 my-4">
+    <div class="admin-card shadow-sm">
+        <div class="admin-card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-th-list me-2"></i> Kategori Listesi
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                @if (model.Any())
+                {
+                    @foreach (var parentCategory in model.Where(c => c.ParentId == null))
+                    {
+                        <li class="list-group-item admincat-category-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <span class="category-name fw-bold">@parentCategory.CategoryName</span>
+                                    <span class="badge bg-info rounded-pill ms-2">@(model.Count(c => c.ParentId == parentCategory.CategoryId))</span>
+                                </div>
+                                <div class="action-buttons">
+                                    <button @onclick="() => ToggleSubcategories(parentCategory.CategoryId)" class="admin-action-btn p-0 admincat-toggle-subcategories">
+                                        (@subcategoryVisibility.Where(c => c.Key == parentCategory.CategoryId && c.Value).Any() ? <i class="fas fa-chevron-up"></i> : <i class="fas fa-chevron-down"></i>)
+                                    </button>
+                                    <a class="admin-action-btn admin-btn-edit" href="/admin/categories/update/@parentCategory.CategoryId" title="Düzenle">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a class="admin-action-btn admin-btn-delete" href="/admin/categories/delete/@parentCategory.CategoryId" title="Sil" onclick="return confirm('Bu kategoriyi silmek istediğinize emin misiniz?');">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="collapse mt-3" id="subcategories-@parentCategory.CategoryId">
+                                <div class="subcategory-container px-4">
+                                    <div class="subcategory-header d-flex justify-content-between align-items-center mt-4 mb-2">
+                                        <h6 class="mb-2 fw-bold">Alt Kategoriler</h6>
+                                        <a href="/admin/categories/add/@parentCategory.CategoryId" class="admin-btn admin-btn-create">
+                                            <i class="fas fa-plus-circle"></i> Alt Kategori Ekle
+                                        </a>
+                                    </div>
+                                    <ul class="list-group list-group-flush subcategory-list">
+                                        @if (model.Any(c => c.ParentId == parentCategory.CategoryId))
+                                        {
+                                            @foreach (var childCategory in model.Where(c => c.ParentId == parentCategory.CategoryId))
+                                            {
+                                                <li class="list-group-item admincat-subcategory-item">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span class="subcategory-name">@childCategory.CategoryName</span>
+                                                        <div class="action-buttons">
+                                                            <a class="admin-action-btn admin-btn-edit" title="Düzenle" href="/admin/categories/update/@childCategory.CategoryId">
+                                                                <i class="fas fa-edit"></i>
+                                                            </a>
+                                                            <a class="admin-action-btn admin-btn-delete" href="/admin/categories/delete/@childCategory.CategoryId" title="Sil" onclick="return confirm('Bu alt kategoriyi silmek istediğinize emin misiniz?');">
+                                                                <i class="fas fa-trash"></i>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            }
+                                        }
+                                        else
+                                        {
+                                        <li class="list-group-item text-center text-muted">Alt kategori bulunamadı.</li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </li>
+                    }
+                }
+                else
+                {
+                    <li class="list-group-item text-center">Henüz kategori bulunmamaktadır.</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+@code {
+    private IEnumerable<CategoryDto> model { get; set; } = new List<CategoryDto>();
+    private bool isLoading = false;
+    private string? errorMessage;
+    private Dictionary<int, bool> subcategoryVisibility = new Dictionary<int, bool>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            model = await CategoryService.GetAllCategoriesAsync(false);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            _logger.LogError($"Kategori verileri alınırken hata oluştu: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ToggleSubcategories(int mainCategoryId)
+    {
+        if (subcategoryVisibility.ContainsKey(mainCategoryId))
+        {
+            subcategoryVisibility[mainCategoryId] = !subcategoryVisibility[mainCategoryId];
+        }
+        else
+        {
+            subcategoryVisibility[mainCategoryId] = true;
+        }
+    }
+}

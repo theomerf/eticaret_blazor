@@ -1,0 +1,381 @@
+@using ETicaret.Extensions
+@{
+    var avatarUrl = "";
+    if (User?.Identity?.IsAuthenticated == true)
+    {
+        var avatarContent = await Component.InvokeAsync("Avatar");
+        using (var writer = new System.IO.StringWriter())
+        {
+            avatarContent.WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+            avatarUrl = writer.ToString();
+        }
+    }
+}
+
+<div id="navbarWrapper" class="fixed top-0 left-0 w-full z-[1050] transition-all duration-300">
+    
+    <nav class="bg-primary relative w-full py-2.5 lg:py-5 z-[1060] border-b border-white/5 bg-primary" 
+         id="mainNavbar"
+         style="backdrop-filter: blur(10px);">
+        <div class="mx-auto px-4 sm:px-6 lg:px-24 xl:px-48">
+            <div class="flex items-center justify-between w-full">
+                <a class="flex items-center font-bold text-white no-underline flex-shrink-0" href="/">
+                    <img src="~/images/logo-placeholder.png" class="w-32 sm:w-40 lg:w-64 h-auto object-contain brightness-110 saturate-120" alt="Logo" />
+                </a>
+
+                @{
+                    var searchTerm = Context.Request.Query["searchTerm"].ToString();
+                }
+
+                <div class="hidden lg:flex flex-1 mx-8 xl:mx-24">
+                    <form method="get" asp-controller="Products" asp-action="Index" id="navbarSearchForm" class="w-full">
+                        <div class="relative rounded-full overflow-hidden">
+                            <input name="searchTerm" 
+                                   id="navbarSearchInput" 
+                                   type="text" 
+                                   class="w-full h-11 rounded-full border-none bg-white/10 text-white px-6 pr-14 transition-all duration-400 focus:bg-white/20 focus:outline-none placeholder:text-white/60" 
+                                   style="backdrop-filter: blur(10px); box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);"
+                                   placeholder="Ürün, kategori, marka ara..." 
+                                   value="@searchTerm" />
+                            <button type="submit" 
+                                    id="navbarSearchBtn" 
+                                    class="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-button text-white border-none flex items-center justify-center transition-all duration-400 hover:bg-button-hover hover:scale-110"
+                                    style="box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);">
+                                <i class="fa-solid fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <button class="nav-button lg:hidden" 
+                            type="button" 
+                            id="mobileSearchToggle">
+                        <i class="fa-solid fa-search text-sm"></i>
+                    </button>
+
+                    @if (User?.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-controller="Account" 
+                           asp-action="Notifications" 
+                           class="nav-button group hidden sm:flex">
+                            <i class="fa-regular fa-bell text-white"></i>
+                            <span class="absolute -top-1 -right-1 text-xs font-semibold bg-badge border-2 border-transparent rounded-full px-1.5 py-0.5 animate-pulse"
+                                  style="box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);">
+                                @await Component.InvokeAsync("NotificationsSummary")
+                            </span>
+                        </a>
+
+                        <a asp-controller="Account" 
+                           asp-action="Favourites" 
+                           class="nav-button group hidden sm:flex">
+                            <i class="fa-regular fa-heart text-white"></i>
+                            <span class="absolute -top-1 -right-1 text-xs font-semibold bg-badge border-2 border-transparent rounded-full px-1.5 py-0.5 animate-pulse"
+                                  style="box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);">
+                                @await Component.InvokeAsync("FavouritesSummary")
+                            </span>
+                        </a>
+                    }
+
+                    <div>
+                        @if (User?.Identity?.IsAuthenticated == true)
+                        {
+                            <div id="userDropdown" class="relative">
+                                <div class="flex items-center text-white font-semibold cursor-pointer" 
+                                   role="button">
+                                    <div class="rounded-full overflow-hidden transition-all duration-400 bg-button p-0.5 hover:scale-110 shadow-lg border-none">
+                                        <img src="/images/@avatarUrl" alt="Avatar" class="rounded-full w-8 h-8 sm:w-9 sm:h-9 object-cover" />
+                                    </div>
+                                    <span class="hidden lg:inline text-sm ml-2">@User.FindFirst("first_name")?.Value @User.FindFirst("last_name")?.Value</span>
+                                </div>
+                                
+                                <div id="userDropdownMenu" class="hidden absolute right-[-1rem] sm:right-auto sm:left-1/2 sm:-translate-x-1/2 mt-3 w-[260px] max-w-[95vw] sm:w-auto sm:min-w-[280px] border-none rounded-3xl p-0 overflow-hidden bg-dropdown-gradient border border-white/20 z-[1100]" 
+                                     style="box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); backdrop-filter: blur(20px);">
+                                    <div class="bg-primary p-4 text-center relative overflow-hidden">
+                                        <div class="w-[70px] h-[70px] sm:w-[90px] sm:h-[90px] mx-auto mb-3 rounded-full overflow-hidden relative">
+                                            <img src="/images/@avatarUrl" 
+                                                 alt="Avatar" 
+                                                 class="w-full h-full object-cover border-0 transition-transform duration-300 hover:scale-105"
+                                                 style="box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);" />
+                                        </div>
+                                        <h6 class="mb-0 font-semibold text-white text-center text-sm sm:text-base">@User.Identity.Name</h6>
+                                        <small class="text-blue-100 block text-center">@(User.IsInRole("Admin") ? "Admin" : "Üye")</small>
+                                    </div>
+                                    
+                                    <div class="p-2 sm:p-3">
+                                        <a asp-controller="Account" 
+                                           asp-action="Index" 
+                                           class="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-300 rounded-xl mb-1 font-medium relative overflow-hidden hover:bg-blue-500/10 hover:text-blue-600 group no-underline text-sm sm:text-base">
+                                            <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                            <i class="fa-solid fa-user text-blue-500 transition-transform duration-300 group-hover:scale-120 mr-2 sm:mr-3 text-center sm:text-left"></i>
+                                            <span>Profilim</span>
+                                        </a>
+                                        
+                                        <a class="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-300 rounded-xl mb-1 font-medium relative overflow-hidden hover:bg-blue-500/10 hover:text-blue-600 group no-underline text-sm sm:text-base" 
+                                           href="account/orders">
+                                            <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                            <i class="fa-solid fa-box text-blue-500 transition-transform duration-300 group-hover:scale-120 mr-2 sm:mr-3 text-center sm:text-left"></i>
+                                            <span>Siparişlerim</span>
+                                        </a>
+
+                                        <a asp-controller="Account" 
+                                           asp-action="Notifications" 
+                                           class="flex sm:hidden items-center px-3 py-2.5 transition-all duration-300 rounded-xl mb-1 font-medium relative overflow-hidden hover:bg-blue-500/10 hover:text-blue-600 group no-underline text-sm">
+                                            <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                            <i class="fa-regular fa-bell text-blue-500 transition-transform duration-300 group-hover:scale-120 mr-2 text-center"></i>
+                                            <span>Bildirimler</span>
+                                        </a>
+                                        
+                                        <a asp-controller="Account" 
+                                           asp-action="Favourites" 
+                                           class="flex sm:hidden items-center px-3 py-2.5 transition-all duration-300 rounded-xl mb-1 font-medium relative overflow-hidden hover:bg-blue-500/10 hover:text-blue-600 group no-underline text-sm">
+                                            <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                            <i class="fa-regular fa-heart text-blue-500 transition-transform duration-300 group-hover:scale-120 mr-2 text-center"></i>
+                                            <span>Favorilerim</span>
+                                        </a>
+
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <a class="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-300 rounded-xl mb-1 font-medium relative overflow-hidden hover:bg-blue-500/10 hover:text-blue-600 group no-underline text-sm sm:text-base" 
+                                               asp-controller="Admin" 
+                                               asp-action="Index">
+                                                <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                                <i class="fa-solid fa-gauge-high text-blue-500 transition-transform duration-300 group-hover:scale-120 mr-2 sm:mr-3 text-center sm:text-left"></i>
+                                                <span>Admin Paneli</span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a class="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-300 rounded-xl mb-1 font-medium relative overflow-hidden hover:bg-blue-500/10 hover:text-blue-600 group no-underline text-sm sm:text-base" 
+                                               href="#">
+                                                <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                                <i class="fa-solid fa-tag text-blue-500 transition-transform duration-300 group-hover:scale-120 mr-2 sm:mr-3 text-center sm:text-left"></i>
+                                                <span>Kuponlarım</span>
+                                            </a>
+                                        }
+                                        
+                                        <div class="border-t border-gray-200 my-2"></div>
+                                        
+                                        <form method="post" asp-controller="Account" asp-action="Logout">
+                                            <button type="submit" 
+                                                class="w-full flex items-center px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-300 rounded-xl mb-1 font-medium relative overflow-hidden text-red-500 hover:bg-red-500/10 hover:text-red-600 group text-sm sm:text-base">
+                                                <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                                <i class="fa-solid fa-right-from-bracket text-red-500 transition-transform duration-300 group-hover:scale-120 mr-2 sm:mr-3 text-center sm:text-left"></i>
+                                                <span>Çıkış Yap</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <a class="hidden items-center justify-center sm:flex text-white font-semibold bg-button border-none transition-all duration-400 min-w-[120px] lg:min-w-[140px] text-center py-2.5 sm:py-3 px-4 sm:px-6 rounded-full relative overflow-hidden hover:bg-button-hover hover:-translate-y-1 group text-sm sm:text-base mr-2"
+                               style="box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);"
+                               asp-controller="Account" 
+                               asp-action="Login" 
+                               asp-route-returnUrl="@Context.Request.PathAndQuery()">
+                                <i class="fa-solid fa-right-to-bracket mr-2"></i> Giriş Yap
+                            </a>
+                            <a class="nav-button sm:hidden"
+                               asp-controller="Account" 
+                               asp-action="Login" 
+                               asp-route-returnUrl="@Context.Request.PathAndQuery()">
+                                <i class="fa-solid fa-right-to-bracket text-sm"></i>
+                            </a>
+                        }
+                    </div>
+
+                    <a class="nav-button group relative"
+                       asp-controller="Cart" 
+                       asp-action="Index">
+                        <i class="fa-solid fa-shopping-cart text-white"></i>
+                        <span class="absolute -top-1 -right-1 text-xs font-semibold bg-badge border-2 border-transparent rounded-full px-1.5 py-0.5 animate-pulse"
+                              style="box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);">
+                            @await Component.InvokeAsync("CartSummary")
+                        </span>
+                        <div class="absolute inset-0 bg-hover-overlay opacity-0 transition-opacity duration-300 rounded-full group-hover:opacity-100"></div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="hidden lg:hidden mt-4 w-full" id="mobileSearchContainer">
+                <form method="get" asp-controller="Products" asp-action="Index" class="w-full">
+                    <div class="relative rounded-full overflow-hidden">
+                        <input name="searchTerm" 
+                               type="text" 
+                               class="w-full h-11 rounded-full border-2 border-white/10 bg-white/5 text-white px-5 pr-14 transition-all duration-400 focus:border-blue-500 focus:bg-white/10 focus:outline-none placeholder:text-white/60 text-sm" 
+                               style="backdrop-filter: blur(10px); box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);"
+                               placeholder="Ürün, kategori, marka ara..." 
+                               value="@searchTerm" />
+                        <button class="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-button text-white border-none flex items-center justify-center transition-all duration-400 hover:bg-button-hover hover:scale-110" 
+                                style="box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);"
+                                type="submit">
+                            <i class="fa-solid fa-search text-sm"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </nav>
+    
+    <nav class="bg-primary py-2 lg:py-3 transition-all duration-500 relative w-full z-[1050] border-b border-white/5 rounded-b-3xl" 
+         style="backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);"
+         id="categoryNavbar">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="hidden lg:block">
+                <ul class="flex flex-wrap justify-between items-center w-full">
+                    <li class="relative" id="categoryDropdownWrapper">
+                        <a class="text-white font-semibold flex items-center py-2.5 px-5 rounded-xl transition-all duration-400 overflow-hidden relative hover:-translate-y-1 group no-underline" 
+                           href="#"
+                           id="categoriesDropdown" 
+                           role="button">
+                            <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-400 -z-10 group-hover:left-0"></div>
+                            <div class="absolute w-0 h-0.5 bottom-2 left-1/2 bg-white/10 transition-all duration-400 opacity-0 rounded -translate-x-1/2 group-hover:w-[70%] group-hover:opacity-100"></div>
+                            <i class="fa-solid fa-layer-group mr-1"></i> Tüm Kategoriler
+                        </a>
+                    </li>
+
+                    <li>
+                        <div class="flex justify-center mx-8 flex-grow">
+                            <a class="text-white font-semibold py-2 px-4 mx-2 rounded-xl transition-all duration-300 relative overflow-hidden hover:bg-white/10 group no-underline" 
+                               asp-controller="Products" 
+                               asp-action="Index" 
+                               asp-route-categoryId="10">
+                                <div class="absolute top-0 -left-full w-full h-full bg-white/10 transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                Kadın
+                            </a>
+                            <a class="text-white font-semibold py-2 px-4 mx-2 rounded-xl transition-all duration-300 relative overflow-hidden hover:bg-white/10 group no-underline" 
+                               asp-controller="Products" 
+                               asp-action="Index" 
+                               asp-route-categoryId="9">
+                                <div class="absolute top-0 -left-full w-full h-full bg-white/10 transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                Erkek
+                            </a>
+                            <a class="text-white font-semibold py-2 px-4 mx-2 rounded-xl transition-all duration-300 relative overflow-hidden hover:bg-white/10 group no-underline" 
+                               asp-controller="Products" 
+                               asp-action="Index" 
+                               asp-route-categoryId="4">
+                                <div class="absolute top-0 -left-full w-full h-full bg-white/10 transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                Beyaz Eşya
+                            </a>
+                            <a class="text-white font-semibold py-2 px-4 mx-2 rounded-xl transition-all duration-300 relative overflow-hidden hover:bg-white/10 group no-underline" 
+                               asp-controller="Products" 
+                               asp-action="Index" 
+                               asp-route-categoryId="3">
+                                <div class="absolute top-0 -left-full w-full h-full bg-white/10 transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                Ev Aletleri
+                            </a>
+                            <a class="text-white font-semibold py-2 px-4 mx-2 rounded-xl transition-all duration-300 relative overflow-hidden hover:bg-white/10 group no-underline" 
+                               asp-controller="Products" 
+                               asp-action="Index" 
+                               asp-route-categoryId="1">
+                                <div class="absolute top-0 -left-full w-full h-full bg-white/10 transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                Teknoloji
+                            </a>
+                            <a class="text-white font-semibold py-2 px-4 mx-2 rounded-xl transition-all duration-300 relative overflow-hidden hover:bg-white/10 group no-underline" 
+                               asp-controller="Products" 
+                               asp-action="Index" 
+                               asp-route-categoryId="5">
+                                <div class="absolute top-0 -left-full w-full h-full bg-white/10 transition-all duration-300 -z-10 group-hover:left-0"></div>
+                                Kitap
+                            </a>
+                        </div>
+                    </li>
+
+                    <li>
+                        <a class="text-white font-semibold flex items-center py-2.5 px-5 rounded-xl transition-all duration-400 overflow-hidden relative hover:-translate-y-1 group no-underline" 
+                           asp-controller="Products" 
+                           asp-action="Index">
+                            <div class="absolute top-0 -left-full w-full h-full bg-hover-overlay transition-all duration-400 -z-10 group-hover:left-0"></div>
+                            <div class="absolute w-0 h-0.5 bottom-2 left-1/2 bg-white/10 transition-all duration-400 opacity-0 rounded -translate-x-1/2 group-hover:w-[70%] group-hover:opacity-100"></div>
+                            <i class="fa-solid fa-box mr-1"></i> Tüm Ürünler
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="lg:hidden w-full overflow-hidden">
+                <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 px-1" style="-webkit-overflow-scrolling: touch;">
+                    <a class="flex-shrink-0 text-white text-sm font-medium flex items-center py-2 px-3 rounded-full bg-white/10 transition-all duration-300 hover:bg-white/20 no-underline whitespace-nowrap"
+                       href="#"
+                       id="mobileCategoriesBtn">
+                        <i class="fa-solid fa-layer-group mr-1.5"></i> Kategoriler
+                    </a>
+                    <a class="flex-shrink-0 text-white text-sm font-medium py-2 px-3 rounded-full transition-all duration-300 hover:bg-white/10 no-underline whitespace-nowrap" 
+                       asp-controller="Products" 
+                       asp-action="Index" 
+                       asp-route-categoryId="10">
+                        Kadın
+                    </a>
+                    <a class="flex-shrink-0 text-white text-sm font-medium py-2 px-3 rounded-full transition-all duration-300 hover:bg-white/10 no-underline whitespace-nowrap" 
+                       asp-controller="Products" 
+                       asp-action="Index" 
+                       asp-route-categoryId="9">
+                        Erkek
+                    </a>
+                    <a class="flex-shrink-0 text-white text-sm font-medium py-2 px-3 rounded-full transition-all duration-300 hover:bg-white/10 no-underline whitespace-nowrap" 
+                       asp-controller="Products" 
+                       asp-action="Index" 
+                       asp-route-categoryId="4">
+                        Beyaz Eşya
+                    </a>
+                    <a class="flex-shrink-0 text-white text-sm font-medium py-2 px-3 rounded-full transition-all duration-300 hover:bg-white/10 no-underline whitespace-nowrap" 
+                       asp-controller="Products" 
+                       asp-action="Index" 
+                       asp-route-categoryId="3">
+                        Ev Aletleri
+                    </a>
+                    <a class="flex-shrink-0 text-white text-sm font-medium py-2 px-3 rounded-full transition-all duration-300 hover:bg-white/10 no-underline whitespace-nowrap" 
+                       asp-controller="Products" 
+                       asp-action="Index" 
+                       asp-route-categoryId="1">
+                        Teknoloji
+                    </a>
+                    <a class="flex-shrink-0 text-white text-sm font-medium py-2 px-3 rounded-full transition-all duration-300 hover:bg-white/10 no-underline whitespace-nowrap" 
+                       asp-controller="Products" 
+                       asp-action="Index" 
+                       asp-route-categoryId="5">
+                        Kitap
+                    </a>
+                    <a class="flex-shrink-0 text-white text-sm font-medium flex items-center py-2 px-3 rounded-full bg-white/10 transition-all duration-300 hover:bg-white/20 no-underline whitespace-nowrap"
+                       asp-controller="Products"
+                       asp-action="Index">
+                        <i class="fa-solid fa-box mr-1"></i> Tüm Ürünler
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<div class="fixed hidden left-0 right-0 py-6 px-6 border-none bg-dropdown-gradient z-[1045] border border-white/20 rounded-b-2xl" 
+     style="box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25); backdrop-filter: blur(20px); margin-left: 200px; margin-right: 200px;"
+     id="categoriesMegaDropdown">
+    <div class="flex gap-6">
+        @await Component.InvokeAsync("CategoriesMenu")
+    </div>
+</div>
+
+<div class="h-[116px] lg:h-[164px]" id="navbarSpacer"></div>
+
+<div id="mobileCategoriesModal" class="fixed inset-0 z-[10005] hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="mobileCategoriesBackdrop"></div>
+    
+    <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-hidden transform translate-y-full transition-transform duration-300" id="mobileCategoriesContent">
+        <div class="flex justify-center py-3">
+            <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+        </div>
+        
+        <div class="flex items-center justify-between px-5 pb-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">Kategoriler</h3>
+            <button id="closeMobileCategoriesModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="overflow-y-auto max-h-[calc(85vh-100px)] z-[3100] p-4" id="mobileCategoriesListContainer">
+            @await Component.InvokeAsync("CategoriesMenuMobile")
+        </div>
+    </div>
+</div>

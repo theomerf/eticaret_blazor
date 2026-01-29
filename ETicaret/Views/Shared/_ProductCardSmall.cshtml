@@ -1,0 +1,94 @@
+﻿@using System.Globalization
+@using ETicaret.Services
+@using System.Security.Claims
+@model ProductDto
+
+@{
+    var favouriteIds = ViewBag.FavouriteIds as List<int>;
+
+    var cart = Context.RequestServices.GetRequiredService<Cart>();
+    var isInCart = cart?.Lines?.Any(l => l.ProductId == Model?.ProductId) ?? false;
+}
+
+<div class="my-2 px-0.5 sm:px-2 [perspective:1000px] product-wrapper w-full">
+    <div class="product-card animate-[fadeInUp_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)] group flex flex-col"
+         data-cursor-id="@Model.ProductId">
+        <div class="flex flex-col">
+            <a asp-action="Get" asp-controller="Products" asp-route-slug="@Model?.Slug" class="no-underline relative z-[2] flex flex-col">
+                <div class="relative h-[80px] sm:h-[120px] bg-gradient-to-br from-white via-slate-50 to-slate-100 overflow-hidden rounded-t-xl after:absolute after:bottom-0 after:left-0 after:right-0 after:h-5 sm:after:h-7 after:bg-gradient-to-t after:from-white/80 after:to-transparent after:z-[1]">
+                    <img src="@Model?.Images?.FirstOrDefault()?.ImageUrl" class="w-full h-full object-contain p-2 sm:p-5 transition-all duration-[600ms] group-hover:scale-110" alt="@Model?.ProductName" loading="lazy">
+                </div>
+
+                <div class="px-2 py-2 text-center flex flex-col relative z-[2] transition-transform duration-300 group-hover:-translate-y-0.5">
+                    <div class="mb-1 flex flex-col items-center">
+                        <h5 class="text-[0.65rem] sm:text-xs leading-[1.2] font-bold m-0 overflow-hidden text-ellipsis [-webkit-line-clamp:2] [-webkit-box-orient:vertical] [display:-webkit-box] text-slate-800 tracking-tight">
+                            @Model?.ProductName
+                        </h5>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 mt-auto">
+                        @if (Model?.DiscountPrice != null && Model?.ActualPrice > Model?.DiscountPrice)
+                        {
+                            <span class="line-through text-slate-400 text-[0.55rem] sm:text-xs font-medium">
+                                @Model?.ActualPrice.ToString("C0", new CultureInfo("tr-TR"))
+                            </span>
+                            <span class="font-extrabold text-xs sm:text-sm bg-primary bg-clip-text text-transparent tracking-tight">
+                                @Model?.DiscountPrice?.ToString("C0", new CultureInfo("tr-TR"))
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="font-extrabold text-xs sm:text-sm bg-primary bg-clip-text text-transparent tracking-tight">
+                                @Model?.ActualPrice.ToString("C0", new CultureInfo("tr-TR"))
+                            </span>
+                        }
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="absolute top-1 right-1 flex flex-col gap-1 sm:gap-2 z-[4] opacity-0 translate-x-3 scale-75 transition-all duration-[400ms] group-hover:opacity-100 group-hover:translate-x-0 group-hover:scale-100">
+            @if (User.Identity != null && User.Identity.IsAuthenticated && Context.User.FindFirstValue(ClaimTypes.NameIdentifier) != null)
+            {
+                if (favouriteIds != null && Model != null && favouriteIds.Contains(Model.ProductId))
+                {
+                    <button type="button"
+                        class="remove-from-favs-btn w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center border-none shadow-sm text-red-500 transition-all duration-300 backdrop-blur-[10px] border border-white/30 hover:scale-110 hover:shadow-md"
+                        data-product-id="@Model?.ProductId" title="Favorilerden Kaldır">
+                        <i class="fas fa-heart text-[8px] sm:text-xs"></i>
+                    </button>
+                }
+                else
+                {
+                    <button type="button" 
+                        class="add-to-favs-btn w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-white to-slate-50 flex items-center justify-center border-none shadow-sm text-slate-500 transition-all duration-300 backdrop-blur-[10px] border border-white/30 hover:scale-110 hover:shadow-md hover:bg-gradient-to-br hover:from-red-50 hover:to-red-100 hover:text-red-500"
+                        data-product-id="@Model?.ProductId" title="Favorilere Ekle">
+                        <i class="far fa-heart text-[8px] sm:text-xs"></i>
+                    </button>
+                }
+            }
+            else
+            {
+                <a href="/login" class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-white to-slate-50 flex items-center justify-center border-none shadow-sm text-slate-500 transition-all duration-300 backdrop-blur-[10px] border border-white/30 hover:scale-110 hover:shadow-md hover:bg-gradient-to-br hover:from-red-50 hover:to-red-100 hover:text-red-500 no-underline">
+                    <i class="far fa-heart text-[8px] sm:text-xs"></i>
+                </a>
+            }
+        </div>
+
+        <div class="px-2 pb-2 cart-action small-card-action flex justify-center relative z-[2] transition-all duration-300">
+             @if (isInCart)
+             {
+                <button type="button" class="remove-from-cart-btn w-full py-2 text-[0.6rem] border-none rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]" data-product-id="@Model?.ProductId">
+                    <span class="mr-1">Çıkar</span>
+                    <i class="fas fa-trash-alt text-[10px]"></i>
+                </button>
+             }
+             else
+             {
+                <button type="button" class="add-to-cart-btn w-full py-2 text-[0.6rem] border-none rounded-xl bg-button text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]" data-product-id="@Model?.ProductId">
+                    <span class="mr-1">Ekle</span>
+                    <i class="fas fa-cart-plus text-[10px]"></i>
+                </button>
+             }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,121 @@
+﻿
+@model string    
+<div class="complete-container">
+        <div class="complete-header">
+            <div class="complete-checkmark">
+                <i class="fas fa-check"></i>
+            </div>
+            <h1 class="complete-title">Order Confirmed</h1>
+            <p class="complete-subtitle">Thank you for your purchase! Your order has been received and is being processed.</p>
+        </div>
+
+        <div class="complete-order-info">
+            <div class="complete-order-number">
+                <strong>Order Number:</strong>
+                <span>#@Model</span>
+            </div>
+            <div class="complete-order-date">
+                <strong>Order Date:</strong> May 5, 2025
+            </div>
+            <div class="complete-order-email">
+                <strong>Confirmation sent to:</strong> customer@example.com
+            </div>
+        </div>
+
+        <div class="complete-estimated-delivery">
+            <i class="fas fa-truck"></i>
+            <div class="complete-delivery-text">
+                Estimated delivery: <span class="complete-delivery-date">May 8 - May 12, 2025</span><br>
+                You'll receive tracking information by email once your order ships.
+            </div>
+        </div>
+
+        <div class="complete-order-summary">
+            <h3 class="complete-summary-title">Order Summary</h3>
+
+            <div class="complete-product-item">
+                <div class="complete-product-image">
+                    <img src="/api/placeholder/50/50" alt="Product">
+                </div>
+                <div class="complete-product-details">
+                    <div class="complete-product-name">Premium Headphones</div>
+                    <div class="complete-product-variant">Color: Black | Qty: 1</div>
+                </div>
+                <div class="complete-product-price">$129.99</div>
+            </div>
+
+            <div class="complete-product-item">
+                <div class="complete-product-image">
+                    <img src="/api/placeholder/50/50" alt="Product">
+                </div>
+                <div class="complete-product-details">
+                    <div class="complete-product-name">Wireless Charger</div>
+                    <div class="complete-product-variant">15W Fast Charging | Qty: 2</div>
+                </div>
+                <div class="complete-product-price">$49.98</div>
+            </div>
+
+            <div class="complete-divider"></div>
+
+            <div class="complete-price-summary">
+                <div class="complete-price-row">
+                    <span>Subtotal</span>
+                    <span>$179.97</span>
+                </div>
+                <div class="complete-price-row">
+                    <span>Shipping</span>
+                    <span>$12.50</span>
+                </div>
+                <div class="complete-price-row">
+                    <span>Tax</span>
+                    <span>$17.99</span>
+                </div>
+                <div class="complete-price-total">
+                    <span>Total</span>
+                    <span>$210.46</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="complete-shipping-info">
+            <h3 class="complete-summary-title">Shipping Information</h3>
+
+            <div class="complete-address-grid">
+                <div class="complete-address-box">
+                    <h4>Shipping Address</h4>
+                    <div class="complete-address-content">
+                        John Doe<br>
+                        123 Main Street<br>
+                        Apt 4B<br>
+                        New York, NY 10001<br>
+                        United States
+                    </div>
+                </div>
+
+                <div class="complete-address-box">
+                    <h4>Billing Address</h4>
+                    <div class="complete-address-content">
+                        John Doe<br>
+                        123 Main Street<br>
+                        Apt 4B<br>
+                        New York, NY 10001<br>
+                        United States
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="complete-buttons">
+            <a href="#" class="complete-btn complete-btn-primary">Track Your Order</a>
+            <a asp-controller="Home" asp-action="Index" class="complete-btn complete-btn-outline">Return to Store</a>
+        </div>
+
+        <div class="complete-help-section">
+            <p class="complete-help-text">Need help with your order?</p>
+            <div class="complete-help-links">
+                <a href="#" class="complete-help-link">Contact Support</a>
+                <a href="#" class="complete-help-link">Return Policy</a>
+                <a href="#" class="complete-help-link">FAQ</a>
+            </div>
+        </div>
+    </div>

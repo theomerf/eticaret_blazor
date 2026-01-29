@@ -1,0 +1,122 @@
+﻿@using Application.Queries.RequestParameters
+@using ETicaret.Models
+@inject IJSRuntime JSRuntime
+@inject ICategoryService CategoryService
+
+<div class="modern-category-filter">
+    <div class="main-categories-section">
+        <div class="section-title">
+            <h3>Ana Kategoriler</h3>
+        </div>
+        <div class="main-categories-grid">
+            <div class="main-category-card @(FilterParams.CategoryId == null ? "active" : "")"
+                 @onclick="() => SelectMainCategory(null)">
+                <a class="category-link">
+                    <div class="category-icon">
+                        <i class="fas fa-th-large"></i>
+                    </div>
+                    <span class="category-name">Tüm Ürünler</span>
+                </a>
+            </div>
+            @foreach (var parentCategory in model.Where(c => c.ParentId == null))
+            {
+                var isParentActive = (FilterParams.CategoryId == parentCategory.CategoryId) || FilterParams.CategoryId == (model.FirstOrDefault(c => c.CategoryId == FilterParams.CategoryId)?.CategoryId);
+                <div class="main-category-card @(isParentActive ? "active" : "")"
+                     @onclick="() => SelectMainCategory(parentCategory.CategoryId)">
+                    <a class="category-link">
+                        <div class="category-icon">
+                            <i class="@GetCategoryIcon(parentCategory.CategoryName)"></i>
+                        </div>
+                        <span class="category-name">@parentCategory.CategoryName</span>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="sub-categories-section" style="display: @(FilterParams.CategoryId != null ? "block" : "none")">
+        <div class="section-title">
+            <h3 id="subcategory-title">Alt Kategoriler</h3>
+            <span id="selected-main-category" class="selected-category-badge">
+                Tüm Kategoriler
+            </span>
+        </div>
+        <div class="sub-categories-grid" id="subcategories-container">
+            @foreach (var childCategory in model.Where(m => m.ParentId == FilterParams.CategoryId))
+            {
+                var isChildActive = FilterParams.CategoryId == childCategory.CategoryId;
+                <div class="sub-category-card @(isChildActive ? "active" : "")"
+                     @onclick="() => SelectSubCategory(childCategory.CategoryId, childCategory.CategoryId)">
+                    <a class="category-link">
+                        <div class="category-icon">
+                            <i class="@GetSubCategoryIcon(childCategory.CategoryName)"></i>
+                        </div>
+                        <div class="category-info">
+                            <span class="category-name">@childCategory.CategoryName</span>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter(Name = "FilterParams")]
+    public ProductRequestParameters FilterParams { get; set; } = new();
+    [CascadingParameter(Name = "OnFilterChange")]
+    public Func<Task> OnFilterChange { get; set; } = async () => { };
+
+    private IEnumerable<CategoryDto> model = new List<CategoryDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        model = await CategoryService.GetAllCategoriesAsync(false);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initializePriceSlider");
+        }
+    }
+
+    private async Task SelectMainCategory(int? mainCategoryId)
+    {
+        FilterParams.CategoryId = mainCategoryId;
+        await OnFilterChange.Invoke();
+    }
+
+    private async Task SelectSubCategory(int mainCategoryId, int subCategoryId)
+    {
+        FilterParams.CategoryId = mainCategoryId;
+        await OnFilterChange.Invoke();
+    }
+
+    private string GetCategoryIcon(string categoryName)
+    {
+        if (categoryName.Contains("Teknoloji") || categoryName.Contains("Phone")) return "fas fa-mobile-alt";
+        else if (categoryName.Contains("Bilgisayar") || categoryName.Contains("Computer")) return "fas fa-laptop";
+        else if (categoryName.Contains("Tablet")) return "fas fa-tablet-alt";
+        else if (categoryName.Contains("Kamera") || categoryName.Contains("Camera")) return "fas fa-camera";
+        else if (categoryName.Contains("TV") || categoryName.Contains("Televizyon")) return "fas fa-tv";
+        else if (categoryName.Contains("Oyun") || categoryName.Contains("Game")) return "fas fa-gamepad";
+        else if (categoryName.Contains("Ses") || categoryName.Contains("Audio")) return "fas fa-headphones";
+        else if (categoryName.Contains("Giyim") || categoryName.Contains("Clothing")) return "fas fa-tshirt";
+        else if (categoryName.Contains("Ev") || categoryName.Contains("Home")) return "fas fa-home";
+        else if (categoryName.Contains("Kitap") || categoryName.Contains("Sport")) return "fas fa-book";
+        else return "fas fa-cube";
+    }
+    private string GetSubCategoryIcon(string subCategoryName)
+    {
+        if (subCategoryName.Contains("iPhone") || subCategoryName.Contains("Apple")) return "fab fa-apple";
+        else if (subCategoryName.Contains("Samsung")) return "fas fa-mobile-alt";
+        else if (subCategoryName.Contains("Laptop")) return "fas fa-laptop";
+        else if (subCategoryName.Contains("Desktop")) return "fas fa-desktop";
+        else if (subCategoryName.Contains("Gaming")) return "fas fa-gamepad";
+        else if (subCategoryName.Contains("Wireless")) return "fas fa-wifi";
+        else if (subCategoryName.Contains("Cable")) return "fas fa-plug";
+        else return "fas fa-tag";
+    }
+}

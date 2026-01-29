@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="~/" />
+    <meta name="robots" content="@(ViewData["Robots"] ?? "index, follow")" />
+    <link rel="canonical" href="@ViewData["Canonical"]" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="@ViewData["OgTitle"]" />
+    <meta property="og:description" content="@ViewData["OgDescription"]" />
+    <meta property="og:url" content="@ViewData["Canonical"]" />
+    <meta property="og:image" content="@ViewData["OgImage"]" />
+    <title>Sipariş Kapıda - @ViewData["Title"]</title>
+    <link rel="stylesheet" asp-append-version="true" href="~/css/site.css">
+    <link rel="stylesheet" asp-append-version="true" href="~/lib/font-awesome/css/all.css">
+    @await RenderSectionAsync("Styles", required: false)
+    <link rel="stylesheet" asp-append-version="true" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+</head>
+
+<body class="flex flex-col min-h-screen">
+    <header>    
+        <partial name="_Navbar" />
+        @RenderSection("Header", false)
+    </header>
+    <div class="mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 max-w-[1440px] w-full flex-grow">
+        <div>
+            @if (TempData["visible"]?.ToString() != "false")
+            {
+                <partial name="_Notification" />
+            }
+        </div>
+        <main role="main" class="lg:mt-4" id="main-content">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="mt-5"> 
+        <partial name="_Footer" />
+        @RenderSection("Footer", false)
+    </footer>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script asp-append-version="true" src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script asp-append-version="true" src="~/js/site.js"></script>
+    <script asp-append-version="true" src="~/js/navbar.js"></script>
+    <script asp-append-version="true" src="~/js/categories-menu.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    @if (ViewData["UseBlazor"] as bool? == true)
+    {
+        <script src="~/_framework/blazor.server.js"></script>
+    }
+</body>
+    
+</html>

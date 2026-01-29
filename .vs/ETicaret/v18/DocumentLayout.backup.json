@@ -1,0 +1,104 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_aspnet_blazor\\e-ticaret\\views\\products\\_productslistpartial.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|solutionrelative:e-ticaret\\views\\products\\_productslistpartial.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_aspnet_blazor\\e-ticaret\\components\\pages\\admin\\products.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|solutionrelative:e-ticaret\\components\\pages\\admin\\products.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_aspnet_blazor\\e-ticaret\\areas\\admin\\views\\product\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|solutionrelative:e-ticaret\\areas\\admin\\views\\product\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_aspnet_blazor\\e-ticaret\\components\\pages\\admin\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{8E6C851A-E20C-4AFB-8855-E976B8640932}|E-Ticaret\\ETicaret.csproj|solutionrelative:e-ticaret\\components\\pages\\admin\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "_ProductsListPartial.cshtml",
+              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Views\\Products\\_ProductsListPartial.cshtml",
+              "RelativeDocumentMoniker": "E-Ticaret\\Views\\Products\\_ProductsListPartial.cshtml",
+              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Views\\Products\\_ProductsListPartial.cshtml",
+              "RelativeToolTip": "E-Ticaret\\Views\\Products\\_ProductsListPartial.cshtml",
+              "ViewState": "AgIAABoBAAAAAAAAAAAcwC4BAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-01-14T22:14:52.476Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Products.razor",
+              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Components\\Pages\\Admin\\Products.razor",
+              "RelativeDocumentMoniker": "E-Ticaret\\Components\\Pages\\Admin\\Products.razor",
+              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Components\\Pages\\Admin\\Products.razor",
+              "RelativeToolTip": "E-Ticaret\\Components\\Pages\\Admin\\Products.razor",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAAAM0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-01-14T22:14:27.436Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Index.cshtml",
+              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Areas\\Admin\\Views\\Product\\Index.cshtml",
+              "RelativeDocumentMoniker": "E-Ticaret\\Areas\\Admin\\Views\\Product\\Index.cshtml",
+              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Areas\\Admin\\Views\\Product\\Index.cshtml",
+              "RelativeToolTip": "E-Ticaret\\Areas\\Admin\\Views\\Product\\Index.cshtml",
+              "ViewState": "AgIAAJ0AAAAAAAAAAAAcwMwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-01-14T22:14:02.707Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Dashboard.razor",
+              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Components\\Pages\\Admin\\Dashboard.razor",
+              "RelativeDocumentMoniker": "E-Ticaret\\Components\\Pages\\Admin\\Dashboard.razor",
+              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\Eticaret_aspnet_Blazor\\E-Ticaret\\Components\\Pages\\Admin\\Dashboard.razor",
+              "RelativeToolTip": "E-Ticaret\\Components\\Pages\\Admin\\Dashboard.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-01-14T20:32:51.674Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:2:0:{e8034f19-ab72-4f06-83fd-f6832b41aa63}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{e8034f19-ab72-4f06-83fd-f6832b41aa63}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

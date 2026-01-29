@@ -1,0 +1,44 @@
+﻿@model ProductListViewModel
+
+<div class="p-5">
+    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+        <i class="fa-solid fa-sort text-blue-600 mr-2"></i>
+        Sıralama Seçenekleri
+    </h4>
+
+    <form id="mobileSortForm" method="get" asp-action="Index">
+        <div class="space-y-2">
+            @{
+                var currentSort = Context.Request.Query["sortBy"].ToString();
+                var sortOptions = new[] {
+                        new { Value = "default", Label = "Varsayılan", Icon = "fa-list" },
+                        new { Value = "price_asc", Label = "Fiyat: Düşükten Yükseğe", Icon = "fa-arrow-up-short-wide" },
+                        new { Value = "price_desc", Label = "Fiyat: Yüksekten Düşüğe", Icon = "fa-arrow-down-wide-short" },
+                        new { Value = "topReviews", Label = "En Yüksek Puanlılar", Icon = "fa-star" },
+                        new { Value = "mostReviews", Label = "En Çok Değerlendirme", Icon = "fa-comments" }
+                        };
+
+                foreach (var option in sortOptions)
+                {
+                    var isActive = currentSort == option.Value || (string.IsNullOrEmpty(currentSort) && option.Value == "default");
+                    <label class="mobile-sort-label flex items-center p-4 rounded-xl border-2 @(isActive ? "border-blue-500 bg-blue-50 sort-active" : "border-gray-200 bg-white") cursor-pointer transition-all duration-300 hover:border-blue-300 hover:bg-blue-50/50">
+                        <input type="radio"
+                               name="SortBy"
+                               value="@option.Value"
+                               class="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
+                               @(isActive ? "checked" : "")>
+                        <div class="ml-3 flex-1">
+                            <div class="flex items-center">
+                                <i class="fa-solid @option.Icon text-blue-600 mr-2"></i>
+                                <span class="font-medium text-gray-800">@option.Label</span>
+                            </div>
+                        </div>
+                        <span class="check-icon @(isActive ? "" : "hidden")">
+                            <i class="fa-solid fa-check text-blue-600 ml-2"></i>
+                        </span>
+                    </label>
+                }
+            }
+        </div>
+    </form>
+</div>

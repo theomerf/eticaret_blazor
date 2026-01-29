@@ -1,0 +1,11 @@
+﻿@using ETicaret.Components.Pages
+@{
+    ViewData["Title"] = "Kullanıcı Bilgilerim";
+    ViewData["UseBlazor"] = true;
+}
+
+@section Styles {
+	<link asp-append-version="true" href="~/css/profile.css" rel="stylesheet" />
+}
+
+<component type="typeof(Account)" render-mode="ServerPrerendered" />

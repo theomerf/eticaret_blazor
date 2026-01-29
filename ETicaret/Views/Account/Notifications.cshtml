@@ -1,0 +1,139 @@
+﻿@using Application.DTOs
+@using Microsoft.AspNetCore.Html
+@model IEnumerable<NotificationDto>
+
+@section Scripts {
+	<script src="~/js/notifications.js"></script>
+}
+
+@{
+    ViewData["Title"] = "Bildirimlerim";
+
+	var unReadNotificationCount = 0;
+	foreach (var notification in Model)
+	{
+		if (notification.IsRead == false)
+		{
+			unReadNotificationCount++;
+		}
+		else
+		{
+			continue;
+		}
+	}
+}
+
+<div>
+	<h2 class="page-title">Bildirimlerim</h2>
+
+	<div class="notif-list">
+		<div class="notif-header">
+            <div class="flex items-center gap-3">
+			    <i class="fa-solid fa-bell fa-2xl shrink-0"></i>
+			    <h4 class="font-bold text-lg">Okunmamış bildirim sayısı: <span class="notif-count">@unReadNotificationCount</span></h4>
+            </div>
+			<div class="flex gap-2.5 ml-auto justify-center w-full sm:w-auto">
+				@if (unReadNotificationCount != 0)
+				{
+					<button type="button" id="mark-all-read" class="notif-btn-success flex items-center gap-2 w-full sm:w-auto justify-center">
+						<i class="fas fa-check-double text-xs"></i>
+						Tümünü Okundu İşaretle
+					</button>
+				}
+				@if (Model != null && Model.Any())
+				{
+					<button type="button" id="remove-all-notifications" class="notif-btn-danger flex items-center gap-2 w-full sm:w-auto justify-center">
+						<i class="fas fa-trash-alt text-xs"></i>
+						Tümünü Temizle
+					</button>
+				}
+			</div>
+		</div>
+
+		@if (Model == null || !Model.Any())
+		{
+			<div class="notif-empty">
+				<div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-3xl mx-auto mb-5">
+					<i class="fas fa-bell-slash"></i>
+				</div>
+				<h4 class="text-[#1e293b] font-bold text-2xl mb-2">Bildirim Yok</h4>
+				<p class="text-slate-500">Henüz herhangi bir bildiriminiz bulunmuyor.</p>
+			</div>
+		}
+		else
+		{
+			@foreach (var notification in Model)
+			{
+                var cardClass = notification.IsRead ? "read" : "unread";
+				<div class="notif-card @cardClass" data-notif-row>
+					@Html.Raw(GetNotificationIcon(notification.NotificationType))
+					<div class="flex-1 flex flex-col gap-2.5 w-full">
+						<div class="flex-1">
+							<h6 class="text-[#1e293b] font-bold text-base mb-1 leading-snug">@notification.Title</h6>
+							<p class="text-slate-500 text-sm leading-relaxed m-0">@notification.Description</p>
+						</div>
+						<div class="flex items-center gap-4 flex-wrap">
+							<span class="text-slate-400 text-xs flex items-center gap-1.5">
+								<i class="fas fa-clock"></i>
+								@notification.CreatedAt
+							</span>
+							<span class="notif-badge @(notification.IsRead ? "badge-read" : "badge-unread")">
+                                @(notification.IsRead ? "Okundu" : "Okunmadı")
+                            </span>
+						</div>
+					</div>
+					<div class="flex md:flex-col flex-row gap-2 items-center justify-center w-full md:w-auto">
+                        @if(!notification.IsRead) {
+						    <button type="button" id="mark-notification-read" data-notification-id="@notification.NotificationId" class="notif-action-btn mark-read" title="Okundu İşaretle">
+							    <i class="fas fa-check"></i>
+						    </button>
+                        }
+						<button type="button" id="remove-notification" data-notification-id="@notification.NotificationId" class="notif-action-btn delete" title="Sil">
+							<i class="fas fa-times"></i>
+						</button>
+					</div>
+				</div>
+			}
+		}
+	</div>
+</div>
+
+@functions {
+
+	private IHtmlContent GetNotificationIcon(Domain.Entities.NotificationType notificationType)
+	{
+		string iconClass;
+		string divClass;
+
+		switch (notificationType)
+		{
+			case Domain.Entities.NotificationType.Order:
+				iconClass = "fas fa-shopping-cart";
+				divClass = "notifications-icon";
+				break;
+			case Domain.Entities.NotificationType.Shipment:
+				iconClass = "fas fa-truck";
+				divClass = "notifications-icon";
+				break;
+			case Domain.Entities.NotificationType.Campaign:
+				iconClass = "fas fa-gift";
+				divClass = "notifications-icon promotion";
+				break;
+			case Domain.Entities.NotificationType.Settings:
+				iconClass = "fas fa-cog";
+				divClass = "notifications-icon system";
+				break;
+			case Domain.Entities.NotificationType.Payment:
+				iconClass = "fas fa-credit-card";
+				divClass = "notifications-icon payment";
+				break;
+			default:
+				iconClass = "fas fa-cube";
+				divClass = "notifications-icon";
+				break;
+		}
+
+		var html = $"<div class=\"{divClass}\"><i class=\"{iconClass}\"></i></div>";
+		return new HtmlString(html);
+	}
+}

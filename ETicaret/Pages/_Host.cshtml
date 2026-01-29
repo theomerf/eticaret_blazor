@@ -1,0 +1,32 @@
+﻿@page "/admin"
+@namespace E_Ticaret.Pages
+@using Microsoft.AspNetCore.Components.Web
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SiparişKapıda - Admin Paneli</title>
+    <base href="~/" />
+    <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="css/navbar-main.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css">
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
+</head>
+<body class="admin">
+    <component type="typeof(ETicaret.Components.App)" render-mode="ServerPrerendered" />
+
+    <script src="js/site.js"></script>
+    <script src="_framework/blazor.server.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+    <script src="/js/price-slider.js"></script>
+</body>
+</html>

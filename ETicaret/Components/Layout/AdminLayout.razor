@@ -1,0 +1,17 @@
+﻿@inherits LayoutComponentBase
+
+<div class="d-flex flex-column vh-100">
+    <header>
+        <AdminNavbar />
+    </header>
+    <div class="container">
+        <div>
+            <Notification />
+        </div>
+        <main role="main" id="main-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+<div id="toastContainer" class="toast-container" style="position: fixed !important; bottom: 0 !important; right: 0 !important; z-index: 9999;"></div>

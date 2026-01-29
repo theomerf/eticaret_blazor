@@ -1,0 +1,205 @@
+﻿@using ETicaret.Components.Shared
+@using ETicaret.Models
+@using ETicaret.Services
+@inject ICartStateService CartState
+@inject NavigationManager Navigation
+@implements IDisposable
+@inject IJSRuntime JSRuntime
+@inject ILogger<Cart> _logger
+
+<div>
+    <h2 class="page-title">Alışveriş Sepetim</h2>
+
+    @if (CartState.IsLoading && !_initialLoadComplete)
+    {
+        <div class="flex flex-col lg:flex-row gap-8 animate-pulse">
+            <div class="lg:w-8/12 space-y-6">
+                <div class="cart-glass-card">
+                    @for (int i = 0; i < 3; i++)
+                    {
+                        <div class="p-6 border-b border-gray-100 last:border-0 flex items-center gap-6">
+                            <div class="w-24 h-24 sm:w-28 sm:h-28 cart-skeleton-anim flex-shrink-0 rounded-2xl"></div>
+                            <div class="flex-grow space-y-3">
+                                <div class="h-6 w-3/4 cart-skeleton-anim"></div>
+                                <div class="h-4 w-1/2 cart-skeleton-anim"></div>
+                                <div class="flex gap-2">
+                                    <div class="h-6 w-16 cart-skeleton-anim rounded-full"></div>
+                                    <div class="h-6 w-20 cart-skeleton-anim rounded-full"></div>
+                                </div>
+                            </div>
+                            <div class="w-32 h-10 cart-skeleton-anim rounded-[30px] hidden sm:block"></div>
+                            <div class="w-24 h-8 cart-skeleton-anim hidden sm:block"></div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="lg:w-4/12">
+                <div class="cart-glass-card">
+                    <div class="h-12 w-full cart-skeleton-anim"></div>
+                    <div class="p-6 space-y-4">
+                        <div class="h-5 w-full cart-skeleton-anim"></div>
+                        <div class="h-5 w-4/5 cart-skeleton-anim"></div>
+                        <div class="h-10 w-full cart-skeleton-anim mt-6"></div>
+                        <div class="h-14 w-full cart-skeleton-anim mt-4 rounded-xl"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(CartState.ErrorMessage))
+        {
+            <div
+                class="mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl flex items-center justify-between animate-slideDown">
+                <div class="flex items-center gap-3 text-amber-800">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                    <span class="font-semibold text-sm sm:text-base">@CartState.ErrorMessage</span>
+                </div>
+                <button type="button" class="text-amber-500 hover:text-amber-700 transition-colors" @onclick="ClearError">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        }
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Sol Bölüm: Ürün Listesi ve Öneriler -->
+            <div class="w-full lg:w-8/12">
+                @if (CartState.CurrentCart.Lines.Any())
+                {
+                    <div class="cart-glass-card mb-8">
+                        @foreach (var line in CartState.CurrentCart.Lines)
+                        {
+                            <CartItem Line="@line"
+                                OnQuantityIncrease="@(async (productId) => await HandleQuantityIncrease(productId))"
+                                OnQuantityDecrease="@(async (productId) => await HandleQuantityDecrease(productId))"
+                                OnRemove="HandleRemoveItem" IsUpdating="@IsLineUpdating(line.ProductId)" />
+                        }
+                    </div>
+
+                    <!-- Sol Alt Öneriler -->
+                    <div class="mt-12 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h5 class="font-extrabold text-lg lg:text-2xl text-gray-800">Bunlar da İlginizi Çekebilir</h5>
+                            <a href="/products" class="text-primary font-bold text-sm hover:underline flex items-center gap-1.5">
+                                Tümünü Gör <i class="fas fa-arrow-right text-xs"></i>
+                            </a>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 [&>*:nth-child(n+3)]:hidden md:[&>*:nth-child(n+3)]:block">
+                            @foreach(var product in CartState.RecommendedProducts.Take(4)) {
+                                <ProductCard Model="product" IsMini="true" />
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="cart-glass-card p-12 sm:p-20 text-center animate-fadeInUp">
+                        <div class="w-32 h-32 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                            <i class="fa fa-shopping-cart text-6xl text-primary animate-bounce"></i>
+                            <div class="absolute -top-1 -right-1 w-8 h-8 bg-red-500 rounded-full border-4 border-white animate-ping"></div>
+                        </div>
+                        <h3 class="text-3xl font-black text-gray-800 mb-4">Sepetiniz çok yalnız...</h3>
+                        <p class="text-gray-500 text-lg mb-10 max-w-md mx-auto">Görünüşe göre henüz bir seçim yapmadınız. Binlerce ürün seni bekliyor!</p>
+                        <a href="/products" class="cart-main-btn inline-flex items-center gap-3 px-12 group">
+                            <i class="fa fa-arrow-left group-hover:-translate-x-2 transition-transform"></i> Alışverişe Başla
+                        </a>
+                    </div>
+                }
+            </div>
+
+            <!-- Sağ Bölüm: Özet -->
+            <div class="w-full lg:w-4/12">
+                <div class="hidden lg:block sticky top-24 z-[10] self-start">
+                    <CartSummary Cart="@CartState.CurrentCart" IsLoading="@CartState.IsLoading" />
+                </div>
+                <div class="block lg:hidden mt-8">
+                    <CartSummaryMobile Cart="@CartState.CurrentCart" IsLoading="@CartState.IsLoading" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _initialLoadComplete = false;
+    private HashSet<int> _updatingProducts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartState.OnChange += StateHasChanged;
+        await CartState.LoadCartAsync(true);
+        await CartState.LoadRecommendedProductsAsync();
+        _initialLoadComplete = true;
+    }
+
+    private async Task HandleQuantityIncrease(int productId)
+    {
+        var line = CartState.CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId);
+        if (line == null) return;
+
+        _updatingProducts.Add(productId);
+        StateHasChanged();
+
+        await CartState.SetQuantityAsync(productId, line.Quantity + 1);
+
+        _updatingProducts.Remove(productId);
+
+        StateHasChanged();
+    }
+
+    private async Task HandleQuantityDecrease(int productId)
+    {
+        var line = CartState.CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId);
+        if (line == null) return;
+
+        _updatingProducts.Add(productId);
+        StateHasChanged();
+
+        var newQuantity = line.Quantity - 1;
+        if (newQuantity == 0)
+        {
+            await CartState.RemoveItemAsync(productId);
+        }
+        else
+        {
+            await CartState.SetQuantityAsync(productId, newQuantity);
+        }
+
+        _updatingProducts.Remove(productId);
+
+
+        StateHasChanged();
+    }
+
+    private async Task HandleRemoveItem(int productId)
+    {
+        _updatingProducts.Add(productId);
+        StateHasChanged();
+
+        await CartState.RemoveItemAsync(productId);
+
+        _updatingProducts.Remove(productId);
+
+        await NavbarBadgeUpdateAsync();
+
+        StateHasChanged();
+    }
+
+    private bool IsLineUpdating(int productId) => _updatingProducts.Contains(productId);
+
+    private void ClearError()
+    {
+        StateHasChanged();
+    }
+
+    private async Task NavbarBadgeUpdateAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("updateCounter", "cart-summary", -1);
+    }
+
+    public void Dispose()
+    {
+        CartState.OnChange -= StateHasChanged;
+    }
+}

@@ -1,0 +1,512 @@
+﻿@page "/admin/products"
+@attribute [Authorize(Roles = "Admin")]
+@using Application.DTOs
+@using Application.Queries.RequestParameters
+@using ETicaret.Models
+@using ETicaret.Extensions
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IProductService ProductService
+@implements IDisposable
+
+<HeadContent>
+    <link rel="stylesheet" href="/css/products-admin.css" />
+    <link rel="stylesheet" href="/css/filters.css" />
+    <link rel="stylesheet" href="/css/product-list.css" />
+</HeadContent>
+
+<CascadingValue Value="@model.FilterParams" Name="FilterParams">
+    <CascadingValue Value="@showLoadingOverlay" Name="ShowLoadingOverlay">
+        <CascadingValue Value="@HandleFiltersChange" Name="OnFilterChange">
+            <div class="container-fluid py-4">
+                <!-- Header -->
+                <div class="admin-header">
+                    <h1><i class="fa-solid fa-gears"></i> Ürün Yönetimi</h1>
+                    <a href="/admin/products/create" class="admin-btn admin-btn-create">
+                        <i class="fas fa-plus"></i> Yeni Ürün Ekle
+                    </a>
+                </div>
+
+                @if (!isLoading)
+                {
+                    <div class="row">
+                        <!-- Sol Sidebar -->
+                        <div class="col-lg-3">
+                            <!-- İstatistikler -->
+                            <div class="row mb-4">
+                                <div class="col-6 col-lg-12 mb-3">
+                                    <div class="admin-stats-card">
+                                        <div class="admin-stats-icon" style="background-color: #4361ee;">
+                                            <i class="fas fa-box"></i>
+                                        </div>
+                                        <div class="admin-stats-title">Toplam Ürün</div>
+                                        <div class="admin-stats-value">@model.TotalCount</div>
+                                        <div class="admin-stats-trend admin-stats-up">
+                                            <i class="fas fa-arrow-up me-1"></i> %8.2
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-lg-12 mb-3">
+                                    <div class="admin-stats-card">
+                                        <div class="admin-stats-icon" style="background-color: #f72585;">
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <div class="admin-stats-title">Vitrindeki Ürünler</div>
+                                        <div class="admin-stats-value">@model.Products?.Count(p => p.ShowCase)</div>
+                                        <div class="admin-stats-trend admin-stats-up">
+                                            <i class="fas fa-arrow-up me-1"></i> %12.5
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Filtreler Menüsü -->
+                            <ProductsFilter />
+                        </div>
+
+                        <!-- Ana İçerik -->
+                        <div class="col-lg-9">
+                            <div class="admin-card">
+                                <div class="admin-card-header">
+                                    <div>
+                                        <i class="fas fa-th-list me-2"></i> Ürün Listesi
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="admin-btn" title="Dışa Aktar">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button class="admin-btn" title="Yazdır">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                        <div class="dropdown">
+                                            <button class="admin-btn dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-sliders"></i>
+                                            </button>
+                                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                                <li><a class="dropdown-item" href="#">Fiyata Göre Sırala</a></li>
+                                                <li><a class="dropdown-item" href="#">İsme Göre Sırala</a></li>
+                                                <li><a class="dropdown-item" href="#">Stoğa Göre Sırala</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="admin-card-body">
+
+                                    @if (HasFiltered())
+                                    {
+                                        <div class="productlist-filters-section">
+                                            <div class="productlist-filters-header">
+                                                <div class="productlist-filters-title">
+                                                    <i class="fa-solid fa-filter me-2"></i>
+                                                    <span>Aktif Filtreler</span>
+                                                </div>
+                                                <button @onclick="async () => { model.FilterParams = new ProductFilterParametersAdmin(); await HandleFiltersChange(); }" class="productlist-clear-all">
+                                                    <i class="fa-solid fa-xmark me-1"></i>
+                                                    Tümünü Temizle
+                                                </button>
+                                            </div>
+                                            <div class="productlist-filters-container">
+                                                @if (!string.IsNullOrEmpty(model.FilterParams.SearchTerm))
+                                                {
+                                                    <div class="productlist-filter-tag productlist-filter-search">
+                                                        <span class="productlist-filter-icon">
+                                                            <i class="fa-solid fa-magnifying-glass"></i>
+                                                        </span>
+                                                        <span class="productlist-filter-text">@model.FilterParams.SearchTerm</span>
+                                                        <button @onclick="async () => { model.FilterParams.SearchTerm = null; await HandleFiltersChange(); }" class="productlist-filter-remove">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                                @if (model.FilterParams.MinPrice.HasValue == true || model.FilterParams.MaxPrice.HasValue == true)
+                                                {
+                                                    <div class="productlist-filter-tag productlist-filter-price">
+                                                        <span class="productlist-filter-icon">
+                                                            <i class="fa-solid fa-turkish-lira-sign"></i>
+                                                        </span>
+                                                        <span class="productlist-filter-text">
+                                                            @(model.FilterParams.MinPrice.HasValue == true ? model.FilterParams.MinPrice.Value.ToString() : "0") -
+                                                            @(model.FilterParams.MaxPrice.HasValue == true ? model.FilterParams.MaxPrice.Value.ToString() : "Max") TL
+                                                        </span>
+                                                        <button @onclick="async () => { model.FilterParams.MinPrice = null; model.FilterParams.MaxPrice = null; await HandleFiltersChange(); }" class="productlist-filter-remove">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(model.FilterParams.Brand))
+                                                {
+                                                    <div class="productlist-filter-tag productlist-filter-brand">
+                                                        <span class="productlist-filter-icon">
+                                                            <i class="fa-solid fa-tag"></i>
+                                                        </span>
+                                                        <span class="productlist-filter-text">@model.FilterParams.Brand</span>
+                                                        <button @onclick="async () => { model.FilterParams.Brand = null; await HandleFiltersChange(); }" class="productlist-filter-remove">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                                @if (model.FilterParams.IsShowCase == true)
+                                                {
+                                                    <div class="productlist-filter-tag productlist-filter-showcase">
+                                                        <span class="productlist-filter-icon">
+                                                            <i class="fa-solid fa-fire"></i>
+                                                        </span>
+                                                        <span class="productlist-filter-text">En Çok Satanlar</span>
+                                                        <button @onclick="async () => { model.FilterParams.IsShowCase = null; await HandleFiltersChange(); }"
+                                                                class="productlist-filter-remove">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                                @if (model.FilterParams.IsDiscount == true)
+                                                {
+                                                    <div class="productlist-filter-tag productlist-filter-discount">
+                                                        <span class="productlist-filter-icon">
+                                                            <i class="fa-solid fa-percent"></i>
+                                                        </span>
+                                                        <span class="productlist-filter-text">İndirimli Ürünler</span>
+                                                        <button @onclick="async () => { model.FilterParams.IsDiscount = null; await HandleFiltersChange(); }" class="productlist-filter-remove">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    <!-- Arama Çubuğu -->
+                                    <div class="admin-search-bar">
+                                        <i class="fas fa-search admin-search-icon"></i>
+                                        <input type="text" class="admin-search-input" placeholder="Ürün ara...">
+                                    </div>
+
+                                    <!-- Ürün Tablosu -->
+                                    <div class="table-responsive">
+                                        <table class="admin-table">
+                                            <thead>
+                                                <tr>
+                                                    <th width="60">ID</th>
+                                                    <th width="80">Görsel</th>
+                                                    <th>Ürün Adı</th>
+                                                    <th width="100">Fiyat</th>
+                                                    <th width="100">Vitrin</th>
+                                                    <th width="80">Stok</th>
+                                                    <th width="150">İşlemler</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var prd in model.Products ?? new List<ProductDto>())
+                                                {
+                                                    <tr>
+                                                        <td data-label="ID">@prd?.ProductId</td>
+                                                        <td data-label="Görsel">
+                                                            <img class="admin-product-image" src="/images/@prd?.Images?.First()ImageUrl" alt="@prd?.ProductName" />
+                                                        </td>
+                                                        <td data-label="Ürün Adı">
+                                                            <div class="fw-bold">@prd?.ProductName</div>
+                                                            <small class="text-muted">Kategori: Elektronik</small>
+                                                        </td>
+                                                        <td data-label="Fiyat">
+                                                            <span class="fw-bold">@prd?.ActualPrice.ToString("c")</span>
+                                                            @if (prd?.DiscountPrice < prd?.ActualPrice)
+                                                            {
+                                                                <small class="text-muted text-decoration-line-through d-block">@prd.DiscountPrice?.ToString("c")</small>
+                                                            }
+                                                        </td>
+                                                        <td data-label="Vitrin">
+                                                            <label class="admin-switch">
+                                                                <input type="checkbox" @onclick="async () => await HandleShowcaseUpdate(prd!.ProductId)" checked="@(prd != null && prd.ShowCase)">
+                                                                <span class="admin-switch-slider"></span>
+                                                            </label>
+                                                        </td>
+
+                                                        <td data-label="Stok">
+                                                            <span class="admin-badge @(prd?.ProductId % 2 == 0 ? "admin-badge-success" : "admin-badge-warning")">
+                                                                @(prd?.ProductId % 2 == 0 ? "Stokta" : "Az")
+                                                            </span>
+                                                        </td>
+                                                        <td data-label="İşlemler">
+                                                            <a class="admin-action-btn admin-btn-edit" href="/admin/products/update/@prd?.ProductId" title="Düzenle">
+                                                                <i class="fas fa-edit"></i>
+                                                            </a>
+                                                            <button class="admin-action-btn admin-btn-delete" @onclick="async () => await HandleDeleteProduct(prd!.ProductId)" title="Sil">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                            <a class="admin-action-btn admin-btn-info" href="/products/get/@prd?.ProductId" title="Görüntüle">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </div>
+                            </div>
+                            @{
+                                string BuildPageUrl(int pageNumber)
+                                {
+                                    var queryParams = new List<string>();
+
+                                    if (model!.FilterParams.CategoryId.HasValue) queryParams.Add($"categoryId={model.FilterParams.CategoryId}");
+                                    if (!string.IsNullOrEmpty(model.FilterParams.SearchTerm)) queryParams.Add($"searchTerm={model.FilterParams.SearchTerm}");
+                                    if (model.FilterParams.MinPrice.HasValue) queryParams.Add($"minPrice={model.FilterParams.MinPrice}");
+                                    if (model.FilterParams.MaxPrice.HasValue) queryParams.Add($"maxPrice={model.FilterParams.MaxPrice}");
+                                    if (!string.IsNullOrEmpty(model.FilterParams.Brand)) queryParams.Add($"brand={model.FilterParams.Brand}");
+                                    if (model.FilterParams.IsShowCase.HasValue && model.FilterParams.IsShowCase.Value) queryParams.Add($"isShowCase=true");
+                                    if (model.FilterParams.IsDiscount.HasValue && model.FilterParams.IsDiscount.Value) queryParams.Add($"isDiscount=true");
+                                    if (!string.IsNullOrEmpty(model.FilterParams.SortBy)) queryParams.Add($"sortBy={model.FilterParams.SortBy}");
+                                    if (model.FilterParams.PageSize != 6) queryParams.Add($"pageSize={model.FilterParams.PageSize}");
+                                    if (model.FilterParams.PageSize != 1) queryParams.Add($"pageNumber={pageNumber}");
+                                    return "admin/products" + "?" + string.Join("&", queryParams);
+                                }
+
+                                var pagination = model?.Pagination ?? new Pagination();
+                            }
+
+                            <div class="productlist-pagination-wrapper">
+                                @if (pagination.TotalPages > 1)
+                                {
+                                    <div class="productlist-pagination">
+                                        @if (pagination.CurrentPage > 1)
+                                        {
+                                            <a href="@BuildPageUrl(1)" class="productlist-page-btn productlist-page-first pagination-btn">
+                                                <i class="fa-solid fa-angles-left"></i>
+                                            </a>
+                                            <a href="@BuildPageUrl(pagination.CurrentPage - 1)" class="productlist-page-btn productlist-page-prev pagination-btn">
+                                                <i class="fa-solid fa-chevron-left"></i>
+                                            </a>
+                                        }
+
+                                        @{
+                                            int startPage = Math.Max(1, pagination.CurrentPage - 2);
+                                            int endPage = Math.Min(pagination.TotalPages, pagination.CurrentPage + 2);
+                                        }
+
+                                        @if (startPage > 1)
+                                        {
+                                            <a href="@BuildPageUrl(1)" class="productlist-page-btn pagination-btn">1</a>
+                                            @if (startPage > 2)
+                                            {
+                                                <span class="productlist-page-dots">...</span>
+                                            }
+                                        }
+
+                                        @for (int i = startPage; i <= endPage; i++)
+                                        {
+                                            var isActive = i == pagination.CurrentPage;
+                                            <a href="@BuildPageUrl(i)"
+                                               class="productlist-page-btn pagination-btn @(isActive ? "productlist-page-active" : "")">
+                                                @i
+                                            </a>
+                                        }
+
+                                        @if (endPage < pagination.TotalPages)
+                                        {
+                                            @if (endPage < pagination.TotalPages - 1)
+                                            {
+                                                <span class="productlist-page-dots">...</span>
+                                            }
+                                            <a href="@BuildPageUrl(pagination.TotalPages)" class="productlist-page-btn pagination-btn">@pagination.TotalPages</a>
+                                        }
+
+                                        @if (pagination.CurrentPage < pagination.TotalPages)
+                                        {
+                                            <a href="@BuildPageUrl(pagination.CurrentPage + 1)" class="productlist-page-btn productlist-page-next pagination-btn">
+                                                <i class="fa-solid fa-chevron-right"></i>
+                                            </a>
+                                            <a href="@BuildPageUrl(pagination.TotalPages)" class="productlist-page-btn productlist-page-last pagination-btn">
+                                                <i class="fa-solid fa-angles-right"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                }
+
+                                @if (pagination.TotalItems > 6)
+                                {
+                                    <div class="productlist-pagesize-container">
+                                        <div class="productlist-pagesize-wrapper">
+                                            <label for="PageSize" class="productlist-pagesize-label">
+                                                <i class="fa-solid fa-list me-2"></i>Sayfa başına
+                                            </label>
+                                            <select @onchange="ChangePageSize" name="PageSize" id="pageSizeSelect" class="productlist-pagesize-select">
+                                                <option value="6" selected="@(model?.FilterParams.PageSize == 6 ? "selected" : null)">6</option>
+                                                <option value="12" selected="@(model?.FilterParams.PageSize == 12 ? "selected" : null)">12</option>
+                                                @if (pagination.TotalItems > 12)
+                                                {
+                                                    <option value="24" selected="@(model?.FilterParams.PageSize == 24 ? "selected" : null)">24</option>
+                                                }
+                                            </select>
+                                            <div class="productlist-pagesize-arrow">
+                                                <i class="fa-solid fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </CascadingValue>
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    private ProductListViewModelAdmin model = new();
+    private bool isLoading = false;
+    private bool showLoadingOverlay = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        model.FilterParams = Navigation.BindFromQuery<ProductFilterParametersAdmin>();
+        await LoadAndBuildModel();
+        isLoading = false;
+
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var newParams = Navigation.BindFromQuery<ProductFilterParametersAdmin>();
+
+        if (newParams.PageNumber != model.FilterParams.PageNumber || newParams.PageSize != model.FilterParams.PageSize)
+        {
+            model.FilterParams = newParams;
+            await InvokeAsync(async () =>
+            {
+                await LoadAndBuildModel();
+                StateHasChanged();
+            });
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    private async Task LoadAndBuildModel()
+    {
+        errorMessage = null;
+
+        if (model?.FilterParams.PageSize == 0)
+        {
+            model.FilterParams.PageSize = 12;
+        }
+
+        var result = await LoadProducts();
+
+        var pagination = new Pagination()
+        {
+            CurrentPage = model?.FilterParams.PageNumber ?? 1,
+            ItemsPerPage = model?.FilterParams.PageSize ?? 12,
+            TotalItems = result.count
+        };
+
+        model = new ProductListViewModelAdmin()
+        {
+            Products = result.products,
+            Pagination = pagination,
+            TotalCount = result.count,
+        };
+    }
+
+    private async Task<(IEnumerable<ProductDto> products, int count)> LoadProducts()
+    {
+        var result = await ProductService.GetAllProductsAdminAsync(model.FilterParams!);
+        return (result.products, result.count);
+    }
+
+    private async Task HandleFiltersChange()
+    {
+        showLoadingOverlay = true;
+        StateHasChanged();
+
+        model!.FilterParams.PageNumber = 1;
+        UpdateUrl();
+        await LoadAndBuildModel();
+        StateHasChanged();
+    }
+
+    private void UpdateUrl()
+    {
+        var url = model.FilterParams.ToQueryString("/admin/products");
+        Navigation.NavigateTo(url!);
+    }
+
+    private void ChangePageSize(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int pageSize))
+        {
+            var newParams = new ProductRequestParametersAdmin
+            {
+                PageSize = pageSize,
+                PageNumber = 1,
+                SearchTerm = model?.FilterParams.SearchTerm,
+                MinPrice = model?.FilterParams.MinPrice,
+                MaxPrice = model?.FilterParams.MaxPrice,
+                Brand = model?.FilterParams.Brand,
+                IsShowCase = model?.FilterParams.IsShowCase,
+                IsDiscount = model?.FilterParams.IsDiscount,
+                CategoryId = model?.FilterParams.CategoryId,
+            };
+
+            var url = newParams.ToQueryString("/admin/products");
+            Navigation.NavigateTo(url);
+        }
+    }
+
+    private void ClearFilters()
+    {
+        Navigation.NavigateTo("/admin/products");
+    }
+
+    private async Task HandleShowcaseUpdate(int productId)
+    {
+        var result = await ProductService.UpdateProductShowcaseStatus(productId);
+
+        if (result.IsSuccess)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            await LoadAndBuildModel();
+            StateHasChanged();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    private async Task HandleDeleteProduct(int productId)
+    {
+        var result = await ProductService.DeleteProductAsync(productId);
+
+        if (result.IsSuccess)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            await LoadAndBuildModel();
+            StateHasChanged();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    public bool HasFiltered()
+    {
+        if (!string.IsNullOrEmpty(model.FilterParams.SearchTerm) ||
+            !(model.FilterParams.MinPrice == null) ||
+            !(model.FilterParams.MaxPrice == null) ||
+            !string.IsNullOrEmpty(model.FilterParams.Brand) ||
+            !(model.FilterParams.IsShowCase == null) ||
+            !(model.FilterParams.IsDiscount == null))
+        {
+            return true;
+        }
+        return false;
+    }
+}

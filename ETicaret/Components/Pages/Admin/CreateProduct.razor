@@ -1,0 +1,246 @@
+﻿@page "/admin/products/create"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject ICategoryService CategoryService
+@inject IProductService ProductService
+@inject IFileService FileService
+
+<HeadContent>
+    <link rel="stylesheet" href="/css/products-admin.css" />
+</HeadContent>
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="admin-header">
+        <h1><i class="fas fa-plus-circle me-2"></i> Yeni Ürün Oluştur</h1>
+        <a href="javascript:history.back()" class="admin-btn admin-btn-outline">
+            <i class="fas fa-arrow-left"></i> Geri Dön
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div>Ürün Bilgileri</div>
+                    <div>
+                        <span class="admin-badge admin-badge-required">Zorunlu alanlar *</span>
+                    </div>
+                </div>
+                <div class="admin-card-body">
+
+                    <EditForm Model="@model" OnValidSubmit="HandleCreateProduct">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <ValidationMessage For="@(() => model.ProductName)" />
+                        <!-- Temel Bilgiler Bölümü -->
+                        <div class="admin-section-title">
+                            <i class="fas fa-info-circle me-2"></i> Temel Bilgiler
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="admin-form-group">
+                                    <label for="ProductName" class="admin-form-label">Ürün Adı <span class="text-danger">*</span></label>
+                                    <InputText id="ProductName" @bind-Value="model.ProductName" class="form-control admin-form-control" placeholder="Ürün adını giriniz..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="admin-form-group">
+                                    <label for="Summary" class="admin-form-label">Ürün Açıklaması <span class="text-danger">*</span></label>
+                                    <InputTextArea id="Summary" @bind-Value="model.Summary" class="form-control admin-form-control admin-textarea" placeholder="Ürün açıklamasını giriniz..."></InputTextArea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kategori Bölümü -->
+                        <div class="admin-section-title">
+                            <i class="fas fa-tags me-2"></i> Kategori Bilgileri
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="admin-form-group">
+                                    <label asp-for="MainCategoryId" class="admin-form-label">Ana Kategori <span class="text-danger">*</span></label>
+                                    <InputSelect @bind-Value="model.CategoryId" class="form-select admin-form-select">
+                                        <option value="">-- Ana Kategori Seçiniz --</option>
+                                        @foreach (var category in categories.Where(c => c.ParentId == null))
+                                        {
+                                            <option value="@category.CategoryId">@category.CategoryName</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            </div>
+                            @if (model.CategoryId != 0)
+                            {
+                                <div class="col-md-6">
+                                    <div class="admin-form-group">
+                                        <label asp-for="SubCategoryId" class="admin-form-label">Alt Kategori <span class="text-danger">*</span></label>
+                                        <InputSelect @bind-Value="model.CategoryId" class="form-select admin-form-select">
+                                            <option value="">-- Alt Kategori Seçiniz --</option>
+                                            @foreach (var category in categories.Where(sc => sc.ParentId == model.CategoryId))
+                                            {
+                                                <option value="@category.CategoryId">@category.CategoryName</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Fiyat Bölümü -->
+                        <div class="admin-section-title">
+                            <i class="fas fa-tag me-2"></i> Fiyat Bilgileri
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="admin-form-group">
+                                    <label for="ActualPrice" class="admin-form-label">Satış Fiyatı <span class="text-danger">*</span></label>
+                                    <div class="admin-price-input">
+                                        <InputNumber id="ActualPrice" @bind-Value="model.ActualPrice" class="form-control admin-form-control" placeholder="0.00" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="admin-form-group">
+                                    <label for="DiscountPrice" class="admin-form-label">İndirimli Fiyat <small class="text-muted">(varsa)</small></label>
+                                    <div class="admin-price-input">
+                                        <InputNumber id="DiscountPrice" @bind-Value="model.DiscountPrice" class="form-control admin-form-control" placeholder="0.00" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Görsel Bölümü -->
+                        <div class="admin-section-title">
+                            <i class="fas fa-image me-2"></i> Ürün Görseli
+                        </div>
+
+                        <div class="admin-form-group">
+                            <div class="admin-image-preview" id="imagePreview">
+                                <i class="fas fa-image admin-image-preview-icon"></i>
+                            </div>
+                            <div class="admin-file-input-container">
+                                <label for="imageInput" class="admin-file-input-label">
+                                    <i class="fas fa-upload me-2"></i> Görsel Seçin
+                                    <InputFile name="file" @bind-Value="files" class="admin-file-input" id="imageInput" accept="image/*" />
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Ek Seçenekler -->
+                        <div class="admin-section-title">
+                            <i class="fas fa-cog me-2"></i> Ek Seçenekler
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <InputCheckbox class="form-check-input" id="showcaseCheck" @bind-Value="model.ShowCase" />
+                                    <label class="form-check-label" for="showcaseCheck">Vitrine Ekle</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Butonlar -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/admin/products" class="admin-btn admin-btn-outline">
+                                <i class="fas fa-list me-2"></i> Ürün Listesine Dön
+                            </a>
+                            <button class="admin-btn admin-btn-primary" type="submit">
+                                <i class="fas fa-save me-2"></i> Ürünü Oluştur
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ProductDtoForCreation model = new();
+    private IEnumerable<ProductImageDtoForCreation> imagesModel = new List<ProductImageDtoForCreation>();
+    private IEnumerable<CategoryDto> categories = new List<CategoryDto>();
+
+    private List<IBrowserFile>? files;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetAllCategories();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initializeImagePreview", "imageInput", "imagePreview");
+        }
+    }
+
+    public async Task GetAllCategories()
+    {
+        var categories = await CategoryService.GetAllCategoriesAsync(false);
+    }
+
+    public async Task HandleCreateProduct(EditContext editContext)
+    {
+        var productDto = (ProductDtoForCreation)editContext.Model;
+
+        var result = await ProductService.CreateProductAsync(productDto);
+
+        if (result.IsSuccess)
+        {
+            if (files != null && files.Count > 0)
+            {
+                var fileNames = new List<string>();
+
+                foreach (var file in files)
+                {
+                    using var fileReadStream = file.OpenReadStream(maxAllowedSize: 20_000_000);
+
+                    var uploadResult = await FileService.UploadAsync(fileReadStream, file.Name, file.ContentType, "products");
+
+                    if (uploadResult.IsSuccess)
+                    {
+                        fileNames.Add(uploadResult.Data!);
+                    }
+                    else
+                    {
+                        await JSRuntime.InvokeVoidAsync("showToast", uploadResult.Message, "error");
+                        return;
+                    }
+                }
+
+                int i = 0; 
+
+                foreach (var image in imagesModel)
+                {
+                    image.ImageUrl = fileNames[i];
+                    i++;
+                }
+
+                var imageResult = await ProductService.UpdateProductImagesAsync(imagesModel);
+
+                if (!imageResult.IsSuccess)
+                {
+                    await JSRuntime.InvokeVoidAsync("showToast", imageResult.Message, "error");
+                    return;
+                }
+            }
+
+            NavigationManager.NavigateTo("/admin/products");
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            return;
+        }
+
+    }
+}

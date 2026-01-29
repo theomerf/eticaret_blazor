@@ -1,0 +1,8 @@
+﻿@using Application.DTOs
+@model IEnumerable<ProductDto>
+
+@foreach (ProductDto prd in Model)
+{
+	<partial name="_ProductCard" model="@prd" />
+}
+

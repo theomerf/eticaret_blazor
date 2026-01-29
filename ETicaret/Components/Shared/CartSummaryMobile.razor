@@ -1,0 +1,96 @@
+@using Application.DTOs
+@inject IJSRuntime JSRuntime
+
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] transition-opacity duration-300 @(isSummaryOpen ? "opacity-100" : "opacity-0 pointer-events-none")"
+     @onclick="ToggleSummary">
+</div>
+
+<div class="fixed bottom-0 left-0 w-full flex flex-col text-center z-[9999] justify-center rounded-t-xl px-3 py-2 bg-primary backdrop-blur-md backdrop-filter transition-all">
+    <div class="flex flex-row">
+        <button @onclick="ToggleSummary" class="mr-auto font-semibold text-white">
+            Sipariş Özeti
+            <i class="fa fa-chevron-down ml-1 transition-transform duration-300 @(isSummaryOpen ? "rotate-180" : "")"></i>
+        </button>
+        <a href="/checkout" class="py-3 text-white rounded-lg bg-button w-3/6 text-center px-2 shadow-lg flex items-center justify-center gap-2">
+            @if (IsLoading)
+            {
+                <div class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full font-bold"></div>
+            }
+            else
+            {
+                <span>Ödeme Yap</span>
+                <i class="fa fa-credit-card"></i>
+            }
+        </a>
+    </div>
+
+    <div class="overflow-hidden transition-all duration-500 ease-in-out @(isSummaryOpen ? "max-h-[500px] opacity-100 mt-5 mb-2" : "max-h-0 opacity-0")">
+        <div class="border bg-white border-gray-300 rounded-2xl shadow-lg h-fit">
+            <div class="px-6 py-8 flex flex-col gap-4 text-left">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-gray-600 font-medium">
+                        <span>Ürünler (@Cart.Lines.Sum(l => l.Quantity))</span>
+                        <span class="text-gray-900">@Cart.ComputeTotalValue().ToString("C")</span>
+                    </div>
+
+                    <div class="flex justify-between items-center text-gray-600 font-medium">
+                        <span>Kargo</span>
+                        <span class="text-green-600 font-bold">Ücretsiz</span>
+                    </div>
+
+                    @if (Cart.Lines.Any())
+                    {
+                        <div class="flex justify-between items-center text-gray-600 font-medium">
+                            <span>Tahmini KDV</span>
+                            <span>@((Cart.ComputeTotalValue() * 0.20m).ToString("C"))</span>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-gray-100 text-green-600 font-bold">
+                            <span>Toplam İndirimler</span>
+                            <span>-@((Cart.ComputeTotalValue() - Cart.ComputeTotalDiscountValue()).ToString("C"))</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="mt-6 pt-6 border-t-2 border-blue-500/10 flex justify-between items-center">
+                    <span class="font-extrabold text-lg text-gray-800">Genel Toplam</span>
+                    <span class="font-extrabold text-2xl text-primary bg-primary bg-clip-text text-transparent">
+                        @Cart.ComputeTotalDiscountValue().ToString("C")
+                    </span>
+                </div>
+                
+                <div class="mt-3 p-3 bg-green-500/5 border border-green-500/20 rounded-2xl text-center">
+                    <div class="flex items-center justify-center gap-2 text-green-700 font-bold text-sm">
+                        <i class="fa fa-lock animate-pulse"></i>
+                        <span>%100 Güvenli Ödeme</span>
+                    </div>
+                </div>
+                
+                <div class="mt-3 border-t border-gray-100 pt-5 text-center">
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Ödeme Seçenekleri</p>
+                    <div class="flex justify-center gap-4 text-3xl">
+                        <i class="fa-brands fa-cc-visa text-[#1A1F71]"></i>
+                        <i class="fa-brands fa-cc-mastercard text-[#EB001B]"></i>
+                        <i class="fa-brands fa-cc-amex text-[#016FD0]"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CartDto Cart { get; set; } = default!;
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    private bool isSummaryOpen = false;
+
+    private async Task ToggleSummary()
+    {
+        isSummaryOpen = !isSummaryOpen;
+        await JSRuntime.InvokeVoidAsync("toggleBodyScroll", isSummaryOpen);
+    }
+}

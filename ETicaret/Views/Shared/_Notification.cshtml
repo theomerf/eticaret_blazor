@@ -1,0 +1,73 @@
+﻿@if (TempData["info"] is not null)
+{
+    <div class="custom-alert custom-alert-info my-3 shadow-sm animate__animated animate__fadeIn alert-dismissible" role="alert">
+        <div class="alert-icon">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="alert-content">
+            <h6 class="alert-heading mb-1">Bilgi</h6>
+            <p class="mb-0">@TempData["info"]</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["success"] is not null)
+{
+    <div class="custom-alert custom-alert-success my-3 shadow-sm animate__animated animate__fadeIn alert-dismissible" role="alert">
+        <div class="alert-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="alert-content">
+            <h6 class="alert-heading mb-1">Başarılı</h6>
+            <p class="mb-0">@TempData["success"]</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["danger"] is not null)
+{
+    <div class="custom-alert custom-alert-danger my-3 shadow-sm animate__animated animate__fadeIn alert-dismissible" role="alert">
+        <div class="alert-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="alert-content">
+            <h6 class="alert-heading mb-1">Hata</h6>
+            <p class="mb-0">@TempData["danger"]</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var closeButtons = document.querySelectorAll('.custom-alert .btn-close');
+        closeButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                var alert = this.closest('.custom-alert');
+
+                alert.classList.remove('animate__fadeIn');
+                alert.classList.add('animate__fadeOut');
+
+                setTimeout(function() {
+                    alert.remove();
+                }, 300);
+            });
+        });
+
+        setTimeout(function() {
+            var alerts = document.querySelectorAll('.custom-alert');
+            alerts.forEach(function(alert) {
+                if (alert) {
+                    alert.classList.remove('animate__fadeIn');
+                    alert.classList.add('animate__fadeOut');
+
+                    setTimeout(function() {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 300);
+                }
+            });
+        }, 5000);
+    });
+</script>

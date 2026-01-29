@@ -1,0 +1,617 @@
+﻿<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header dashboard-fade-in">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="fas fa-tachometer-alt me-3"></i>Admin Gösterge Paneli</h1>
+                <p>Hoş geldiniz! İşletmenizin genel durumunu buradan takip edebilirsiniz.</p>
+            </div>
+            <div class="text-end" style="font-size: 14px;">
+                <div class="dashboard-weather-widget">
+                    <i class="fas fa-sun fa-2x mb-2"></i>
+                    <div>24°C</div>
+                    <small>Bursa, Türkiye</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="dashboard-stats-grid dashboard-fade-in">
+        <!-- Products Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-primary);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">Ürünler</h5>
+                        <small class="dashboard-metric-sublabel">Toplam Aktif Ürünler</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">
+                    @ProductsCount
+                </h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 75%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-between mt-3">
+                    <a asp-controller="Product" asp-action="Index" class="dashboard-btn dashboard-btn-outline">Ürünler</a>
+                    <a asp-controller="Product" asp-action="Create" class="dashboard-btn dashboard-btn-primary">
+                        <i class="fas fa-plus"></i>Yeni Ekle
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-secondary);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">Kategoriler</h5>
+                        <small class="dashboard-metric-sublabel">Ürün Kategorileri</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">
+                    @CategoriesCount
+                </h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 85%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-between mt-3">
+                    <a asp-controller="Category" asp-action="Index" class="dashboard-btn dashboard-btn-outline">Kategoriler</a>
+                    <a asp-controller="Product" asp-action="Create" class="dashboard-btn dashboard-btn-primary">
+                        <i class="fas fa-plus"></i>Yeni Ekle
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-success);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">Üyeler</h5>
+                        <small class="dashboard-metric-sublabel">Kayıtlı Üyeler</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">
+                    @UsersCount
+                </h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 92%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-between mt-3">
+                    <a asp-controller="User" asp-action="Index" class="dashboard-btn dashboard-btn-outline">Üyeler</a>
+                    <a asp-controller="User" asp-action="Create" class="dashboard-btn dashboard-btn-primary">
+                        <i class="fas fa-plus"></i>Yeni Ekle
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-accent);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">Siparişler</h5>
+                        <small class="dashboard-metric-sublabel">Bekleyen Siparişler</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">
+                    @OrdersInProgressCount
+                </h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 68%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <a asp-controller="Order" asp-action="Index" class="dashboard-btn dashboard-btn-primary w-100">
+                        <i class="fas fa-cog"></i>Siparişleri Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-warning);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">Yorumlar</h5>
+                        <small class="dashboard-metric-sublabel">Kullanıcı Yorumları</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">2,341</h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 78%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <a href="#" class="dashboard-btn dashboard-btn-primary w-100">
+                        <i class="fas fa-comments"></i>Yorumları Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-danger);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">Bildirimler</h5>
+                        <small class="dashboard-metric-sublabel">Aktif Bildirimler</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">23</h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 45%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <a href="#" class="dashboard-btn dashboard-btn-primary w-100">
+                        <i class="fas fa-bell"></i>Bildirimleri Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roles Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-info);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">Roller</h5>
+                        <small class="dashboard-metric-sublabel">Sistem Rolleri</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">8</h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 60%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <a href="#" class="dashboard-btn dashboard-btn-primary w-100">
+                        <i class="fas fa-cog"></i>Rolleri Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contents Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-header text-white p-3" style="background: var(--dashboard-dark);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 dashboard-metric-label">İçerikler</h5>
+                        <small class="dashboard-metric-sublabel">Yönetilebilir İçerikler</small>
+                    </div>
+                    <div class="dashboard-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                </div>
+                <h2 class="dashboard-metric-value mt-3 mb-0">95</h2>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" style="width: 82%; background: rgba(255,255,255,0.3);"></div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="dashboard-mini-chart"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <a href="#" class="dashboard-btn dashboard-btn-primary w-100">
+                        <i class="fas fa-edit"></i>İçerikleri Yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics and Activity Row -->
+    <div class="row g-4 my-5 dashboard-fade-in">
+        <!-- Sales Chart -->
+        <!-- Recent Activity -->
+        <div class="col-lg-4 my-4">
+            <div class="dashboard-chart-container" style="height:675px;">
+                <div class="dashboard-chart-header">
+                    <i class="fas fa-clock me-2"></i>Son Aktiviteler
+                </div>
+                <div class="p-0">
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center">
+                            <div class="dashboard-activity-icon" style="background: var(--dashboard-success);">
+                                <i class="fas fa-shopping-bag text-white"></i>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold">Yeni sipariş alındı</p>
+                                <small class="text-muted">Sipariş #12543 - 30 dakika önce</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center">
+                            <div class="dashboard-activity-icon" style="background: var(--dashboard-info);">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold">Yeni üye kaydı</p>
+                                <small class="text-muted">Ahmet Yılmaz - 1 saat önce</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center">
+                            <div class="dashboard-activity-icon" style="background: var(--dashboard-warning);">
+                                <i class="fas fa-box text-white"></i>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold">Stok güncellendi</p>
+                                <small class="text-muted">5 ürün stoku düşük - 2 saat önce</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center">
+                            <div class="dashboard-activity-icon" style="background: var(--dashboard-danger);">
+                                <i class="fas fa-exclamation-triangle text-white"></i>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold">Sistem bakımı</p>
+                                <small class="text-muted">Planlı bakım - 3 saat önce</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center">
+                            <div class="dashboard-activity-icon" style="background: var(--dashboard-accent);">
+                                <i class="fas fa-star text-white"></i>
+                            </div>
+                            <div>
+                                <p class="mb-1 fw-semibold">Yeni değerlendirme</p>
+                                <small class="text-muted">5 yıldız - 4 saat önce</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access and Notifications -->
+    <div class="row g-4 my-5 dashboard-fade-in">
+        <!-- Quick Access -->
+        <div class="col-lg-8">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="dashboard-quick-access">
+                        <div class="dashboard-quick-icon">
+                            <i class="fas fa-warehouse"></i>
+                        </div>
+                        <h5 class="mb-2">Envanter Yönetimi</h5>
+                        <p class="text-muted mb-3">Stok seviyelerini ve envanteri yönetin</p>
+                        <a href="#" class="dashboard-btn dashboard-btn-primary">
+                            <i class="fas fa-arrow-right"></i>Envantere Git
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="dashboard-quick-access">
+                        <div class="dashboard-quick-icon">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <h5 class="mb-2">Kargo & Teslimat</h5>
+                        <p class="text-muted mb-3">Gönderileri takip edin ve teslimat ayarlarını yönetin</p>
+                        <a href="#" class="dashboard-btn dashboard-btn-primary">
+                            <i class="fas fa-arrow-right"></i>Kargoya Git
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="dashboard-quick-access">
+                        <div class="dashboard-quick-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h5 class="mb-2">Raporlar & Analiz</h5>
+                        <p class="text-muted mb-3">Satış raporlarını ve iş analizlerini görüntüleyin</p>
+                        <a href="#" class="dashboard-btn dashboard-btn-primary">
+                            <i class="fas fa-arrow-right"></i>Raporlara Git
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications & Alerts -->
+        <div class="col-lg-4 mb-5">
+            <div class="dashboard-chart-container">
+                <div class="dashboard-chart-header">
+                    <i class="fas fa-bell me-2"></i>Bildirimler & Uyarılar
+                </div>
+                <div class="p-3">
+                    <div class="dashboard-notification">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-exclamation-triangle text-warning fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Düşük Stok Uyarısı</h6>
+                                <p class="mb-0 text-muted small">5 ürünün stoku kritik seviyede</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-notification">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-credit-card text-success fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Ödeme Alındı</h6>
+                                <p class="mb-0 text-muted small">₺1,250.00 tutarında ödeme alındı</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-notification">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-user-plus text-info fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Yeni Üye</h6>
+                                <p class="mb-0 text-muted small">3 yeni üye kaydı tamamlandı</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-notification">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-chart-line text-primary fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Satış Artışı</h6>
+                                <p class="mb-0 text-muted small">Bu ay %12 artış kaydedildi</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="#" class="dashboard-btn dashboard-btn-outline">
+                            <i class="fas fa-eye"></i>Tümünü Görüntüle
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Widgets Row -->
+    <div class="row g-4 mb-5 dashboard-fade-in">
+        <!-- Performance Metrics -->
+        <div class="col-lg-6">
+            <div class="dashboard-chart-container" style="height:430px;">
+                <div class="dashboard-chart-header">
+                    <i class="fas fa-tachometer-alt me-2"></i>Performans Metrikleri
+                </div>
+                <div class="p-4 mt-3">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded-3">
+                                <i class="fas fa-eye fa-2x text-primary mb-2"></i>
+                                <h4 class="mb-0">24,567</h4>
+                                <small class="text-muted">Sayfa Görüntüleme</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded-3">
+                                <i class="fas fa-mouse-pointer fa-2x text-success mb-2"></i>
+                                <h4 class="mb-0">3.2%</h4>
+                                <small class="text-muted">Dönüşüm Oranı</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded-3">
+                                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                <h4 class="mb-0">2m 45s</h4>
+                                <small class="text-muted">Ortalama Süre</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded-3">
+                                <i class="fas fa-undo fa-2x text-danger mb-2"></i>
+                                <h4 class="mb-0">1.8%</h4>
+                                <small class="text-muted">Geri Dönüş Oranı</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="col-lg-6">
+            <div class="dashboard-chart-container">
+                <div class="dashboard-chart-header">
+                    <i class="fas fa-trophy me-2"></i>En Çok Satan Ürünler
+                </div>
+                <div class="p-3">
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="dashboard-activity-icon" style="background: var(--dashboard-primary);">
+                                    <span class="text-white fw-bold">1</span>
+                                </div>
+                                <div>
+                                    <p class="mb-0 fw-semibold">Premium Laptop</p>
+                                    <small class="text-muted">245 satış</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">₺125,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="dashboard-activity-icon" style="background: var(--dashboard-secondary);">
+                                    <span class="text-white fw-bold">2</span>
+                                </div>
+                                <div>
+                                    <p class="mb-0 fw-semibold">Akıllı Telefon</p>
+                                    <small class="text-muted">189 satış</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">₺95,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="dashboard-activity-icon" style="background: var(--dashboard-success);">
+                                    <span class="text-white fw-bold">3</span>
+                                </div>
+                                <div>
+                                    <p class="mb-0 fw-semibold">Kablosuz Kulaklık</p>
+                                    <small class="text-muted">156 satış</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">₺45,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-activity-item">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="dashboard-activity-icon" style="background: var(--dashboard-warning);">
+                                    <span class="text-white fw-bold">4</span>
+                                </div>
+                                <div>
+                                    <p class="mb-0 fw-semibold">Akıllı Saat</p>
+                                    <small class="text-muted">134 satış</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">₺38,000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="row g-4 dashboard-fade-in">
+        <div class="col-lg-12">
+            <div class="dashboard-chart-container">
+                <div class="dashboard-chart-header">
+                    <i class="fas fa-server me-2"></i>Sistem Durumu
+                </div>
+                <div class="p-4">
+                    <div class="row g-4">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="dashboard-quick-icon mb-3" style="background: var(--dashboard-success);">
+                                    <i class="fas fa-server text-white"></i>
+                                </div>
+                                <h6>Sunucu Durumu</h6>
+                                <span class="badge bg-success">Aktif</span>
+                                <p class="text-muted small mt-2">Uptime: 99.9%</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="dashboard-quick-icon mb-3" style="background: var(--dashboard-primary);">
+                                    <i class="fas fa-database text-white"></i>
+                                </div>
+                                <h6>Veritabanı</h6>
+                                <span class="badge bg-primary">Sağlıklı</span>
+                                <p class="text-muted small mt-2">Yanıt: 12ms</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="dashboard-quick-icon mb-3" style="background: var(--dashboard-warning);">
+                                    <i class="fas fa-memory text-white"></i>
+                                </div>
+                                <h6>Bellek Kullanımı</h6>
+                                <span class="badge bg-warning">%68</span>
+                                <p class="text-muted small mt-2">4.2GB / 8GB</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div class="dashboard-quick-icon mb-3" style="background: var(--dashboard-info);">
+                                    <i class="fas fa-hdd text-white"></i>
+                                </div>
+                                <h6>Disk Kullanımı</h6>
+                                <span class="badge bg-info">%45</span>
+                                <p class="text-muted small mt-2">225GB / 500GB</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? ProductsCount { get; set; }
+    [Parameter]
+    public int? CategoriesCount { get; set; }
+    [Parameter]
+    public int? UsersCount { get; set; }
+    [Parameter]
+    public int? OrdersInProgressCount { get; set; }
+    [Parameter]
+    public bool IsLoading { get; set; } = false;
+}

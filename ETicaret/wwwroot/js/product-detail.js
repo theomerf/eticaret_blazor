@@ -1,0 +1,675 @@
+﻿function changeQuantity(amount) {
+	var input = document.getElementById('productQuantity');
+	if (!input) return;
+
+	var current = parseInt(input.value) || 1;
+	var min = parseInt(input.min) || 1;
+	var max = parseInt(input.max) || 10;
+	var next = current + amount;
+	if (next >= min && next <= max) {
+		input.value = next;
+	}
+}
+
+function toggleAccordion(element) {
+	const content = element.nextElementSibling;
+	const icon = element.querySelector('.fa-chevron-down');
+
+	if (content.classList.contains('hidden')) {
+		content.classList.remove('hidden');
+		if (icon) icon.classList.add('rotate-180');
+	} else {
+		content.classList.add('hidden');
+		if (icon) icon.classList.remove('rotate-180');
+	}
+}
+
+function openPhotoModal(imageSrc) {
+	const modal = document.getElementById('photoModal');
+	const modalImage = document.getElementById('modalImage');
+	if (!modal || !modalImage) return;
+
+	modalImage.src = imageSrc;
+	modal.style.display = 'flex';
+	modal.offsetHeight;
+	modal.classList.add('show');
+	document.addEventListener('keydown', handleEscapeKey);
+	document.body.style.overflow = 'hidden';
+}
+
+function closePhotoModal() {
+	const modal = document.getElementById('photoModal');
+	if (!modal) return;
+
+	modal.classList.remove('show');
+	setTimeout(() => {
+		modal.style.display = 'none';
+		document.body.style.overflow = 'auto';
+	}, 300);
+	document.removeEventListener('keydown', handleEscapeKey);
+}
+
+function handleEscapeKey(event) {
+	if (event.key === 'Escape') {
+		closePhotoModal();
+	}
+}
+
+window.updateStarVisuals = function (rating) {
+	const stars = document.querySelectorAll('#starRatingContainer .star-rating-btn');
+	stars.forEach(btn => {
+		const val = parseInt(btn.getAttribute('data-value'));
+		const icon = btn.querySelector('i');
+
+		if (val <= rating) {
+			btn.classList.remove('text-gray-300');
+			btn.classList.add('text-amber-400');
+			icon.classList.remove('far');
+			icon.classList.add('fas');
+		} else {
+			btn.classList.add('text-gray-300');
+			btn.classList.remove('text-amber-400');
+			icon.classList.remove('fas');
+			icon.classList.add('far');
+		}
+	});
+};
+
+window.setReviewRating = function (rating) {
+	const input = document.getElementById('hiddenRatingInput');
+	const display = document.getElementById('ratingDisplay');
+
+	if (!input) return;
+
+	let currentVal = parseInt(input.value);
+
+	let newVal = rating;
+	if (currentVal === rating) {
+		newVal = 0;
+	}
+
+	input.value = newVal;
+	if (display) display.innerText = newVal === 0 ? '-' : newVal;
+
+	updateStarVisuals(newVal);
+};
+
+window.hoverReviewRating = function (rating) {
+	updateStarVisuals(rating);
+	const display = document.getElementById('ratingDisplay');
+	if (display) display.innerText = rating;
+};
+
+window.resetVisualRating = function () {
+	const input = document.getElementById('hiddenRatingInput');
+	const display = document.getElementById('ratingDisplay');
+	if (!input) return;
+
+	const savedVal = parseInt(input.value);
+	updateStarVisuals(savedVal);
+	if (display) display.innerText = savedVal === 0 ? '-' : savedVal;
+};
+
+window.handleReviewImageSelect = function (input) {
+	const indicator = document.getElementById('imageUploadIndicator');
+	if (!indicator) return;
+
+	if (input.files && input.files[0]) {
+		indicator.classList.remove('hidden');
+		indicator.classList.add('flex');
+	} else {
+		indicator.classList.add('hidden');
+		indicator.classList.remove('flex');
+	}
+};
+
+(function () {
+
+	async function checkIfProductInCart(productId, cartBtn) {
+		try {
+			const response = await fetch('/api/cart');
+			if (!response.ok) return false;
+
+			const cart = await response.json();
+			if (!cart || !cart.lines) return false;
+
+			const cartLine = cart.lines.find(line => line.productId === productId);
+			const isInCart = !!cartLine;
+
+			if (isInCart) {
+				cartBtn.setAttribute('data-in-cart', 'true');
+				cartBtn.setAttribute('data-cart-quantity', cartLine.quantity || 1);
+				const btnContent = cartBtn.querySelector('.btn-content');
+				const btnRemove = cartBtn.querySelector('.btn-remove');
+
+				if (btnContent) btnContent.style.display = 'none';
+				if (btnRemove) btnRemove.style.display = 'flex';
+
+				cartBtn.classList.add('in-cart');
+			}
+
+			return isInCart;
+		} catch (error) {
+			console.error('Sepet kontrolü sırasında hata:', error);
+			return false;
+		}
+	}
+
+	document.addEventListener('DOMContentLoaded', function () {
+		initProductDetailPage();
+	});
+
+	async function initProductDetailPage() {
+		const starContainer = document.getElementById('starRatingContainer');
+		if (starContainer) {
+			starContainer.addEventListener('mouseleave', function () {
+				window.resetVisualRating();
+			});
+
+			const stars = starContainer.querySelectorAll('.star-rating-btn');
+			stars.forEach(btn => {
+				btn.addEventListener('mouseenter', function () {
+					const val = parseInt(this.getAttribute('data-value'));
+					window.hoverReviewRating(val);
+				});
+			});
+		}
+
+		const modal = document.getElementById('photoModal');
+		if (modal) {
+			modal.addEventListener('click', function (event) {
+				if (event.target === this) {
+					closePhotoModal();
+				}
+			});
+		}
+
+		const mainImage = document.querySelector('.pd-main-image');
+		if (mainImage) {
+			mainImage.style.cursor = 'pointer';
+			mainImage.addEventListener('click', function () {
+				openPhotoModal(this.src);
+			});
+		}
+
+		const thumbnails = document.querySelectorAll('.pd-thumbnail');
+		thumbnails.forEach(function (thumbnail) {
+			thumbnail.style.cursor = 'pointer';
+			thumbnail.addEventListener('click', function () {
+				if (mainImage) {
+					mainImage.src = this.src;
+					mainImage.alt = this.alt || mainImage.alt;
+				}
+				thumbnails.forEach(function (thumb) {
+					thumb.classList.remove('active');
+					thumb.classList.remove('border-blue-600', 'opacity-100', 'shadow-[0_0_0_4px_rgba(0,102,255,0.2)]');
+					thumb.classList.add('border-transparent', 'opacity-70');
+				});
+				this.classList.add('active');
+				this.classList.remove('border-transparent', 'opacity-70');
+				this.classList.add('border-blue-600', 'opacity-100', 'shadow-[0_0_0_4px_rgba(0,102,255,0.2)]');
+			});
+		});
+
+		const prevBtn = document.getElementById('prev-image-btn');
+		const nextBtn = document.getElementById('next-image-btn');
+
+		if (prevBtn && nextBtn) {
+			prevBtn.addEventListener('click', function (e) {
+				e.stopPropagation();
+				navigateImage(-1);
+			});
+			nextBtn.addEventListener('click', function (e) {
+				e.stopPropagation();
+				navigateImage(1);
+			});
+		}
+
+		function navigateImage(direction) {
+			const thumbnails = Array.from(document.querySelectorAll('.pd-thumbnail'));
+			if (thumbnails.length === 0) return;
+
+			const activeIndex = thumbnails.findIndex(t => t.classList.contains('active'));
+			let nextIndex;
+
+			if (activeIndex === -1) {
+				nextIndex = 0;
+			} else {
+				nextIndex = (activeIndex + direction + thumbnails.length) % thumbnails.length;
+			}
+
+			thumbnails[nextIndex].click();
+
+			thumbnails[nextIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+		}
+
+		const commentPhotos = document.querySelectorAll('.pd-comment-photo');
+		commentPhotos.forEach(function (photo) {
+			photo.style.cursor = 'pointer';
+			photo.addEventListener('click', function () {
+				openPhotoModal(this.src);
+			});
+		});
+
+		const tabButtons = document.querySelectorAll('[data-tab-target]');
+		const tabContents = document.querySelectorAll('.tab-pane');
+
+		tabButtons.forEach(button => {
+			button.addEventListener('click', () => {
+				const targetSelector = button.getAttribute('data-tab-target');
+				const targetContent = document.querySelector(targetSelector);
+
+				if (!targetContent) return;
+
+				tabButtons.forEach(btn => {
+					btn.classList.remove('active');
+				});
+
+				button.classList.add('active');
+
+				tabContents.forEach(content => {
+					content.classList.remove('opacity-100');
+					content.classList.add('opacity-0');
+					content.classList.remove('block');
+					content.classList.add('hidden');
+				});
+
+				targetContent.classList.remove('hidden');
+				targetContent.classList.add('block');
+
+				const form = document.getElementById('reviewForm');
+				clearValidationErrors(form);
+
+				setTimeout(() => {
+					targetContent.classList.remove('opacity-0');
+					targetContent.classList.add('opacity-100');
+				}, 20);
+			});
+		});
+
+		const colorOptions = document.querySelectorAll('.pd-color-option');
+		colorOptions.forEach(function (option) {
+			option.addEventListener('click', function () {
+				colorOptions.forEach(o => o.classList.remove('active'));
+				this.classList.add('active');
+			});
+		});
+
+		const sizeOptions = document.querySelectorAll('.pd-size-option:not(.pd-sold-out)');
+		sizeOptions.forEach(function (option) {
+			option.addEventListener('click', function () {
+				document.querySelectorAll('.pd-size-option').forEach(o => {
+					o.classList.remove('active');
+				});
+				this.classList.add('active');
+			});
+		});
+
+		document.addEventListener('click', async function (e) {
+			const reviewSubmitBtn = e.target.closest('.review-submit-btn');
+			if (!reviewSubmitBtn) return;
+
+			e.preventDefault();
+
+			const form = document.getElementById('reviewForm');
+			if (!form) return;
+
+			const titleInput = form.querySelector('[name="UserReviewForCreation.ReviewTitle"]');
+			const textInput = form.querySelector('[name="UserReviewForCreation.ReviewText"]');
+			const ratingInput = form.querySelector('[name="UserReviewForCreation.Rating"]');
+			const productIdInput = form.querySelector('[name="UserReviewForCreation.ProductId"]');
+			const fileInput = document.getElementById('reviewImageInput');
+
+			if (!ratingInput?.value || ratingInput.value === '0' || ratingInput.value === 0) {
+				clearValidationErrors(form);
+				handleValidationErrors(form, { errors: { "Rating": ["Lütfen değerlendirmenize puan verin."] } });
+				return;
+			}
+
+			const originalText = reviewSubmitBtn.innerHTML;
+			reviewSubmitBtn.disabled = true;
+			reviewSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Gönderiliyor...';
+
+			clearValidationErrors(form);
+
+			try {
+				const formData = new FormData();
+				formData.append('ReviewTitle', titleInput.value);
+				formData.append('ReviewText', textInput.value);
+				formData.append('Rating', ratingInput.value);
+				formData.append('ProductId', productIdInput.value);
+
+				if (fileInput && fileInput.files.length > 0) {
+					formData.append('file', fileInput.files[0]);
+				}
+
+				const response = await fetch('/api/account/create-review', {
+					method: 'POST',
+					body: formData
+				});
+
+				if (!response.ok) {
+					const errorData = await response.json().catch(() => ({}));
+					handleValidationErrors(form, errorData);
+					throw new Error('Validation failed');
+				}
+
+				const result = await response.json();
+
+				if (result.success) {
+					if (typeof showToast === 'function') showToast(result.message || 'Yorumunuz başarıyla eklendi!', 'success');
+
+					try {
+						const reviewsContainer = document.getElementById('reviews');
+						if (reviewsContainer && productIdInput.value) {
+							const componentResponse = await fetch(`/product-reviews/${productIdInput.value}`);
+							if (componentResponse.ok) {
+								const html = await componentResponse.text();
+								reviewsContainer.innerHTML = html;
+							} else {
+								setTimeout(() => window.location.reload(), 1000);
+							}
+						} else {
+							setTimeout(() => window.location.reload(), 1000);
+						}
+					} catch (refreshError) {
+						console.error(refreshError);
+						setTimeout(() => window.location.reload(), 1000);
+					}
+
+				} else {
+					handleValidationErrors(form, { message: result.message || 'Yorum eklenirken hata oluştu.' });
+					reviewSubmitBtn.disabled = false;
+					reviewSubmitBtn.innerHTML = originalText;
+				}
+			} catch (error) {
+				if (error.message !== 'Validation failed') {
+					console.error('Review submit error:', error);
+					handleValidationErrors(form, { message: 'Bir hata oluştu. Lütfen tekrar deneyin.' });
+				}
+				reviewSubmitBtn.disabled = false;
+				reviewSubmitBtn.innerHTML = originalText;
+			}
+		});
+
+		const cartBtns = document.querySelectorAll('.pd-add-cart-btn');
+		cartBtns.forEach(cartBtn => {
+			const productId = cartBtn.getAttribute('data-product-id');
+			if (productId) {
+				checkIfProductInCart(parseInt(productId), cartBtn);
+			}
+		});
+	}
+
+	document.addEventListener('click', async function (event) {
+		if (!event.target.closest('.review-submit-btn')) return;
+
+		event.preventDefault();
+
+		const submitBtn = event.target.closest('.review-submit-btn');
+		if (submitBtn.classList.contains('loading')) return;
+
+		const form = document.getElementById('reviewForm');
+		if (!form) return;
+
+	});
+
+	document.addEventListener('click', async function (event) {
+		const clickedBtn = event.target.closest('.pd-add-cart-btn');
+		if (!clickedBtn) return;
+
+		if (clickedBtn.classList.contains('loading') || clickedBtn.classList.contains('removing')) {
+			return;
+		}
+
+		event.preventDefault();
+
+		const productId = clickedBtn.getAttribute('data-product-id');
+		const allButtons = document.querySelectorAll(`.pd-add-cart-btn[data-product-id="${productId}"]`);
+
+		const isInCart = clickedBtn.getAttribute('data-in-cart') === 'true';
+
+		if (isInCart) {
+			allButtons.forEach(btn => {
+				const btnContent = btn.querySelector('.btn-content');
+				const btnLoading = btn.querySelector('.btn-loading');
+				const btnRemove = btn.querySelector('.btn-remove');
+				const btnRemoveLoading = btn.querySelector('.btn-remove-loading');
+
+				if (btnContent) btnContent.style.display = 'none';
+				if (btnLoading) btnLoading.style.display = 'none';
+				if (btnRemove) btnRemove.style.display = 'none';
+				if (btnRemoveLoading) btnRemoveLoading.style.display = 'flex';
+				btn.classList.add('removing');
+				btn.disabled = true;
+			});
+
+			updateCounter('cart-summary', -1);
+
+			try {
+				const response = await fetch(`/api/cart/items/${productId}`, {
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json'
+					}
+				});
+
+				if (!response.ok) throw new Error('Ağ hatası');
+
+				const result = await response.json();
+				if (result.success) {
+					allButtons.forEach(btn => {
+						const btnContent = btn.querySelector('.btn-content');
+						const btnLoading = btn.querySelector('.btn-loading');
+						const btnRemove = btn.querySelector('.btn-remove');
+						const btnRemoveLoading = btn.querySelector('.btn-remove-loading');
+
+						if (btnContent) btnContent.style.display = 'flex';
+						if (btnLoading) btnLoading.style.display = 'none';
+						if (btnRemove) btnRemove.style.display = 'none';
+						if (btnRemoveLoading) btnRemoveLoading.style.display = 'none';
+						btn.classList.remove('removing', 'in-cart');
+						btn.setAttribute('data-in-cart', 'false');
+						btn.disabled = false;
+					});
+
+					if (typeof updateCartCounter === 'function') updateCartCounter('cart-summary', -1);
+					else if (typeof dispatchCartUpdatedEvent === 'function') dispatchCartUpdatedEvent();
+
+					if (typeof showToast === 'function') showToast(result.message || 'Ürün sepetten kaldırıldı!', 'success');
+				} else {
+					allButtons.forEach(btn => {
+						const btnContent = btn.querySelector('.btn-content');
+						const btnRemove = btn.querySelector('.btn-remove');
+						resetButtonState(btn, btnContent, btnRemove, true);
+					});
+					updateCounter('cart-summary', +1);
+					if (typeof showToast === 'function') showToast('Hata oluştu', 'danger');
+				}
+			} catch (error) {
+				console.error(error);
+				allButtons.forEach(btn => {
+					const btnContent = btn.querySelector('.btn-content');
+					const btnRemove = btn.querySelector('.btn-remove');
+					resetButtonState(btn, btnContent, btnRemove, true);
+				});
+				updateCounter('cart-summary', +1);
+				if (typeof showToast === 'function') showToast('Hata oluştu', 'danger');
+			}
+			return;
+		}
+
+		allButtons.forEach(btn => {
+			const btnContent = btn.querySelector('.btn-content');
+			const btnLoading = btn.querySelector('.btn-loading');
+			const btnRemove = btn.querySelector('.btn-remove');
+			const btnRemoveLoading = btn.querySelector('.btn-remove-loading');
+
+			if (btnContent) btnContent.style.display = 'none';
+			if (btnLoading) btnLoading.style.display = 'flex';
+			if (btnRemove) btnRemove.style.display = 'none';
+			if (btnRemoveLoading) btnRemoveLoading.style.display = 'none';
+			btn.classList.add('loading');
+			btn.disabled = true;
+		});
+
+		updateCounter('cart-summary', +1);
+
+		try {
+			const quantityInput = document.getElementById('productQuantity');
+			let quantity = parseInt(quantityInput?.value || 1);
+			if (isNaN(quantity) || quantity < 1) quantity = 1;
+
+			const response = await fetch(`/api/cart/items`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ productId: parseInt(productId), quantity: quantity })
+			});
+
+			if (!response.ok) throw new Error('Ağ hatası');
+
+			const result = await response.json();
+			if (result.success) {
+				allButtons.forEach(btn => {
+					const btnContent = btn.querySelector('.btn-content');
+					const btnLoading = btn.querySelector('.btn-loading');
+					const btnRemove = btn.querySelector('.btn-remove');
+					const btnRemoveLoading = btn.querySelector('.btn-remove-loading');
+
+					if (btnContent) btnContent.style.display = 'none';
+					if (btnLoading) btnLoading.style.display = 'none';
+					if (btnRemove) btnRemove.style.display = 'flex';
+					if (btnRemoveLoading) btnRemoveLoading.style.display = 'none';
+					btn.classList.remove('loading');
+					btn.classList.add('in-cart');
+					btn.setAttribute('data-in-cart', 'true');
+					btn.setAttribute('data-cart-quantity', quantity);
+					btn.disabled = false;
+				});
+
+				if (typeof updateCartCounter === 'function') updateCartCounter('cart-summary', quantity);
+				else if (typeof dispatchCartUpdatedEvent === 'function') dispatchCartUpdatedEvent();
+
+				if (typeof showToast === 'function') showToast(result.message || `Ürün sepete eklendi!`, 'success');
+			} else {
+				allButtons.forEach(btn => {
+					const btnContent = btn.querySelector('.btn-content');
+					const btnRemove = btn.querySelector('.btn-remove');
+					resetButtonState(btn, btnContent, btnRemove, false);
+				});
+				updateCounter('cart-summary', -1);
+				if (typeof showToast === 'function') showToast(result.message || 'Hata oluştu', 'danger');
+			}
+		} catch (error) {
+			console.error(error);
+			allButtons.forEach(btn => {
+				const btnContent = btn.querySelector('.btn-content');
+				const btnRemove = btn.querySelector('.btn-remove');
+				resetButtonState(btn, btnContent, btnRemove, false);
+			});
+			updateCounter('cart-summary', -1);
+			if (typeof showToast === 'function') showToast(error.message || 'Hata oluştu', 'danger');
+		}
+	});
+
+	function resetButtonState(btn, content, remove, wasInCart) {
+		const loading = btn.querySelector('.btn-loading');
+		const removeLoading = btn.querySelector('.btn-remove-loading');
+
+		loading.style.display = 'none';
+		removeLoading.style.display = 'none';
+		btn.classList.remove('loading', 'removing');
+		btn.disabled = false;
+
+		if (wasInCart) {
+			content.style.display = 'none';
+			remove.style.display = 'flex';
+			btn.classList.add('in-cart');
+		} else {
+			content.style.display = 'flex';
+			remove.style.display = 'none';
+			btn.classList.remove('in-cart');
+		}
+	}
+
+	function clearValidationErrors(form) {
+		form.querySelectorAll('[data-valmsg-for]').forEach(span => {
+			span.innerText = '';
+			span.classList.remove('field-validation-error');
+			span.classList.add('field-validation-valid');
+		});
+
+		const summary = form.closest('div')?.querySelector('[data-valmsg-summary="true"]');
+		if (summary) {
+			const ul = summary.querySelector('ul');
+			if (ul) ul.innerHTML = '';
+			summary.classList.add('validation-summary-valid');
+			summary.classList.remove('validation-summary-errors');
+			summary.classList.add('hidden');
+		}
+	}
+
+	function handleValidationErrors(form, errorData) {
+		let generalErrors = [];
+
+		if (errorData.errors) {
+			for (const [key, messages] of Object.entries(errorData.errors)) {
+				let span = form.querySelector(`[data-valmsg-for="${key}"]`);
+
+				if (!span) {
+					span = form.querySelector(`[data-valmsg-for$=".${key}"]`);
+				}
+				if (!span) {
+					const inputs = form.querySelectorAll('[data-valmsg-for]');
+					for (let i = 0; i < inputs.length; i++) {
+						if (inputs[i].getAttribute('data-valmsg-for').endsWith('.' + key)) {
+							span = inputs[i];
+							break;
+						}
+					}
+				}
+
+				if (span) {
+					span.innerText = messages.join(' ');
+					span.classList.add('field-validation-error');
+					span.classList.remove('field-validation-valid');
+				} else {
+					generalErrors.push(...messages);
+				}
+			}
+		}
+
+		if (errorData.message) {
+			if (!errorData.errors || Object.keys(errorData.errors).length === 0) {
+				generalErrors.push(errorData.message);
+			}
+		}
+
+		if (errorData.errors && Object.keys(errorData.errors).length > 0 && form.querySelectorAll('.field-validation-error').length === 0 && generalErrors.length === 0) {
+			for (const [key, messages] of Object.entries(errorData.errors)) {
+				generalErrors.push(...messages);
+			}
+		}
+
+		if (generalErrors.length > 0) {
+			const summary = form.closest('div')?.querySelector('[data-valmsg-summary="true"]');
+			if (summary) {
+				let ul = summary.querySelector('ul');
+				if (!ul) {
+					ul = document.createElement('ul');
+					summary.appendChild(ul);
+				}
+				ul.innerHTML = '';
+				generalErrors.forEach(err => {
+					const li = document.createElement('li');
+					li.innerText = err;
+					ul.appendChild(li);
+				});
+
+				summary.classList.remove('validation-summary-valid');
+				summary.classList.add('validation-summary-errors');
+				summary.classList.remove('hidden');
+			}
+		}
+	}
+})();

@@ -1,0 +1,219 @@
+﻿@using Application.DTOs
+@model ProductListViewModel
+
+<!-- Mobile Header (< lg) -->
+<div class="lg:hidden bg-primary rounded-xl p-3 mb-4 shadow-[0_10px_30px_rgba(102,126,234,0.15)] relative overflow-hidden">
+    <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 text-white flex-1 min-w-0">
+            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-lg backdrop-blur-md border border-solid border-white/30 flex-shrink-0">
+                <i class="fa-solid fa-list"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <h5 class="text-base font-bold drop-shadow-md truncate">Ürün Kataloğu</h5>
+                <p class="opacity-90 text-xs">
+                    <span class="bg-white/25 px-2 py-[1] backdrop-blur-xl border border-solid border-white/20 rounded-xl">@Model.TotalCount</span> ürün
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <button type="button" 
+                    id="mobileFilterBtn"
+                    class="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all duration-300 hover:bg-white/25 active:scale-95">
+                <i class="fa-solid fa-filter text-base"></i>
+            </button>
+            <button type="button" 
+                    id="mobileSortBtn"
+                    class="w-10 h-10 bg-white/15 rounded-lg flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all duration-300 hover:bg-white/25 active:scale-95 relative">
+                <i class="fa-solid fa-sort text-base"></i>
+                @if (!string.IsNullOrEmpty(Model.FilterParams?.SortBy) && Model.FilterParams.SortBy != "default")
+                {
+                    <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Desktop Header (≥ lg) -->
+<div id="productsHeader" class="hidden lg:block bg-primary rounded-2xl p-4 mb-4 shadow-[0_20px_40px_rgba(102,126,234,0.15)] relative overflow-hidden">
+    <div class="flex justify-between items-center gap-8 relative z-2">
+        <div class="flex items-center gap-4 text-white">
+            <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center text-2xl backdrop-blur-md border border-solid border-white/30">
+                <i class="fa-solid fa-list"></i>
+            </div>
+            <div>
+                <h5 class="text-2xl font-bold drop-shadow-md">Ürün Kataloğu</h5>
+                <p class="opacity-90 mt-2">
+                    <span class="bg-white/25 px-3 py-0.5 backdrop-blur-xl border border-solid border-white/20 rounded-2xl mr-1">@Model.TotalCount</span>ürün bulundu
+                </p>
+            </div>
+        </div>
+        <div class="bg-white/15 rounded-xl p-2 text-sm backdrop-blur-xl border border-solid border-white/20">
+            <div class="flex items-center gap-4 relative group">
+                <form method="get" asp-action="Index">
+                    <label for="sortOptions" class="text-white font-semibold whitespace-nowrap">
+                        <i class="fa-solid fa-sort mr-2"></i>Sırala
+                    </label>    
+                    <select class="bg-white/90 px-3 py-2 rounded-lg font-medium appearance-none cursor-pointer transition-all ease-out duration-300 min-w-[200px] shadow-[0_4px_15px_rgba(0,_0,_0,_0.1)] focus:outline-none focus:border-blue-400 focus:ring-2 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.3)] focus:bg-white" id="sortOptions">
+                        <option value="default" selected="@((Model.FilterParams?.SortBy == "default" || Model.FilterParams?.SortBy == null) ? "selected" : null)">Varsayılan</option>
+                        <option value="price_asc" selected="@(Model.FilterParams?.SortBy == "price_asc" ? "selected" : null)">Fiyat: Düşükten Yükseğe</option>
+                        <option value="price_desc" selected="@(Model.FilterParams?.SortBy == "price_desc" ? "selected" : null)">Fiyat: Yüksekten Düşüğe</option>
+                        <option value="topReviews" selected="@(Model.FilterParams?.SortBy == "topReviews" ? "selected" : null)">En Yüksek Puanlılar</option>
+                        <option value="mostReviews" selected="@(Model.FilterParams?.SortBy == "mostReviews" ? "selected" : null)">En Çok Değerlendirme</option>
+                    </select>
+                    <div class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-blue-400">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.FilterParams?.HasActiveFilters == true)
+{
+    <div class="bg-white rounded-lg sm:rounded-xl p-1.5 sm:p-4 mb-1.5 sm:mb-6 md:mb-8 shadow-[0_8px_25px_rgba(0,0,0,0.08)] border border-solid border-white">
+        <div class="flex flex-row justify-between items-center gap-1 sm:gap-0 mb-1.5 sm:mb-2 text-gray-500">
+            <div class="flex items-center font-semibold text-[0.65rem] sm:text-lg">
+                <i class="fa-solid fa-filter mr-1 sm:mr-2 text-[0.6rem] sm:text-base opacity-70"></i>
+                <span>Aktif Filtreler</span>
+            </div>
+            <a href="#" class="productlist-clear-all bg-gradient-to-r from-red-500 to-pink-500 text-white inline-block px-1.5 py-0.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[0.6rem] sm:text-base font-medium transition-all shadow-[0_4px_15px_rgba(255,107,107,0.2)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(255,107,107,0.3)]">
+                <i class="fa-solid fa-xmark mr-0.5 sm:mr-1"></i>
+                <span class="hidden sm:inline">Tümünü Temizle</span>
+                <span class="sm:hidden">Temizle</span>
+            </a>
+        </div>
+        <div class="flex flex-wrap gap-1 sm:gap-3">
+            @if (!string.IsNullOrEmpty(Model.FilterParams?.SearchTerm))
+            {
+                <div class="productlist-filter-tag border-cyan-400 bg-gradient-to-r from-cyan-100 to-cyan-200 before:bg-gradient-to-r before:from-cyan-400 before:to-cyan-500">
+                    <span class="productlist-filter-icon">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <span class="font-medium z-10">@Model.FilterParams?.SearchTerm</span>
+                    <a href="@Url.Action("Index", "Products", new {
+                        categoryId = Model.FilterParams?.CategoryId,
+                        minPrice = Model.FilterParams?.MinPrice,
+                        maxPrice = Model.FilterParams?.MaxPrice,
+                        brand = Model.FilterParams?.Brand,
+                        isShowCase = Model.FilterParams?.IsShowCase,
+                        isDiscount = Model.FilterParams?.IsDiscount,
+                        sortBy = Model.FilterParams?.SortBy
+                    })" class="productlist-filter-remove">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+            }
+            @if (Model.FilterParams?.MinPrice.HasValue == true || Model.FilterParams?.MaxPrice.HasValue == true)
+            {
+                <div class="productlist-filter-tag border-green-400 bg-gradient-to-r from-green-100 to-green-200 before:bg-gradient-to-r before:from-green-100 before:to-green-500">
+                    <span class="productlist-filter-icon">
+                        <i class="fa-solid fa-turkish-lira-sign"></i>
+                    </span>
+                    <span class="font-medium z-10">
+                        @(Model.FilterParams?.MinPrice.HasValue == true ? Model.FilterParams.MinPrice.Value.ToString() : "0") - 
+                        @(Model.FilterParams?.MaxPrice.HasValue == true ? Model.FilterParams.MaxPrice.Value.ToString() : "Max") TL
+                    </span>
+                    <a href="@Url.Action("Index", "Products", new {
+                        categoryId = Model.FilterParams?.CategoryId,
+                        searchTerm = Model.FilterParams?.SearchTerm,
+                        brand = Model.FilterParams?.Brand,
+                        isShowCase = Model.FilterParams?.IsShowCase,
+                        isDiscount = Model.FilterParams?.IsDiscount,
+                        sortBy = Model.FilterParams?.SortBy
+                    })" class="productlist-filter-remove">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.FilterParams?.Brand))
+            {
+                <div class="productlist-filter-tag border-purple-400 bg-gradient-to-r from-purple-100 to-purple-200 before:bg-gradient-to-r before:from-purple-400 before:to-purple-500">
+                    <span class="productlist-filter-icon">
+                        <i class="fa-solid fa-tag"></i>
+                    </span>
+                    <span class="font-medium z-10">@Context.Request.Query["brand"]</span>
+                    <a href="@Url.Action("Index", "Products", new {
+                        categoryId = Model.FilterParams?.CategoryId,
+                        searchTerm = Model.FilterParams?.SearchTerm,
+                        minPrice = Model.FilterParams?.MinPrice,
+                        maxPrice = Model.FilterParams?.MaxPrice,
+                        isShowCase = Model.FilterParams?.IsShowCase,
+                        isDiscount = Model.FilterParams?.IsDiscount,
+                        sortBy = Model.FilterParams?.SortBy
+                    })" class="productlist-filter-remove">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+            }
+            @if (Model.FilterParams?.IsShowCase == true)
+            {
+                <div class="productlist-filter-tag border-orange-400 bg-gradient-to-r from-orange-100 to-orange-200 before:bg-gradient-to-r before:from-orange-400 before:to-orange-500">
+                    <span class="productlist-filter-icon">
+                        <i class="fa-solid fa-fire"></i>
+                    </span>
+                    <span class="font-medium z-10">En Çok Satanlar</span>
+                    <a href="@Url.Action("Index", "Products", new {
+                        categoryId = Model.FilterParams?.CategoryId,
+                        searchTerm = Model.FilterParams?.SearchTerm,
+                        minPrice = Model.FilterParams?.MinPrice,
+                        maxPrice = Model.FilterParams?.MaxPrice,
+                        brand = Model.FilterParams?.Brand,
+                        isDiscount = Model.FilterParams?.IsDiscount,
+                        sortBy = Model.FilterParams?.SortBy
+                    })" class="productlist-filter-remove">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+            }
+            @if (Model.FilterParams?.IsDiscount == true)
+            {
+                <div class="productlist-filter-tag border-red-400 bg-gradient-to-r from-red-100 to-red-200 before:bg-gradient-to-r before:from-red-400 before:to-red-500">
+                    <span class="productlist-filter-icon">
+                        <i class="fa-solid fa-percent"></i>
+                    </span>
+                    <span class="font-medium z-10">İndirimli Ürünler</span>
+                    <a href="@Url.Action("Index", "Products", new {
+                        categoryId = Model.FilterParams?.CategoryId,
+                        searchTerm = Model.FilterParams?.SearchTerm,
+                        minPrice = Model.FilterParams?.MinPrice,
+                        maxPrice = Model.FilterParams?.MaxPrice,
+                        brand = Model.FilterParams?.Brand,
+                        isShowCase = Model.FilterParams?.IsShowCase,
+                        sortBy = Model.FilterParams?.SortBy
+                    })" class="productlist-filter-remove">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (Model == null || Model.TotalCount == 0)
+{
+    <div class="flex flex-col items-center py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 my-4 sm:my-6 md:my-8 bg-white rounded-2xl sm:rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 bg-primary rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl shadow-[0_10px_30px_rgba(102,126,234,0.3)]">
+            <i class="fa-solid fa-search"></i>
+        </div>
+        <h4 class="text-gray-600 mb-1 font-bold text-lg sm:text-xl">Ürün Bulunamadı</h4>
+        <p class="text-gray-400 mb-4 sm:mb-6 md:mb-8 text-sm sm:text-base md:text-lg text-center">Arama kriterlerinize uygun ürün bulunamadı. </p>
+        <a href="@Url.Action("Index")" class="bg-primary text-white text-center py-2 px-4 sm:py-3 sm:px-6 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all ease-out duration-300 shadow-[0_8px_25px_rgba(102,126,234,0.3)] hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(102,126,234,0.4)]">
+            <i class="fa-solid fa-grid-2 mr-1 sm:mr-2"></i>
+            Tüm Ürünleri Göster
+        </a>
+    </div>
+}
+else
+{
+    <div id="cardsContainer" class="grid grid-cols-2 lg:grid-cols-3 gap-2">
+        <partial name="_ProductCardsPartial" model="Model.Products" />
+    </div>
+
+    <div id="scrollSentinel" 
+         class="w-full min-h-[80px] flex items-center justify-center my-4"
+         >
+    </div>
+}
+

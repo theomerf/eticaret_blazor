@@ -1,0 +1,187 @@
+@using System.Security.Claims
+@using Domain.Entities
+@using ETicaret.Helpers
+@using System.Globalization
+@using ETicaret.Services
+@using Application.DTOs
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ICartStateService CartState
+@inject IFavouriteStateService FavState
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div class="@(IsMini ? "my-2" : "my-1 sm:my-2 md:my-3 px-0.5 sm:px-2.5") [perspective:1000px]">
+    <div class="product-card animate-[fadeInUp_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)] group flex flex-col"
+         data-cursor-id="@Model.ProductId">
+        <div class="flex flex-col">
+            <a href="/products/@Model?.Slug" class="no-underline relative z-[2] flex flex-col">
+                @if (Model?.Discount > 0 && !IsMini)
+                {
+                    <div class="absolute top-1.5 left-1.5 sm:top-5 sm:left-5 bg-gradient-to-br from-red-500 to-red-400 text-white rounded-lg sm:rounded-3xl px-1.5 py-0.5 sm:px-4 sm:py-2 text-[0.5rem] sm:text-xs font-bold shadow-sm z-[3] flex items-center uppercase animate-pulse">
+                        <span class="[text-shadow:0_1px_2px_rgba(0,0,0,0.2)] mr-0.5">%@Model?.Discount</span>
+                        <span class="hidden sm:inline">İndirim</span>
+                    </div>
+                }
+ 
+                <div class="relative @(IsMini ? "h-[80px] sm:h-[120px]" : "h-[120px] sm:h-[240px] md:h-[260px]") bg-gradient-to-br from-white via-slate-50 to-slate-100 overflow-hidden @(IsMini ? "rounded-t-xl" : "rounded-t-lg sm:rounded-t-2xl") after:absolute after:bottom-0 after:left-0 after:right-0 after:h-5 sm:after:h-7 after:bg-gradient-to-t after:from-white/80 after:to-transparent after:z-[1]">
+                    <img src="@Model?.Images?.FirstOrDefault()?.ImageUrl" class="w-full h-full object-contain p-2 sm:p-5 transition-all duration-[600ms] group-hover:scale-110" alt="@Model?.ProductName" loading="lazy">
+                </div>
+ 
+                <div class="@(IsMini ? "px-2 py-2" : "px-2 pt-2 pb-1 sm:px-6 sm:pt-4 sm:pb-3 md:px-6 md:pt-5 md:pb-4") text-center flex flex-col relative z-[2] transition-transform duration-300 group-hover:-translate-y-0.5">
+                    <div class="@(IsMini ? "mb-1" : "h-[3.5rem] sm:h-[5rem] md:h-[5.5rem]") flex flex-col items-center">
+                        <h5 class="@(IsMini ? "text-[0.65rem] sm:text-xs leading-[1.2]" : "text-[0.7rem] leading-tight sm:text-lg") font-bold m-0 overflow-hidden text-ellipsis [-webkit-line-clamp:2] [-webkit-box-orient:vertical] [display:-webkit-box] text-slate-800 tracking-tight">
+                            @Model?.ProductName
+                        </h5>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 mt-auto">
+                        @if (Model?.DiscountPrice != null && Model?.ActualPrice > Model?.DiscountPrice)
+                        {
+                            <span class="line-through text-slate-400 @(IsMini ? "text-[0.55rem] sm:text-xs" : "text-[0.6rem] sm:text-base") font-medium">
+                                @Model?.ActualPrice.ToString("C0", new CultureInfo("tr-TR"))
+                            </span>
+                            <span class="font-extrabold @(IsMini ? "text-xs sm:text-sm" : "text-xs sm:text-xl md:text-2xl") bg-primary bg-clip-text text-transparent tracking-tight">
+                                @Model?.DiscountPrice?.ToString("C0", new CultureInfo("tr-TR"))
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="font-extrabold @(IsMini ? "text-xs sm:text-sm" : "text-xs sm:text-xl md:text-2xl") bg-primary bg-clip-text text-transparent tracking-tight">
+                                @Model?.ActualPrice.ToString("C0", new CultureInfo("tr-TR"))
+                            </span>
+                        }
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="absolute @(IsMini ? "top-1 right-1" : "top-2 right-2 sm:top-5 sm:right-5") flex flex-col gap-1 sm:gap-2 z-[4] opacity-0 translate-x-3 scale-75 transition-all duration-[400ms] group-hover:opacity-100 group-hover:translate-x-0 group-hover:scale-100">
+            @if (user?.Identity?.IsAuthenticated == true)
+            {
+                bool isFav = FavState.IsFavourite(Model.ProductId);
+                <button type="button" @onclick="HandleFavoriteAction" disabled="@isProcessing"
+                    class="@(isFav ? "text-red-500 bg-red-50" : "text-slate-500 bg-white") @(IsMini ? "w-6 h-6 sm:w-8 sm:h-8" : "w-7 h-7 sm:w-11 sm:h-11") rounded-full flex items-center justify-center border-none shadow-sm transition-all duration-300 backdrop-blur-[10px] border border-white/30 hover:scale-110">
+                    <i class="@(isFav ? "fas" : "far") fa-heart @(IsMini ? "text-[8px] sm:text-xs" : "text-xs sm:text-lg")"></i>
+                </button>
+            }
+            else
+            {
+                <a href="/login" class="@(IsMini ? "w-6 h-6 sm:w-8 sm:h-8" : "w-7 h-7 sm:w-11 sm:h-11") rounded-full bg-white flex items-center justify-center border-none shadow-sm text-slate-500 transition-all duration-300 backdrop-blur-[10px] border border-white/30 hover:scale-110 no-underline">
+                    <i class="far fa-heart @(IsMini ? "text-[8px] sm:text-xs" : "text-xs sm:text-lg")"></i>
+                </a>
+            }
+        </div>
+
+        <div class="@(IsMini ? "px-2 pb-2" : "px-2 pb-2 sm:px-4 sm:pb-4") cart-action flex justify-center relative z-[2] transition-all duration-300">
+            @if (IsInCart)
+            {
+                <button type="button" @onclick="HandleRemoveFromCart" disabled="@(CartState.IsLoading || isProcessing)"
+                    class="@(IsMini ? "w-full py-2 text-[0.6rem]" : "w-[90%] px-2 py-2 sm:px-4 sm:py-3 text-[0.6rem] sm:text-base") border-none rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]">
+                    <span class="mr-1">@(IsMini ? "Çıkar" : "Sepetten Çıkar")</span>
+                    <i class="fas fa-trash-alt @(IsMini ? "text-[10px]" : "text-xs sm:text-lg")"></i>
+                </button>
+            }
+            else
+            {
+                <button type="button" @onclick="HandleAddToCart" disabled="@(CartState.IsLoading || isProcessing)"
+                    class="@(IsMini ? "w-full py-2 text-[0.6rem]" : "w-[90%] px-2 py-2 sm:px-4 sm:py-3 text-[0.6rem] sm:text-base") border-none rounded-xl bg-button text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]">
+                    <span class="mr-1">@(IsMini ? "Ekle" : "Sepete Ekle")</span>
+                    <i class="fas fa-cart-plus @(IsMini ? "text-[10px]" : "text-xs sm:text-lg")"></i>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] 
+    public ProductDto Model { get; set; } = default!;
+
+    [Parameter] 
+    public bool IsMini { get; set; } = false;
+
+    [CascadingParameter] 
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private ClaimsPrincipal? user;
+    private bool isProcessing = false;
+
+    private bool IsInCart => CartState.CurrentCart?.Lines?.Any(l => l.ProductId == Model.ProductId) ?? false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartState.OnChange += StateHasChanged;
+        FavState.OnChange += StateHasChanged;
+
+        if (AuthStateTask != null)
+        {
+            var authState = await AuthStateTask;
+            user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                FavState.LoadFavourites();
+            }
+        }
+    }
+
+    private async Task HandleAddToCart()
+    {
+        isProcessing = true;
+        await CartState.AddOrUpdateItemAsync(Model.ProductId, 1);
+        if (string.IsNullOrEmpty(CartState.ErrorMessage))
+        {
+            await ShowToast("Ürün sepete eklendi", "success");
+            await JSRuntime.InvokeVoidAsync("updateCounter", "cart-summary", +1);
+        }
+        else
+        {
+            await ShowToast(CartState.ErrorMessage, "danger");
+        }
+        isProcessing = false;
+    }
+
+    private async Task HandleRemoveFromCart()
+    {
+        isProcessing = true;
+        await CartState.RemoveItemAsync(Model.ProductId);
+        if (string.IsNullOrEmpty(CartState.ErrorMessage))
+        {
+            await ShowToast("Ürün sepetten çıkarıldı", "info");
+            await JSRuntime.InvokeVoidAsync("updateCounter", "cart-summary", -1);
+        }
+        else
+        {
+            await ShowToast(CartState.ErrorMessage, "danger");
+        }
+        isProcessing = false;
+    }
+
+    private async Task HandleFavoriteAction()
+    {
+        if (user?.Identity?.IsAuthenticated != true) return;
+        
+        isProcessing = true;
+        bool isFav = FavState.IsFavourite(Model.ProductId);
+        
+        if (isFav)
+            await FavState.RemoveFromFavouritesAsync(Model.ProductId);
+        else
+            await FavState.AddToFavouritesAsync(Model.ProductId);
+
+        await ShowToast(isFav ? "Favorilerden çıkarıldı" : "Favorilere eklendi", isFav ? "info" : "success");
+        await JSRuntime.InvokeVoidAsync("updateCounter", "favourites-summary", isFav ? -1 : 1);
+        isProcessing = false;
+    }
+
+    private async Task ShowToast(string message, string type)
+    {
+        await JSRuntime.InvokeVoidAsync("showToast", message, type);
+    }
+
+    public void Dispose()
+    {
+        CartState.OnChange -= StateHasChanged;
+        FavState.OnChange -= StateHasChanged;
+    }
+}

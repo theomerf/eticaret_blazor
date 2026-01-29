@@ -1,0 +1,183 @@
+@using Application.DTOs
+@model IEnumerable<CategoryDto>
+
+<div class="overflow-y-auto max-h-[calc(85vh-100px)] p-4">
+    <!-- Kategoriler Filtresi -->
+    <div class="mb-6">
+        <h4 class="text-base font-bold text-gray-800 mb-3 flex items-center">
+            <i class="fa-solid fa-layer-group text-blue-600 mr-2"></i>
+            Kategoriler
+        </h4>
+        @await Component.InvokeAsync("CategoriesFilter")
+    </div>
+
+    <!-- Ürün Filtreleri -->
+    <form id="mobileFilterForm">
+
+        <!-- Ürün Ara -->
+        <div class="mb-6">
+            <label for="mobileSearchTerm" class="block text-sm font-semibold text-gray-800 mb-2">
+                <i class="fa-solid fa-search text-blue-600 mr-2"></i>Ürün Ara
+            </label>
+            <div class="relative">
+                <input type="text" 
+                       class="filter-input w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl pr-10 focus:outline-none"
+                       id="mobileSearchTerm" 
+                       name="SearchTerm"
+                       placeholder="Ürün adı veya açıklama yazın..."
+                       value="@Context.Request.Query["searchTerm"]">
+                <button class="absolute top-1/2 right-3 -translate-y-1/2 border-none bg-transparent text-gray-400 hover:text-gray-600 transition-colors"
+                        type="button" id="mobileClearSearch" style="display: none;">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Fiyat Aralığı -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-semibold text-gray-800">
+                    <i class="fa-solid fa-tag text-blue-600 mr-2"></i>Fiyat Aralığı
+                </label>
+                <div class="bg-gray-100 rounded-full px-3 py-1 text-xs border border-gray-200">
+                    <span id="mobileMinPriceDisplay" class="font-bold text-blue-600">0</span>
+                    <span class="text-gray-500 mx-1">-</span>
+                    <span id="mobileMaxPriceDisplay" class="font-bold text-blue-600">100000</span>
+                </div>
+            </div>
+            <div id="mobilePriceRange" class="my-3 h-2.5 px-1"></div>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
+                    <span class="bg-gray-100 border-r border-gray-200 px-3 py-2 text-sm text-gray-600">₺</span>
+                    <input type="number"
+                           class="filter-input flex-1 px-3 py-2 text-sm border-0 focus:ring-0 focus:outline-none"
+                           id="mobileMinPrice"
+                           name="MinPrice"
+                           placeholder="Min"
+                           value="@Context.Request.Query["minPrice"]"
+                           min="0">
+                </div>
+                <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
+                    <span class="bg-gray-100 border-r border-gray-200 px-3 py-2 text-sm text-gray-600">₺</span>
+                    <input type="number"
+                           class="filter-input flex-1 px-3 py-2 text-sm border-0 focus:ring-0 focus:outline-none"
+                           id="mobileMaxPrice"
+                           name="MaxPrice"
+                           placeholder="Max"
+                           value="@Context.Request.Query["maxPrice"]"
+                           min="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- Markalar -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-800 mb-2">
+                <i class="fa-solid fa-building text-blue-600 mr-2"></i>Markalar
+            </label>
+            <div class="mb-2">
+                <input type="text" 
+                       class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none" 
+                       id="mobileBrandSearch"
+                       placeholder="Marka ara...">
+            </div>
+            <div class="max-h-[180px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div class="flex items-center mb-3 hover:bg-blue-500/5 rounded-lg p-2 -m-2 transition-colors">
+                    <input class="filter-input w-4 h-4 rounded-md border-2 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                           type="radio" 
+                           name="Brand" 
+                           id="mobileBrandAll" 
+                           value=""
+                           @(string.IsNullOrEmpty(Context.Request.Query["brand"]) ? "checked" : "")>
+                    <label class="flex justify-between items-center w-full ml-3 cursor-pointer text-sm" for="mobileBrandAll">
+                        <span class="font-medium text-gray-700">Tüm Markalar</span>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-0.5 rounded-full">Tümü</span>
+                    </label>
+                </div>
+                @{
+                    var brands = new[] {
+                        new { Name = "Apple", Count = 45 },
+                        new { Name = "Samsung", Count = 38 },
+                        new { Name = "Sony", Count = 29 },
+                        new { Name = "Huawei", Count = 22 },
+                        new { Name = "Lenovo", Count = 18 },
+                        new { Name = "Dell", Count = 12 },
+                        new { Name = "Vestel", Count = 10 }
+                    };
+                    foreach (var brand in brands)
+                    {
+                        <div class="flex items-center mb-3 hover:bg-blue-500/5 rounded-lg p-2 -m-2 transition-colors" data-brand="@brand.Name.ToLower()">
+                            <input class="filter-input w-4 h-4 rounded-md border-2 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                                   type="radio" 
+                                   name="Brand" 
+                                   id="mobileBrand@(brand.Name)" 
+                                   value="@brand.Name"
+                                   @(Context.Request.Query["brand"] == brand.Name ? "checked" : "")>
+                            <label class="flex justify-between items-center w-full ml-3 cursor-pointer text-sm" for="mobileBrand@(brand.Name)">
+                                <span class="text-gray-700">@brand.Name</span>
+                                <span class="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">@brand.Count</span>
+                            </label>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Özel Filtreler -->
+        <div class="mb-6 pb-16">
+            <label class="block text-sm font-semibold text-gray-800 mb-2">
+                <i class="fa-solid fa-star text-blue-600 mr-2"></i>Özel Filtreler
+            </label>
+            <div>
+                <div class="mb-3">
+                    <div class="custom-switch-card">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center flex-1">
+                                <i class="fa-solid fa-fire text-red-500 mr-3 text-lg"></i>
+                                <div>
+                                    <div class="font-medium text-sm text-gray-800">En Çok Satanlar</div>
+                                    <small class="text-xs text-gray-500">Popüler ürünler</small>
+                                </div>
+                            </div>
+                            <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6" 
+                                   type="checkbox" 
+                                   id="mobileBestSellers" 
+                                   name="IsShowCase" 
+                                   value="true"
+                                   @(Context.Request.Query["isShowCase"] == "true" ? "checked" : "")>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="custom-switch-card">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center flex-1">
+                                <i class="fa-solid fa-percentage text-green-500 mr-3 text-lg"></i>
+                                <div>
+                                    <div class="font-medium text-sm text-gray-800">İndirimli Ürünler</div>
+                                    <small class="text-xs text-gray-500">Özel fiyatlar</small>
+                                </div>
+                            </div>
+                            <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6" 
+                                   type="checkbox" 
+                                   id="mobileDiscountedItems" 
+                                   name="IsDiscount" 
+                                   value="true"
+                                   @(Context.Request.Query["isDiscount"] == "true" ? "checked" : "")>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Apply Button -->
+        <div class="fixed bottom-0 left-0 right-0 z-2 bg-white border-t border-gray-200 px-4 py-3 pb-[env(safe-area-inset-bottom)]">
+            <button type="button" 
+                    id="mobileApplyFiltersBtn"
+                    class="w-full bg-primary text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-[0_8px_25px_rgba(102,126,234,0.3)] hover:bg-primary-dark active:scale-[0.98] flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                Filtreleri Uygula
+            </button>
+        </div>
+    </form>
+</div>

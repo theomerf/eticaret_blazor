@@ -1,0 +1,212 @@
+﻿@page "/account/orders"
+@using System.Security.Claims
+@using ETicaret.Models
+@inject IOrderService OrderService
+@inject IProductService ProductService
+@inject IAuthService AuthService
+@inject ILogger<Orders> _logger
+
+<AccountLayout>
+    <div class="space-y-6">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-6">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                        <i class="fas fa-shopping-bag text-blue-600"></i>
+                    </div>
+                    Siparişlerim
+                </h2>
+                @if (orders != null && orders.Any())
+                {
+                    <div class="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-cyan-50 px-4 py-2 rounded-xl border border-blue-100">
+                        <i class="fas fa-box text-blue-600"></i>
+                        <span class="text-sm font-bold text-blue-700">@orders.Count() Sipariş</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (ordersLoading)
+        {
+            <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
+                <div class="relative">
+                    <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
+                </div>
+                <p class="text-gray-500 mt-6 font-medium">Siparişleriniz yükleniyor...</p>
+            </div>
+        }
+        else if (orders != null && orders.Any())
+        {
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-white/20 backdrop-blur-sm w-14 h-14 rounded-xl flex items-center justify-center text-3xl">
+                            <i class="fas fa-shopping-bag"></i>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
+                            Toplam
+                        </div>
+                    </div>
+                    <div class="text-4xl font-bold mb-1">@orders.Count()</div>
+                    <div class="text-blue-100 text-sm font-medium">Toplam Sipariş</div>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-white/20 backdrop-blur-sm w-14 h-14 rounded-xl flex items-center justify-center text-3xl">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
+                            Harcama
+                        </div>
+                    </div>
+                    <div class="text-4xl font-bold mb-1">
+                        @orders.Sum(order => order.Lines.Sum(line => line.Quantity * (line.DiscountPrice ?? 0))).ToString("N2") ₺
+                    </div>
+                    <div class="text-purple-100 text-sm font-medium">Toplam Harcama</div>
+                </div>
+            </div>
+
+            <!-- Orders List -->
+            <div class="space-y-5">
+                @foreach (var order in orders)
+                {
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden hover:shadow-xl transition-all">
+                        <div class="p-6">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between mb-5 gap-4 pb-5 border-b border-gray-100">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-14 h-14 rounded-xl @(order.Shipped ? "bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-600" : "bg-gradient-to-br from-blue-100 to-cyan-100 text-blue-600") flex items-center justify-center text-2xl shrink-0 shadow-sm">
+                                        <i class="fas @(order.Shipped ? "fa-check-circle" : "fa-clock")"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-gray-800 text-lg mb-1">Sipariş #@order.OrderId</div>
+                                        <div class="text-sm text-gray-500 flex items-center gap-2">
+                                            <i class="far fa-calendar-alt"></i>
+                                            <span>@order.OrderedAt</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col md:items-end gap-2">
+                                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wide shadow-sm @(order.Shipped ? "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-100" : "bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 border border-blue-100")">
+                                        <i class="fas @(order.Shipped ? "fa-truck" : "fa-hourglass-half")"></i>
+                                        @(order.Shipped ? "Teslim Edildi" : "İşleniyor")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-5 border border-gray-100">
+                                <div class="space-y-4">
+                                    @foreach (var line in order.Lines)
+                                    {
+                                        <div class="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
+                                            <div class="w-20 h-20 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                                                <img src="/images/@line.ImageUrl" alt="@line.ProductName" class="w-full h-full object-contain">
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <h4 class="text-sm font-bold text-gray-900 mb-1">@line.ProductName</h4>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs text-gray-500">Birim Fiyat:</span>
+                                                    <span class="text-sm font-semibold text-blue-600">@(line.DiscountPrice?.ToString("N2") ?? "0.00") ₺</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-lg font-bold text-gray-900 mb-1">@((line.Quantity * (line.DiscountPrice ?? 0)).ToString("N2")) ₺</div>
+                                                <div class="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                                                    <i class="fas fa-times text-blue-600 text-xs"></i>
+                                                    <span class="text-sm font-bold text-blue-700">@line.Quantity</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between mt-5 pt-5 border-t border-gray-100">
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
+                                    <i class="fas fa-box"></i>
+                                    <span>Toplam <span class="font-bold text-gray-900">@order.Lines.Count</span> ürün</span>
+                                </div>
+                                <div class="text-right bg-gradient-to-r from-blue-50 to-cyan-50 px-5 py-3 rounded-xl border border-blue-100">
+                                    <span class="text-xs text-gray-600 block mb-1">Sipariş Toplamı</span>
+                                    <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                                        @(order.Lines.Sum(l => l.Quantity * (l.DiscountPrice ?? 0)).ToString("N2")) ₺
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-20 px-4 text-center">
+                <div class="relative mb-8">
+                    <div class="w-24 h-24 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-full flex items-center justify-center">
+                        <i class="fas fa-shopping-basket text-blue-400 text-4xl"></i>
+                    </div>
+                    <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center">
+                        <i class="fas fa-plus text-white text-xs"></i>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-3">Henüz Siparişiniz Yok</h3>
+                <p class="text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">Tüm ihtiyaçlarınız için size özel ürünleri keşfetmeye başlayın ve ilk siparişinizi verin.</p>
+                <a href="/" class="px-8 py-4 bg-button hover:bg-button-hover text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2">
+                    <i class="fas fa-shopping-bag"></i>
+                    Alışverişe Başla
+                </a>
+            </div>
+        }
+    </div>
+</AccountLayout>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private IEnumerable<OrderDto>? orders;
+    private bool ordersLoading = true;
+    private string? userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ordersLoading = true;
+
+        if (AuthStateTask != null)
+        {
+            var authState = await AuthStateTask;
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            orders = await OrderService.GetOrdersOfUserAsync(userId);
+
+            if (orders != null)
+            {
+                foreach (var order in orders)
+                {
+                    foreach (var line in order.Lines)
+                    {
+                        var product = await ProductService.GetOneProductAsync(line.ProductId);
+                        if (product != null)
+                        {
+                            line.ProductName = product.ProductName;
+                            line.ImageUrl = product.Images?.First().ImageUrl;
+                            line.DiscountPrice = product.DiscountPrice;
+                        }
+                    }
+                }
+            }
+        }
+
+        ordersLoading = false;
+    }
+}

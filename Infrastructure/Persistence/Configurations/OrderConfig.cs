@@ -1,0 +1,91 @@
+﻿using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Infrastructure.Persistence.Configurations
+{
+    public class OrderConfig : IEntityTypeConfiguration<Order>
+    {
+        public void Configure(EntityTypeBuilder<Order> builder)
+        {
+            builder.HasKey(o => o.OrderId);
+
+            builder.Property(o => o.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            builder.Property(o => o.Name)
+                .HasMaxLength(100);
+
+            builder.Property(o => o.Line1)
+                .HasMaxLength(200);
+
+            builder.Property(o => o.Line2)
+                .HasMaxLength(200);
+
+            builder.Property(o => o.Line3)
+                .HasMaxLength(200);
+
+            builder.Property(o => o.City)
+                .HasMaxLength(100);
+
+            builder.Property(o => o.PostalCode)
+                .HasMaxLength(20);
+
+            builder.Property(o => o.Country)
+                .HasMaxLength(100);
+
+            builder.Property(o => o.PhoneNumber)
+                .HasMaxLength(20);
+
+            builder.Property(o => o.TrackingNumber)
+                .HasMaxLength(50);  
+
+            builder.Property(o => o.CustomerNotes)
+                .HasMaxLength(1000);
+
+            builder.Property(o => o.AdminNotes)
+                .HasMaxLength(1000);
+
+            builder.Property(o => o.DeletedByUserId)
+                .HasMaxLength(450);
+
+            builder.Property(o => o.TotalAmount)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            builder.Property(o => o.DiscountAmount)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            builder.Property(o => o.ShippingCost)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            builder.HasQueryFilter(o => !o.IsDeleted);
+
+            builder.HasIndex(o => o.OrderNumber)
+                .IsUnique()
+                .HasDatabaseName("IX_Orders_OrderNumber");
+
+            builder.HasIndex(o => o.UserId)
+                .HasDatabaseName("IX_Orders_UserId");
+
+            builder.HasIndex(o => new { o.UserId, o.OrderStatus, o.IsDeleted })
+                .HasFilter("[IsDeleted] = 0")
+                .HasDatabaseName("IX_Orders_User_Status");
+
+            builder.HasIndex(o => o.OrderedAt)
+                .IsDescending()
+                .HasDatabaseName("IX_Orders_OrderedAt_Desc");
+
+            builder.HasIndex(o => o.OrderStatus)
+                .HasDatabaseName("IX_Orders_OrderStatus");
+
+            builder.HasMany(o => o.Lines)
+                .WithOne(ol => ol.Order)
+                .HasForeignKey(ol => ol.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+}

@@ -1,0 +1,96 @@
+﻿@model ProductListViewModel
+
+@{
+    ViewData["Title"] = "Ürünler";
+}
+
+@section Styles {
+    <link asp-append-version="true" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
+    <link asp-append-version="true" rel="stylesheet" href="~/css/price-slider.css">
+}
+
+@section Scripts {
+    <script asp-append-version="true" src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+    <script asp-append-version="true" src="~/js/products.js"></script>
+    <script asp-append-version="true" src="~/js/products-filter.js"></script>
+    <script asp-append-version="true" src="~/js/product-card.js"></script>
+    <script asp-append-version="true" src="~/js/categories-filter.js"></script>
+    <script asp-append-version="true" src="~/js/price-slider.js"></script>
+    <script asp-append-version="true" src="~/js/products-mobile.js"></script>
+}
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+    <div class="hidden lg:block lg:col-span-3">
+        @await Html.PartialAsync("_ProductsFilterMenu")
+    </div>
+    
+    <div class="lg:col-span-9">
+        <div id="productContainer">
+            @await Html.PartialAsync("_ProductsListPartial", Model)
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Filter Modal -->
+<div id="mobileFilterModal" class="fixed inset-0 z-[2000] hidden lg:hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="mobileFilterBackdrop"></div>
+    
+    <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-hidden transform translate-y-full transition-transform duration-300" id="mobileFilterContent">
+        <div class="flex justify-center py-3">
+            <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+        </div>
+        
+        <div class="flex items-center justify-between px-5 pb-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">Filtreler</h3>
+            <button id="closeMobileFilterModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="mobileFilterContainer">
+            @await Component.InvokeAsync("ProductsFilterMobile")
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Sort Modal -->
+<div id="mobileSortModal" class="fixed inset-0 z-[2000] hidden lg:hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="mobileSortBackdrop"></div>
+    
+    <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl overflow-hidden transform translate-y-full transition-transform duration-300" id="mobileSortContent">
+        <div class="flex justify-center py-3">
+            <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+        </div>
+        
+        <div class="flex items-center justify-between px-5 pb-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">Sıralama</h3>
+            <button id="closeMobileSortModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="mobileSortContainer">
+            @await Html.PartialAsync("_ProductsSortMobile")
+        </div>
+    </div>
+</div>
+
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay"
+     style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.3);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+     ">
+    <div class="bg-white rounded p-4 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Yükleniyor...</span>
+        </div>
+        <div class="mt-2">Filtreler uygulanıyor...</div>
+    </div>
+</div>

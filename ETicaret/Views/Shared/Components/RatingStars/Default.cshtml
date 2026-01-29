@@ -1,0 +1,82 @@
+﻿@using Application.DTOs
+@model IEnumerable<UserReviewDto>
+
+@{
+	var ratings = Model?.ToList() ?? new List<UserReviewDto>();
+	var totalReviews = ratings.Count;
+	var averageRating = totalReviews > 0 ? ratings.Average(r => r.Rating) : 0.0;
+
+	var ratingCounts = Enumerable.Range(1, 5)
+		.Select(star => new
+		{
+			Star = star,
+			Count = ratings.Count(r => r.Rating == star),
+			Percentage = totalReviews > 0 ? (ratings.Count(r => r.Rating == star) * 100.0 / totalReviews) : 0
+		})
+		.OrderByDescending(r => r.Star);
+}
+
+@if (totalReviews == 0)
+{
+	if (User.Identity != null && User.Identity.IsAuthenticated) {
+		<div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl text-center shadow-lg border border-gray-100 animate-fade-in-up">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
+                <i class="far fa-comment-dots text-xl"></i>
+            </div>
+			<p class="text-base font-semibold text-gray-700">Bu ürüne henüz yorum yapılmamış.</p>
+            <p class="text-gray-500 text-sm mt-1">Bu ürünü ilk değerlendiren sen ol!</p>
+		</div>
+	}
+	else
+	{
+		<div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl text-center shadow-lg border border-gray-100 animate-fade-in-up">
+             <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-500">
+                <i class="far fa-comment-alt text-xl"></i>
+            </div>
+			<p class="text-base font-semibold text-gray-700">Bu ürüne henüz yorum yapılmamış.</p>
+            <p class="text-gray-500 text-sm mt-1">Değerlendirme yapmak için lütfen giriş yapın.</p>
+		</div>
+	}
+}
+else
+{
+	<div class="flex flex-col md:flex-row gap-5 md:gap-8 bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 items-center">
+		<div class="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-gray-50 to-white rounded-xl min-w-full md:min-w-[200px] shadow-inner border border-gray-100">
+			<div class="text-4xl sm:text-5xl font-black bg-gradient-to-br from-gray-800 to-gray-600 bg-clip-text text-transparent mb-1">@averageRating.ToString("0.0")</div>
+			<div class="flex gap-0.5 text-amber-400 text-lg mb-2 filter drop-shadow-sm">
+				@for (int i = 1; i <= 5; i++)
+				{
+					if (i <= Math.Floor(averageRating))
+					{
+						<i class="fas fa-star"></i>
+					}
+					else if (i - averageRating < 1)
+					{
+						<i class="fas fa-star-half-alt"></i>
+					}
+					else
+					{
+						<i class="far fa-star text-gray-200"></i>
+					}
+				}
+			</div>
+			<div class="text-gray-500 font-semibold text-xs bg-gray-100 px-3 py-1 rounded-full">@totalReviews Değerlendime</div>
+		</div>
+
+		<div class="flex-1 w-full space-y-2.5">
+			@foreach (var rating in ratingCounts)
+			{
+				<div class="flex items-center gap-3 group">
+					<div class="flex items-center gap-1 w-12 font-bold text-gray-600 text-xs">
+                        <span>@rating.Star</span>
+                        <i class="fas fa-star text-[10px] text-amber-400"></i>
+                    </div>
+					<div class="flex-1 h-2 sm:h-2.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+						<div class="h-full bg-gradient-to-r from-amber-300 to-amber-500 rounded-full transition-all duration-1000 ease-out group-hover:from-amber-400 group-hover:to-amber-600" style="width: @(rating.Percentage.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+					</div>
+					<div class="w-10 text-right text-gray-500 font-bold text-xs">@rating.Percentage.ToString("0")%</div>
+				</div>
+			}
+		</div>
+	</div>
+}

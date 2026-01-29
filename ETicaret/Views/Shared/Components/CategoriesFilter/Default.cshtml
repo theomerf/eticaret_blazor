@@ -1,0 +1,132 @@
+﻿@using Application.DTOs
+@model IEnumerable<CategoryDto>
+
+@{
+    var categoryIdFromUrl = Context.Request.Query["categoryId"].ToString();
+}
+
+<div>
+    <div class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-3 sm:mb-5 pb-2 border-b-2 border-slate-200">
+            <h3 class="text-sm sm:text-base font-semibold text-slate-800 m-0 flex items-center gap-2">
+                Ana Kategoriler
+            </h3>
+        </div>
+        <div class="grid grid-cols-3 gap-2 sm:gap-3">
+            <!-- Tüm Kategoriler -->
+            <button type="button"
+                class="main-category-card @(string.IsNullOrEmpty(categoryIdFromUrl) ? "active cursor-not-allowed" : "")"
+                onclick="selectMainCategory(event, null, 'Tüm Kategoriler')"
+                disabled>
+                <div title="Tüm Kategoriler"
+                    class="flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
+                    <div
+                        class="w-10 h-10 bg-gradient-to-br from-slate-50 to-slate-200 rounded-2xl sm:rounded-[20px] flex items-center justify-center relative overflow-hidden transition-all duration-300 mb-1 sm:mb-2 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
+                        <i
+                            class="fas fa-th-large text-lg sm:text-xl text-indigo-500 relative z-[1] transition-all duration-300 group-hover:text-white group-hover:scale-110"></i>
+                    </div>
+                    <span class="text-xs font-semibold tracking-tight leading-tight">Tüm Ürünler</span>
+                </div>
+            </button>
+
+            <!-- Ana Kategoriler -->
+            @foreach (var parentCategory in Model.Where(c => c.ParentId == null))
+            {
+                var isMainCategorySelected = categoryIdFromUrl == parentCategory.CategoryId.ToString();
+                var hasSelectedSubcategory = Model.Any(c => c.ParentId == parentCategory.CategoryId && categoryIdFromUrl == c.CategoryId.ToString());
+                var isActive = isMainCategorySelected || hasSelectedSubcategory;
+
+                <button type="button" 
+                    class="main-category-card @(isActive ? "active cursor-not-allowed" : "")"
+                    onclick="selectMainCategory(event, '@parentCategory.CategoryId', '@parentCategory.CategoryName')"
+                    data-category-id="@parentCategory.CategoryId" data-category-name="@parentCategory.CategoryName"
+                    title="@parentCategory.CategoryName"
+                    disabled="@(isActive ? "disabled" : null)">
+                    <div class="flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
+                        <div
+                            class="w-10 h-10 bg-gradient-to-br from-slate-50 to-slate-200 rounded-2xl sm:rounded-[20px] flex items-center justify-center relative overflow-hidden transition-all duration-300 mb-1 sm:mb-2 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
+                            <i
+                                class="@GetCategoryIcon(parentCategory.CategoryName) text-lg sm:text-xl text-indigo-500 relative z-[1] transition-all duration-300 group-hover:text-white group-hover:scale-110"></i>
+                        </div>
+                        <span class="text-xs font-semibold tracking-tight leading-tight">@parentCategory.CategoryName</span>
+                    </div>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Alt Kategoriler Bölümü -->
+    <div class="border-t border-slate-100 bg-slate-50 p-4 sm:p-6" style="display: none">
+        <div
+            class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 pb-3 border-b-2 border-slate-200 gap-3">
+            <h3 id="subcategory-title"
+                class="text-sm sm:text-base font-semibold text-slate-800 m-0 flex items-center gap-2">
+                Alt Kategoriler
+            </h3>
+            <span id="selected-main-category"
+                class="bg-primary text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl sm:rounded-[20px] text-xs sm:text-sm font-semibold shadow-[0_4px_12px_rgba(102,126,234,0.3)]">
+                Tüm Kategoriler
+            </span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 sm:gap-3" id="subcategories-container"></div>
+
+        <!-- Gizli Alt Kategoriler Havuzu -->
+        <div id="all-subcategories" style="display: none">
+            @foreach (var childCategory in Model.Where(c => c.ParentId != null))
+            {
+                var isChildActive = categoryIdFromUrl == childCategory.CategoryId.ToString();
+
+                <button type="button" 
+                    class="sub-category-card @(isChildActive ? "active cursor-not-allowed" : "")"
+                    onclick="selectSubCategory(event, '@childCategory.CategoryId', '@childCategory.ParentId')"
+                    data-category-id="@childCategory.CategoryId" data-parent-id="@childCategory.ParentId"
+                    disabled="@(isChildActive ? "disabled" : null)">
+                    <div title="@childCategory.CategoryName"
+                        class="category-link flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5"
+                        data-sub-category-id="@childCategory.CategoryId">
+                        <div
+                            class="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
+                            <i
+                                class="@GetSubCategoryIcon(childCategory.CategoryName) text-lg sm:text-xl text-indigo-500 relative z-[1] transition-all duration-300 group-hover:text-white"></i>
+                        </div>
+                        <div class="flex flex-col items-center gap-0.5 sm:gap-1 min-w-0 w-full">
+                            <span
+                                class="block w-full text-xs font-semibold tracking-tight leading-tight mt-1 sm:mt-2 truncate text-center">
+                                @childCategory.CategoryName
+                            </span>
+                        </div>
+                    </div>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetCategoryIcon(string categoryName)
+    {
+        if (categoryName.Contains("Teknoloji") || categoryName.Contains("Phone")) return "fas fa-mobile-alt";
+        else if (categoryName.Contains("Bilgisayar") || categoryName.Contains("Computer")) return "fas fa-laptop";
+        else if (categoryName.Contains("Tablet")) return "fas fa-tablet-alt";
+        else if (categoryName.Contains("Kamera") || categoryName.Contains("Camera")) return "fas fa-camera";
+        else if (categoryName.Contains("TV") || categoryName.Contains("Televizyon")) return "fas fa-tv";
+        else if (categoryName.Contains("Oyun") || categoryName.Contains("Game")) return "fas fa-gamepad";
+        else if (categoryName.Contains("Ses") || categoryName.Contains("Audio")) return "fas fa-headphones";
+        else if (categoryName.Contains("Giyim") || categoryName.Contains("Clothing")) return "fas fa-tshirt";
+        else if (categoryName.Contains("Ev") || categoryName.Contains("Home")) return "fas fa-home";
+        else if (categoryName.Contains("Kitap") || categoryName.Contains("Sport")) return "fas fa-book";
+        else return "fas fa-cube";
+    }
+
+    private string GetSubCategoryIcon(string subCategoryName)
+    {
+        if (subCategoryName.Contains("iPhone") || subCategoryName.Contains("Apple")) return "fab fa-apple";
+        else if (subCategoryName.Contains("Samsung")) return "fas fa-mobile-alt";
+        else if (subCategoryName.Contains("Laptop")) return "fas fa-laptop";
+        else if (subCategoryName.Contains("Desktop")) return "fas fa-desktop";
+        else if (subCategoryName.Contains("Gaming")) return "fas fa-gamepad";
+        else if (subCategoryName.Contains("Wireless")) return "fas fa-wifi";
+        else if (subCategoryName.Contains("Cable")) return "fas fa-plug";
+        else return "fas fa-tag";
+    }
+}

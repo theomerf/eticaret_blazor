@@ -1,0 +1,509 @@
+﻿@using System.Security.Claims
+@using ETicaret.Models
+@inject IAddressService AddressService
+@inject IJSRuntime JSRuntime
+
+<AccountLayout>
+    <div class="space-y-6">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-6">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+                        <i class="fas fa-map-marker-alt text-emerald-600"></i>
+                    </div>
+                    Adres Bilgilerim
+                </h2>
+                <button class="bg-button hover:bg-button-hover text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2" @onclick="ShowAddAddressModal">
+                    <i class="fas fa-plus"></i> Yeni Adres Ekle
+                </button>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
+                <div class="relative">
+                    <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
+                </div>
+                <p class="text-gray-500 mt-6 font-medium">Adresleriniz yükleniyor...</p>
+            </div>
+        }
+        else if (addresses != null && addresses.Any())
+        {
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                @foreach (var address in addresses)
+                {
+                    <div class="@(address.IsDefault ? "border-2 border-emerald-200 " : "border border-gray-200 hover:border-emerald-200") bg-white rounded-2xl p-6 border-2 border-emerald-200 shadow-lg relative group hover:shadow-xl transition-all hover:-translate-y-1">
+                        @if (address.IsDefault)
+                        {
+                            <div class="absolute top-4 right-4">
+                                <span class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1">
+                                    <i class="fas fa-check-circle text-xs"></i>
+                                    Varsayılan
+                                </span>
+                            </div>
+                        }
+
+                        <div class="mb-6 @(address.IsDefault ? "pt-2" : "")">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+                                    <i class="fas fa-home @(address.IsDefault ? "text-emerald-600" : "text-blue-600")  text-xl"></i>
+                                </div>
+                                <h5 class="font-bold text-gray-800 text-lg">@address.Title</h5>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-sm text-gray-600 mb-6 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
+                            <div class="flex items-start gap-2">
+                                <i class="fas fa-user @(address.IsDefault ? "text-emerald-500" : "text-blue-500") mt-0.5 flex-shrink-0"></i>
+                                <p class="font-semibold text-gray-800">@address.FirstName @address.LastName</p>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fas fa-location-dot @(address.IsDefault ? "text-emerald-500" : "text-blue-500") mt-0.5 flex-shrink-0"></i>
+                                <div>
+                                    <p>@address.AddressLine</p>
+                                    <p>@address.District / @address.City</p>
+                                    <p class="font-medium text-gray-700">@address.PostalCode</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 pt-2 border-t border-gray-200">
+                                <i class="fas fa-phone @(address.IsDefault ? "text-emerald-500" : "text-blue-500")  flex-shrink-0"></i>
+                                <p class="font-medium text-gray-700">@address.Phone</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 text-blue-600 font-semibold hover:from-blue-100 hover:to-cyan-100 transition-all shadow-sm hover:shadow-md" @onclick="() => ShowEditAddressModal(address.AddressId)">
+                                <i class="fas fa-edit"></i>
+                                Düzenle
+                            </button>
+                            @if (address.IsDefault)
+                            {
+                                <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md" @onclick="() => HandleDeleteAddress(address.AddressId)">
+                                    <i class="fas fa-trash"></i>
+                                    Sil
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 text-emerald-600 font-semibold hover:from-emerald-100 hover:to-teal-100 transition-all shadow-sm hover:shadow-md" @onclick="() => HandleMakeDefaultAddress(address.AddressId)">
+                                    <i class="fas fa-check-circle"></i>
+                                    Varsayılan Yap
+                                </button>
+                                <button class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md" @onclick="() => HandleDeleteAddress(address.AddressId)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100/50">
+                <div class="w-24 h-24 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100">
+                    <i class="fas fa-map-marked-alt text-emerald-200 text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Henüz Kayıtlı Adresiniz Yok</h3>
+                <p class="text-gray-500 max-w-md mx-auto mb-8">Sipariş verebilmek için en az bir teslimat adresi eklemeniz gerekmektedir.</p>
+                <button class="bg-button hover:bg-button-hover text-white px-8 py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center gap-2" @onclick="ShowAddAddressModal">
+                    <i class="fas fa-plus"></i> İlk Adresinizi Ekleyin
+                </button>
+            </div>
+        }
+    </div>
+</AccountLayout>
+
+@* Add Address Modal *@
+@if (showAddModal)
+{
+    <div class="fixed inset-0 z-[2000] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" aria-hidden="true" @onclick="CloseAddModal"></div>
+
+            <div class="inline-block align-middle bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-2xl w-full animate-fadeIn">
+                <EditForm Model="addressDtoForCreation" OnValidSubmit="HandleCreateAddress">
+                    <DataAnnotationsValidator />
+                    <div class="bg-primary px-6 py-5 border-b border-gray-100">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-bold bg-white bg-clip-text text-transparent flex items-center gap-2" id="modal-title">
+                                <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                                    <i class="fas fa-plus text-blue-600 text-sm"></i>
+                                </div>
+                                Yeni Adres Ekle
+                            </h3>
+                            <button type="button" @onclick="CloseAddModal" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white px-6 py-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Adres Başlığı
+                                </label>
+                                <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForCreation.Title" placeholder="Örn: Ev, İş, Diğer" />
+                                <ValidationMessage For="@(() => addressDtoForCreation.Title)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Ad
+                                </label>
+                                <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForCreation.FirstName" placeholder="Adınız" />
+                                <ValidationMessage For="@(() => addressDtoForCreation.FirstName)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Soyad
+                                </label>
+                                <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForCreation.LastName" placeholder="Soyadınız" />
+                                <ValidationMessage For="@(() => addressDtoForCreation.LastName)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Telefon
+                                </label>
+                                <InputText type="tel" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForCreation.Phone" placeholder="05XX XXX XX XX" />
+                                <ValidationMessage For="@(() => addressDtoForCreation.Phone)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Şehir
+                                </label>
+                                <InputText type="text" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForCreation.City" placeholder="Şehir" />
+                                <ValidationMessage For="@(() => addressDtoForCreation.City)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    İlçe
+                                </label>
+                                <InputText type="text" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForCreation.District" placeholder="İlçe" />
+                                <ValidationMessage For="@(() => addressDtoForCreation.District)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Posta Kodu
+                                </label>
+                                <InputText type="text" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForCreation.PostalCode" placeholder="XXXXX" />
+                                <ValidationMessage For="@(() => addressDtoForCreation.PostalCode)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Adres
+                                </label>
+                                <InputTextArea rows="3" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all" @bind-Value="addressDtoForCreation.AddressLine" placeholder="Mahalle, Cadde/Sokak, No, Daire"></InputTextArea>
+                                <ValidationMessage For="@(() => addressDtoForCreation.AddressLine)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div class="md:col-span-2">
+                                @if (addresses.Count() > 1)
+                                {
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 hover:from-emerald-100 hover:to-teal-100 transition-all">
+                                        <InputCheckbox class="w-5 h-5 rounded border-2 border-emerald-500 text-emerald-600 focus:ring-2 focus:ring-emerald-500" @bind-Value="addressDtoForCreation.IsDefault" />
+                                        <span class="text-sm font-semibold text-gray-700">Varsayılan adres olarak ayarla</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                        <button type="button" class="px-6 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all" @onclick="CloseAddModal">
+                            İptal
+                        </button>
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-button hover:bg-button-hover text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+                            Onayla
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@* Edit Address Modal *@
+@if (showEditModal)
+{
+    <div class="fixed inset-0 z-[2000] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" aria-hidden="true" @onclick="CloseEditModal"></div>
+
+            <div class="inline-block align-middle bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-2xl w-full animate-fadeIn">
+                <EditForm Model="addressDtoForUpdate" OnValidSubmit="HandleUpdateAddress">
+                    <DataAnnotationsValidator />
+                    <div class="bg-primary px-6 py-5 border-b border-gray-100">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-bold bg-white bg-clip-text text-transparent flex items-center gap-2" id="modal-title">
+                                <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                                    <i class="fas fa-plus text-blue-600 text-sm"></i>
+                                </div>
+                                Adresi Düzenle
+                            </h3>
+                            <button type="button" @onclick="CloseEditModal" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white px-6 py-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Adres Başlığı
+                                </label>
+                                <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForUpdate.Title" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.Title)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Ad
+                                </label>
+                                <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForUpdate.FirstName" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.FirstName)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Soyad
+                                </label>
+                                <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForUpdate.LastName" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.LastName)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Telefon
+                                </label>
+                                <InputText type="tel" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForUpdate.Phone" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.Phone)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Şehir
+                                </label>
+                                <InputText type="text" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForUpdate.City" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.City)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    İlçe
+                                </label>
+                                <InputText type="text" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForUpdate.District" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.District)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Posta Kodu
+                                </label>
+                                <InputText type="text" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="addressDtoForUpdate.PostalCode" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.PostalCode)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Adres
+                                </label>
+                                <InputTextArea rows="3" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all" @bind-Value="addressDtoForUpdate.AddressLine" />
+                                <ValidationMessage For="@(() => addressDtoForUpdate.AddressLine)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div class="md:col-span-2">
+                                @if (addresses.Count() > 1)
+                                {
+                                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 hover:from-emerald-100 hover:to-teal-100 transition-all">
+                                        <InputCheckbox class="w-5 h-5 rounded border-2 border-emerald-500 text-emerald-600 focus:ring-2 focus:ring-emerald-500" @bind-Value="addressDtoForUpdate.IsDefault" />
+                                        <span class="text-sm font-semibold text-gray-700">Varsayılan adres olarak ayarla</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                        <button type="button" class="px-6 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all" @onclick="CloseEditModal">
+                            İptal
+                        </button>
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-button hover:bg-button-hover text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+                            Onayla
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private IEnumerable<AddressDto> addresses = new List<AddressDto>();
+    private AddressDtoForCreation addressDtoForCreation = new();
+    private AddressDtoForUpdate addressDtoForUpdate = new();
+    private bool showAddModal = false;
+    private bool showEditModal = false;
+    private bool isLoading = true;
+    private string? userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        if (AuthStateTask != null)
+        {
+            var authState = await AuthStateTask;
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            addresses = await AddressService.GetAllUserAddressesOfOneUserAsync(userId);
+        }
+
+        isLoading = false;
+    }
+
+    private async Task HandleCreateAddress(EditContext editContext)
+    {
+        var addressDto = (AddressDtoForCreation)editContext.Model;
+        if (addresses.Count() <= 1)
+        {
+            addressDto.IsDefault = true;
+        }
+
+        var result = await AddressService.CreateAddressAsync(addressDto);
+
+        if (result.IsSuccess)
+        {
+            CloseAddModal();
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            if (!string.IsNullOrEmpty(userId))
+            {
+                addresses = await AddressService.GetAllUserAddressesOfOneUserAsync(userId);
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    private void ShowAddAddressModal()
+    {
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+        addressDtoForCreation = new();
+        StateHasChanged();
+    }
+
+    private async Task HandleUpdateAddress(EditContext editContext)
+    {
+        var addressDto = (AddressDtoForUpdate)editContext.Model;
+        if (addresses.Count() <= 1)
+        {
+            addressDto.IsDefault = true;
+        }
+
+        var result = await AddressService.UpdateAddressAsync(addressDto);
+
+        if (result.IsSuccess)
+        {
+            CloseEditModal();
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            if (!string.IsNullOrEmpty(userId))
+            {
+                addresses = await AddressService.GetAllUserAddressesOfOneUserAsync(userId);
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    private void ShowEditAddressModal(int id)
+    {
+        showEditModal = true;
+        var address = addresses.FirstOrDefault(x => x.AddressId == id);
+        if (address != null)
+        {
+            addressDtoForUpdate = new AddressDtoForUpdate
+            {
+                AddressId = address.AddressId,
+                Title = address.Title,
+                FirstName = address.FirstName,
+                LastName = address.LastName,
+                Phone = address.Phone,
+                City = address.City,
+                District = address.District,
+                PostalCode = address.PostalCode,
+                AddressLine = address.AddressLine,
+                IsDefault = address.IsDefault
+            };
+            showEditModal = true;
+        }
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        addressDtoForUpdate = new();
+        StateHasChanged();
+    }
+
+    private async Task HandleMakeDefaultAddress(int addressId)
+    {
+        var result = await AddressService.MakeAddressDefaultAsync(addressId);
+        if (result.IsSuccess)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            if (!string.IsNullOrEmpty(userId))
+            {
+                addresses = await AddressService.GetAllUserAddressesOfOneUserAsync(userId);
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    private async Task HandleDeleteAddress(int addressId)
+    {
+        var result = await AddressService.DeleteAddressAsync(addressId);
+        if (result.IsSuccess)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            if (!string.IsNullOrEmpty(userId))
+            {
+                addresses = await AddressService.GetAllUserAddressesOfOneUserAsync(userId);
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+}

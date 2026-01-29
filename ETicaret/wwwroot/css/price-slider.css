@@ -1,0 +1,65 @@
+﻿.noUi-target {
+    background: #e5e7eb;
+    border-radius: 8px;
+    border: none;
+    box-shadow: none;
+    height: 10px;
+}
+
+.noUi-connect {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+
+.noUi-handle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #2563eb;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+@media (max-width: 1024px) {
+    .noUi-handle {
+        width: 30px !important;
+        height: 30px !important;
+    }
+
+    .noUi-horizontal .noUi-handle {
+        right: -15px !important;
+        top: -11px !important;
+    }
+}
+
+.noUi-handle:before,
+.noUi-handle:after {
+    display: none;
+}
+
+.noUi-handle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5);
+}
+
+.noUi-handle:active {
+    transform: scale(0.95);
+}
+
+.noUi-horizontal {
+    height: 10px;
+}
+
+    .noUi-horizontal .noUi-handle {
+        width: 20px;
+        height: 20px;
+        right: -10px;
+        top: -5px;
+    }
+
+.noUi-touch-area {
+    width: 100%;
+    height: 100%;
+}

@@ -1,0 +1,18 @@
+﻿@model int
+
+<span class="notifications-summary">@Model</span>
+
+<script>
+    async function updateNotificationsSummary() {
+        try {
+            const response = await fetch('/api/account/notifications/count');
+            const data = await response.json();
+            const badge = document.querySelector('.notifications-summary');
+            badge.textContent = data.count;
+            badge.style.display = data.count > 0 ? '' : 'none';
+        }
+        catch (error) {
+            console.error('Bildirimler özeti güncellenirken hata oluştu:', error);
+        }
+    }
+</script>

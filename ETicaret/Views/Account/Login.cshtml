@@ -1,0 +1,204 @@
+﻿@using ETicaret.Models
+@model UserModel
+
+@section Scripts {
+    <script asp-append-version="true" src="~/js/login.js"></script>
+    <script asp-append-version="true" src="https://www.google.com/recaptcha/api.js?render=@ViewData["RecaptchaSiteKey"]"></script>
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+
+        [loginForm, registerForm].forEach(form => {
+            if (!form) return;
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                grecaptcha.ready(function () {
+                    grecaptcha.execute('@ViewData["RecaptchaSiteKey"]', { action: 'submit' })
+                        .then(function (token) {
+                            const captchaInput = form.querySelector('input[name$="CaptchaToken"]');
+                            captchaInput.value = token;
+                            form.submit();
+                        });
+                });
+            });
+        });
+    </script>
+}
+
+@{
+    ViewData["Title"] = "Giriş Yap/Üye Ol";
+}
+
+<div class="max-w-[1440px] mx-auto px-4 py-12">
+    <h5 class="text-center mb-8 text-gray-700 font-medium">
+        Merhaba, giriş yap veya üye ol, alışverişe başla!
+    </h5>
+    
+    <div class="flex justify-center">
+        <div class="w-full max-w-[400px]">
+            <div class="auth-card" id="authCard">
+                <div class="flex border-b border-gray-100 bg-gradient-to-r from-slate-50 to-slate-200" id="authTabs">
+                    <button class="auth-tab-btn @(Model.IsRegister ? "" : "active")"
+                            id="loginTabBtn"
+                            data-target-pane="loginTabPane"
+                            type="button">
+                        Giriş Yap
+                    </button>
+                    <button class="auth-tab-btn @(Model.IsRegister ? "active" : "")"
+                            id="registerTabBtn"
+                            data-target-pane="registerTabPane"
+                            type="button">
+                        Üye Ol
+                    </button>
+                </div>
+
+                <div class="p-6" id="authTabContent">
+                    @* LOGIN PANE *@
+                    <div class="@(Model.IsRegister ? "hidden" : "block") animate-slideDown"
+                         id="loginTabPane">
+
+                        @await Html.PartialAsync("_Notification")
+
+                        <div asp-validation-summary="All" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-lg hidden validation-summary-errors"></div>
+
+                        <form method="post" asp-action="Login" id="loginForm">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="ReturnUrl" id="loginReturnUrl"/>
+                            <input type="hidden" asp-for="Login.CaptchaToken" id="captchaToken" />
+
+                            <div class="mb-4">
+                                <label asp-for="Login.Email" class="auth-label">E-Posta</label>
+                                <input asp-for="Login.Email" class="auth-input" required />
+                            </div>
+
+                            <div class="mb-4 relative">
+                                <label asp-for="Login.Password" class="auth-label">Şifre</label>
+                                <div class="relative flex">
+                                    <input type="password"
+                                           asp-for="Login.Password"
+                                           class="auth-input !rounded-r-none !border-r-0"
+                                           id="login-password"
+                                           required />
+                                    <span class="flex items-center px-4 bg-white border-2 border-gray-200 border-l-0 rounded-r-xl cursor-pointer text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all active:scale-95"
+                                          id="toggle-login-password">
+                                        <i class="fa-solid fa-eye" id="login-eye-icon"></i>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="mb-4 flex items-center gap-2">
+                                <input type="checkbox"
+                                       asp-for="Login.RememberMe"
+                                       class="w-5 h-5 rounded border-2 border-gray-200 accent-blue-500 cursor-pointer" />
+                                <label asp-for="Login.RememberMe" class="text-gray-500 font-medium cursor-pointer select-none">
+                                    Beni Hatırla
+                                </label>
+                            </div>
+
+                            <div class="mb-6">
+                                <a href="/account/forgot-password" class="text-blue-500 hover:underline font-semibold">
+                                    Şifremi Unuttum
+                                </a>
+                            </div>
+
+                            <button type="submit" class="auth-submit-btn mb-4">
+                                <span><i class="fa-solid fa-right-to-bracket mr-2"></i>GİRİŞ YAP</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    @* REGISTER PANE *@
+                    <div class="@(Model.IsRegister ? "block" : "hidden") animate-slideDown"
+                         id="registerTabPane">
+
+                        <div asp-validation-summary="All" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-lg hidden validation-summary-errors"></div>
+
+                        <form method="post" asp-action="Register" id="registerForm">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="ReturnUrl" id="registerReturnUrl"/>
+                            <input type="hidden" asp-for="Register.CaptchaToken" id="registerCaptchaToken" />
+
+                            <div class="mb-4">
+                                <label asp-for="Register.Email" class="auth-label">E-Posta</label>
+                                <input asp-for="Register.Email" class="auth-input" required />
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div>
+                                    <label asp-for="Register.FirstName" class="auth-label">Ad</label>
+                                    <input asp-for="Register.FirstName" class="auth-input" required />
+                                </div>
+                                <div>
+                                    <label asp-for="Register.LastName" class="auth-label">Soyad</label>
+                                    <input asp-for="Register.LastName" class="auth-input" required />
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Register.PhoneNumber" class="auth-label">Telefon Numarası</label>
+                                <input asp-for="Register.PhoneNumber" class="auth-input" required />
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Register.BirthDate" class="auth-label">Doğum Tarihi</label>
+                                <input type="date" asp-for="Register.BirthDate" class="auth-input" required />
+                            </div>
+
+                            <div class="mb-4 relative">
+                                <label asp-for="Register.Password" class="auth-label">Şifre</label>
+                                <div class="relative flex">
+                                    <input type="password"
+                                           asp-for="Register.Password"
+                                           class="auth-input !rounded-r-none !border-r-0"
+                                           id="register-password"
+                                           required />
+                                    <span class="flex items-center px-4 bg-white border-2 border-gray-200 border-l-0 rounded-r-xl cursor-pointer text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all active:scale-95"
+                                          id="toggle-register-password">
+                                        <i class="fa-solid fa-eye" id="register-eye-icon"></i>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="mb-6 relative">
+                                <label asp-for="Register.ConfirmPassword" class="auth-label">Şifre Onayla</label>
+                                <div class="relative flex">
+                                    <input type="password"
+                                           asp-for="Register.ConfirmPassword"
+                                           class="auth-input !rounded-r-none !border-r-0"
+                                           id="register-password-confirm"
+                                           required />
+                                    <span class="flex items-center px-4 bg-white border-2 border-gray-200 border-l-0 rounded-r-xl cursor-pointer text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all active:scale-95"
+                                          id="toggle-register-password-confirm">
+                                        <i class="fa-solid fa-eye" id="register-confirm-eye-icon"></i>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3 mb-6">
+                                <div class="flex items-start gap-2">
+                                    <input type="checkbox" asp-for="Register.AcceptTerms" class="w-5 h-5 mt-0.5 rounded border-2 border-gray-200 text-blue-500 focus:ring-blue-500/10 cursor-pointer" required />
+                                    <label asp-for="Register.AcceptTerms" class="text-sm text-gray-500 font-medium cursor-pointer select-none">
+                                        <a href="/kvkk" target="_blank" class="text-blue-500 hover:underline">KVKK metnini</a> okudum ve kabul ediyorum.
+                                    </label>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <input type="checkbox" asp-for="Register.AcceptMarketing" class="w-5 h-5 mt-0.5 rounded border-2 border-gray-200 text-blue-500 focus:ring-blue-500/10 cursor-pointer" />
+                                    <label asp-for="Register.AcceptMarketing" class="text-sm text-gray-500 font-medium cursor-pointer select-none">
+                                        Kampanya ve fırsatlardan haberdar olmak istiyorum.
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="auth-submit-btn mb-4">
+                                <span><i class="fa-solid fa-user-plus mr-2"></i>KAYDOL</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

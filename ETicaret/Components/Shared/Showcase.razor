@@ -1,0 +1,147 @@
+﻿@using Application.DTOs
+
+<div class="container-fluid py-4">
+    <!-- Section Header with Gradient Underline -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <div class="fw-bold position-relative d-inline-block">
+                <h3>
+                    Vitrindeki Ürünler
+                </h3>
+                <div class="position-absolute w-100" style="height: 4px; background: linear-gradient(45deg, #6a11cb, #2575fc); bottom: -8px; left: 0; border-radius: 2px;"></div>
+            </div>
+            <p class="text-muted mt-3">Mağaza vitrininde görüntülenen ürünlerin listesi</p>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    @if (Products.Any())
+    {
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="fas fa-store fa-4x text-secondary opacity-50"></i>
+            </div>
+            <h5 class="text-muted">Henüz vitrinde gösterilecek ürün bulunmuyor</h5>
+            <p class="text-muted small">Ürünleri vitrine eklemek için ürün düzenleme sayfasını kullanabilirsiniz</p>
+            <a asp-controller="Product" asp-action="Create" class="btn mt-2" style="background: linear-gradient(45deg, #6a11cb, #2575fc); color: white;">
+                <i class="fas fa-plus me-1"></i>Yeni Ürün Ekle
+            </a>
+        </div>
+    }
+    else
+    {
+           <!-- Products Grid -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        @foreach (var prd in Products)
+        {
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm showcase-card">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-column">
+                            <!-- Product Icon -->
+                            <div class="mb-3 text-center">
+                                @if (!string.IsNullOrEmpty(prd.Images?.First().ImageUrl))
+                                {
+                                    <img src="/images/@prd.Images.First().ImageUrl" class="rounded-circle" alt="@prd.ProductName" width="60" height="60" style="object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto" style="width: 60px; height: 60px;">
+                                        <i class="fas fa-box text-secondary fa-lg"></i>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Product Info -->
+                            <div>
+                                <!-- Product Name - Now can extend to multiple lines -->
+                                <h6 class="mb-2 product-name">@prd.ProductName</h6>
+
+                                <!-- Price Badge - Now below the product name -->
+                                <div class="text-center mb-2">
+                                    <span class="price-badge">@prd.ActualPrice ₺</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-white border-top-0 pt-0 pb-3 px-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <!-- Vitrin Switch with Custom Styling -->
+                            <div class="form-check form-switch">
+                                <input type="hidden" name="productId" value="@prd.ProductId" />
+                                <input class="form-check-input" type="checkbox" id="showcase_@prd.ProductId"
+                                       checked="@prd.ShowCase" disabled />
+                                <label class="form-check-label small" for="showcase_@prd.ProductId">
+                                    <i class="fas fa-store-alt me-1"></i> Vitrinde
+                                </label>
+                            </div>
+
+                            <!-- Edit Button with Gradient -->
+                            <a asp-action="Update" asp-controller="Product" asp-route-id="@prd.ProductId"
+                               class="btn btn-sm" style="background: linear-gradient(45deg, #6a11cb, #2575fc); color: white;">
+                                <i class="fas fa-edit me-1"></i>Güncelle
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div> 
+    }
+</div>
+
+<!-- Custom Styling for Products Cards -->
+<style>
+    /* Switch styling to match theme */
+    .form-check-input:checked {
+        background-color: #6a11cb;
+        border-color: #6a11cb;
+    }
+
+    .form-switch .form-check-input:focus {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236a11cb'/%3e%3c/svg%3e");
+    }
+
+    .form-switch .form-check-input:checked {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+    }
+
+    /* Product card hover effect */
+    .showcase-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .showcase-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        }
+
+    /* Product name styling */
+    .product-name {
+        display: block;
+        text-align: center;
+        overflow: hidden;
+        word-wrap: break-word;
+        min-height: 40px;
+    }
+
+    /* Price badge styling */
+    .price-badge {
+        font-size: 0.9rem;
+        padding: 0.25rem 0.75rem;
+        background-color: #ffcccc;
+        color: #d80000;
+        border-radius: 0.25rem;
+        display: inline-block;
+        font-weight: 600;
+    }
+</style>
+
+
+@code {
+    [Parameter]
+    public IEnumerable<ProductDto> Products { get; set;  } = new List<ProductDto>();
+    [Parameter] 
+    public bool IsLoading { get; set; } = false;
+}

@@ -1,0 +1,63 @@
+﻿@page "/admin"
+@page "/admin/dashboard"
+@using Application.DTOs
+@using Microsoft.AspNetCore.Authorization
+@inject ETicaret.Services.INotificationService NotificationService
+@inject IProductService ProductService
+@inject ICategoryService CategoryService
+@inject IAuthService AuthService
+@inject IOrderService OrderService
+@attribute [Authorize(Roles = "Admin")]
+
+<HeadContent>
+    <link rel="stylesheet" href="css/dashboard-admin.css" />
+</HeadContent>
+
+<DashboardCards IsLoading="isLoading" CategoriesCount="categoriesCount" ProductsCount="productsCount" OrdersInProgressCount="ordersInProgressCount" UsersCount="usersCount"/>
+
+<Showcase Products="products" IsLoading="isLoading"/>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private string? userName;
+    private bool isLoading = false;
+
+    private int? productsCount;
+    private int? categoriesCount;
+    private int? usersCount;
+    private int? ordersInProgressCount;
+    private IEnumerable<ProductDto> products = new List<ProductDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        NotificationService.Clear();
+        isLoading = true;
+
+        await LoadDashboardDatasAsync();
+
+        isLoading = false;
+
+        if (AuthStateTask != null)
+        {
+            var authState = await AuthStateTask;
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                userName = user.Identity.Name;
+            }
+        }
+        NotificationService.ShowInfo($"Tekrar Hoşgeldiniz {userName}, Saat: {DateTime.Now.ToShortTimeString()}");
+    }
+
+    private async Task LoadDashboardDatasAsync()
+    {
+        productsCount = await ProductService.GetProductsCountAsync();
+        categoriesCount = await CategoryService.GetCategoriesCountAsync();
+        usersCount = await AuthService.GetUsersCountAsync();
+        ordersInProgressCount = await OrderService.GetNumberOfInProcessAsync();
+        products = await ProductService.GetShowcaseProductsAsync();
+    }
+}

@@ -1,0 +1,23 @@
+﻿@using Domain.Entities
+@model ProductDto
+
+@{
+    var averageRating = Model.AverageRating;
+}
+
+@for (int i = 1; i <= 5; i++)
+{
+    if (i <= Math.Floor(averageRating))
+    {
+        <i class="fas fa-star"></i>
+    }
+    else if (i - averageRating < 1)
+    {
+        <i class="fas fa-star-half-alt"></i>
+    }
+    else
+    {
+        <i class="far fa-star"></i>
+    }
+}
+<span style="color:black;margin-left:5px;">( @Model.ReviewCount )</span>

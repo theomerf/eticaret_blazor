@@ -1,0 +1,6 @@
+﻿@model IEnumerable<ProductDto>  
+
+@foreach (ProductDto prd in Model ?? new List<ProductDto>())
+{
+    <partial name="_ProductCard" model="@prd" />
+}
