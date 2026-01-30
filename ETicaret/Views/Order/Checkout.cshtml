@@ -1,259 +1,401 @@
-﻿@using Application.DTOs
-@model OrderDto
+﻿@model ETicaret.Models.CheckoutViewModel
 @{
-	ViewData["Title"] = "Ödeme Yap";
+    ViewData["Title"] = "Alışverişi Tamamla";
 }
 
 @section Styles {
-	<link asp-append-version="true" href="~/css/checkout.css" rel="stylesheet" />
+    <style>
+        .custom-glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .smooth-shadow {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        .option-radio:checked + div {
+            border-color: #2575fc;
+            background-color: #eff6ff;
+        }
+        .option-radio:checked + div .radio-indicator {
+            border-color: #2575fc;
+            background-color: #2575fc;
+        }
+    </style>
 }
 
-<div class="container checkout-container">
-	<div class="row justify-content-center">
-		<div class="col-lg-10">
-			<div class="row">
-				<!-- Sol Taraf - Ödeme Formu -->
-				<div class="col-md-7 mb-4">
-					<div class="checkout-card">
-						<div class="checkout-header">
-							<h3><i class="fas fa-credit-card me-2"></i> Ödeme Bilgileri</h3>
-						</div>
-						<div class="checkout-body">
-							<div class="text-danger" asp-validation-summary="All"></div>
-							<form method="post" asp-action="Checkout">
-								<div class="mb-4">
-									<label asp-for="Name" class="checkout-form-label">Ad Soyad</label>
-									<input class="form-control checkout-form-control" asp-for="Name" placeholder="Adınız ve soyadınız" />
-									<span asp-validation-for="Name" class="text-danger"></span>
-								</div>
+<div>
+    <div class="container mx-auto px-4 selection:bg-primary/20">
+        <form asp-action="Checkout" asp-controller="Order" method="post" id="checkoutForm">
+            <div class="flex flex-col lg:flex-row gap-8 relative">
 
-								<div class="checkout-order-title">Adres Bilgileri</div>
+                <!-- LEFT SIDE: Forms & Options -->
+                <div class="w-full lg:w-2/3 space-y-6">
+                    
+                    <!-- 1. Address Selection -->
+                    <div class="bg-white rounded-2xl p-6 lg:p-8 smooth-shadow border border-gray-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-3">
+                                <span class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-primary">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </span>
+                                Teslimat Adresi
+                            </h2>
+                        </div>
 
-								<div class="checkout-form-row">
-									<div class="checkout-form-group">
-										<label asp-for="City" class="checkout-form-label">Şehir</label>
-										<input class="form-control checkout-form-control" asp-for="City" placeholder="Şehir" />
-										<span asp-validation-for="City" class="text-danger"></span>
-									</div>
-									<div class="checkout-form-group">
-										<label asp-for="Line1" class="checkout-form-label">İlçe</label>
-										<input class="form-control checkout-form-control" asp-for="Line1" placeholder="İlçe" />
-										<span asp-validation-for="Line1" class="text-danger"></span>
-									</div>
-								</div>
+                        @if (Model.Addresses != null && Model.Addresses.Any())
+                        {
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @foreach (var address in Model.Addresses)
+                                {
+                                    var isFirst = Model.Addresses.First() == address;
+                                    <label class="relative cursor-pointer group">
+                                        <input type="radio" name="AddressId" value="@address.AddressId" 
+                                               class="peer sr-only" @(isFirst ? "checked" : "") required>
+                                        <div class="p-5 rounded-xl border-2 @(isFirst ? "border-primary bg-blue-50/30" : "border-gray-100 hover:border-gray-300 bg-white hover:bg-gray-50") peer-checked:border-primary peer-checked:bg-blue-50/30 transition-all h-full">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <span class="font-bold text-gray-800">@address.Title</span>
+                                                <span class="w-5 h-5 rounded-full border-2 @(isFirst ? "border-primary bg-primary" : "border-gray-300") peer-checked:border-primary peer-checked:bg-primary flex items-center justify-center text-white text-xs transition-all">
+                                                    <i class="fas fa-check"></i>
+                                                </span>
+                                            </div>
+                                            <p class="text-sm text-gray-600 leading-relaxed mb-3">
+                                                @address.AddressLine<br>
+                                                @address.District / @address.City<br>
+                                                @if (!string.IsNullOrEmpty(address.PostalCode))
+                                                {
+                                                    <text>@address.PostalCode</text>
+                                                }
+                                            </p>
+                                            @if (address.IsDefault)
+                                            {
+                                                <span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">Varsayılan</span>
+                                            }
+                                        </div>
+                                    </label>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-8">
+                                <p class="text-gray-500 mb-4">Kayıtlı adresiniz bulunmamaktadır.</p>
+                                <a href="/Account/Addresses" class="text-primary hover:text-blue-700 font-semibold">
+                                    + Yeni Adres Ekle
+                                </a>
+                            </div>
+                        }
+                    </div>
 
-								<div class="mb-3">
-									<label asp-for="Line2" class="checkout-form-label">Mahalle</label>
-									<input class="form-control checkout-form-control" asp-for="Line2" placeholder="Mahalle" />
-									<span asp-validation-for="Line2" class="text-danger"></span>
-								</div>
+                    <!-- 2. Payment Method -->
+                    <div class="bg-white rounded-2xl p-6 lg:p-8 smooth-shadow border border-gray-100">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                             <span class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-primary">
+                                <i class="fas fa-wallet"></i>
+                            </span>
+                            Ödeme Yöntemi
+                        </h2>
 
-								<div class="mb-4">
-									<label asp-for="Line3" class="checkout-form-label">Sokak ve Bina No</label>
-									<input class="form-control checkout-form-control" asp-for="Line3" placeholder="Sokak adı, bina no, daire no" />
-									<span asp-validation-for="Line3" class="text-danger"></span>
-								</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="PaymentMethod" value="CreditCard" class="peer sr-only" checked required>
+                                <div class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all h-24">
+                                    <i class="fas fa-credit-card text-2xl mb-2 text-gray-600 peer-checked:text-primary"></i>
+                                    <span class="text-sm font-semibold text-gray-700 peer-checked:text-primary">Banka/Kredi Kartı</span>
+                                </div>
+                            </label>
 
-								<div class="checkout-order-title">Ödeme Yöntemi</div>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="PaymentMethod" value="BankTransfer" class="peer sr-only">
+                                <div class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all h-24">
+                                    <i class="fas fa-university text-2xl mb-2 text-gray-600 peer-checked:text-primary"></i>
+                                    <span class="text-sm font-semibold text-gray-700 peer-checked:text-primary">Havale/EFT</span>
+                                </div>
+                            </label>
 
-								<div class="checkout-payment-methods">
-									<div class="checkout-payment-method">
-										<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" />
-									</div>
-									<div class="checkout-payment-method">
-										<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png" alt="Mastercard" />
-									</div>
-								</div>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="PaymentMethod" value="CashOnDelivery" class="peer sr-only">
+                                <div class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all h-24">
+                                    <i class="fas fa-hand-holding-usd text-2xl mb-2 text-gray-600 peer-checked:text-primary"></i>
+                                    <span class="text-sm font-semibold text-gray-700 peer-checked:text-primary">Kapıda Ödeme</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
 
-								<div class="checkout-form-row">
-									<div class="checkout-form-group">
-										<label class="checkout-form-label">Kart Üzerindeki İsim</label>
-										<input type="text" class="form-control checkout-form-control" placeholder="Kart üzerindeki ad soyad" />
-									</div>
-								</div>
+                    <!-- 3. Shipping Method -->
+                    <div class="bg-white rounded-2xl p-6 lg:p-8 smooth-shadow border border-gray-100">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-primary">
+                                <i class="fas fa-truck"></i>
+                            </span>
+                            Kargo Seçenekleri
+                        </h2>
 
-								<div class="checkout-form-row">
-									<div class="checkout-form-group">
-										<label class="checkout-form-label">Kart Numarası</label>
-										<input type="text" class="form-control checkout-form-control" placeholder="1234 5678 9012 3456" />
-									</div>
-								</div>
+                        <div class="space-y-3">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="ShippingMethod" value="Standard" class="peer sr-only" checked required>
+                                <div class="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-primary">
+                                            <i class="fas fa-shipping-fast text-lg"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-gray-800">Standart Kargo</div>
+                                            <div class="text-sm text-gray-500">3-5 iş günü</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="font-bold text-gray-800" id="standardShippingCost">29.99 ₺</div>
+                                        <div class="text-xs text-green-600">500₺ üzeri ücretsiz</div>
+                                    </div>
+                                </div>
+                            </label>
 
-								<div class="checkout-form-row">
-									<div class="checkout-form-group">
-										<label class="checkout-form-label">Son Kullanma Tarihi</label>
-										<input type="text" class="form-control checkout-form-control" placeholder="AA/YY" />
-									</div>
-									<div class="checkout-form-group">
-										<label class="checkout-form-label">CVV</label>
-										<input type="text" class="form-control checkout-form-control" placeholder="123" />
-									</div>
-								</div>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="ShippingMethod" value="Express" class="peer sr-only">
+                                <div class="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-primary">
+                                            <i class="fas fa-bolt text-lg"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-gray-800">Hızlı Kargo</div>
+                                            <div class="text-sm text-gray-500">1-2 iş günü</div>
+                                        </div>
+                                    </div>
+                                    <div class="font-bold text-gray-800">49.99 ₺</div>
+                                </div>
+                            </label>
 
-								<div class="checkout-gift-check">
-									<input asp-for="GiftWrap" class="form-check-input checkout-gift-input" />
-									<label asp-for="GiftWrap" class="checkout-gift-label">
-										<i class="fas fa-gift me-2"></i> Bu ürünleri hediye paketi olarak gönder
-									</label>
-								</div>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="ShippingMethod" value="HandlingOnly" class="peer sr-only">
+                                <div class="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-primary">
+                                            <i class="fas fa-store text-lg"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-gray-800">Mağazadan Teslim</div>
+                                            <div class="text-sm text-gray-500">Aynı gün</div>
+                                        </div>
+                                    </div>
+                                    <div class="font-bold text-green-600">Ücretsiz</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
 
-								<div class="text-center">
-									<button type="submit" class="btn checkout-submit-btn">
-										Siparişi Tamamla <i class="fas fa-check-circle ms-2"></i>
-									</button>
-									<div class="checkout-secure mt-3">
-										<i class="fas fa-lock"></i> Güvenli ödeme sistemleri ile korunmaktadır
-									</div>
-								</div>
-							</form>
-						</div>
-					</div>
-				</div>
+                    <!-- 4. Coupon Code -->
+                    <div class="bg-white rounded-2xl p-6 lg:p-8 smooth-shadow border border-gray-100">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center text-primary">
+                                <i class="fas fa-tag"></i>
+                            </span>
+                            İndirim Kuponu
+                        </h2>
+                        <div class="flex gap-2">
+                            <input type="text" name="CouponCode" id="couponCode" 
+                                   class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors" 
+                                   placeholder="Kupon kodunuzu girin">
+                            <button type="button" onclick="applyCoupon()" 
+                                    class="px-6 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl transition-colors">
+                                Uygula
+                            </button>
+                        </div>
+                        <div id="couponMessage" class="mt-2 text-sm"></div>
+                    </div>
+                </div>
 
-				<!-- Sağ Taraf - Sipariş Özeti -->
-				<div class="col-md-5">
-					<div class="checkout-card">
-						<div class="checkout-header">
-							<h3><i class="fas fa-shopping-cart me-2"></i> Sipariş Özeti</h3>
-						</div>
-						<div class="checkout-body">
-							<div class="checkout-order-summary">
-								<!-- Örnek ürün listesi -->
-								<div class="d-flex justify-content-between align-items-center mb-2">
-									<div>
-										<strong>Ürün Adı 1</strong>
-										<div class="text-muted small">2 adet</div>
-									</div>
-									<div>₺240.00</div>
-								</div>
-								<div class="d-flex justify-content-between align-items-center mb-2">
-									<div>
-										<strong>Ürün Adı 2</strong>
-										<div class="text-muted small">1 adet</div>
-									</div>
-									<div>₺150.00</div>
-								</div>
-								<hr>
-								<div class="d-flex justify-content-between mb-2">
-									<div>Ara Toplam</div>
-									<div>₺390.00</div>
-								</div>
-								<div class="d-flex justify-content-between mb-2">
-									<div>Kargo</div>
-									<div>₺15.00</div>
-								</div>
-								<div class="d-flex justify-content-between mb-2">
-									<div>Vergiler</div>
-									<div>₺70.20</div>
-								</div>
-								<div class="d-flex justify-content-between mt-3 pt-3 border-top">
-									<div><strong>Toplam</strong></div>
-									<div><strong>₺475.20</strong></div>
-								</div>
-							</div>
+                <!-- RIGHT SIDE: Order Summary (Sticky) -->
+                <div class="w-full lg:w-1/3">
+                    <div class="bg-white rounded-2xl p-6 lg:p-8 smooth-shadow border border-gray-100 lg:sticky lg:top-24">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-shopping-cart text-primary"></i>
+                            Sipariş Özeti
+                        </h3>
 
-							<div class="mb-4">
-								<label class="checkout-form-label">İndirim Kuponu</label>
-								<div class="input-group">
-									<input type="text" class="form-control checkout-form-control" placeholder="Kupon kodunuz">
-									<button class="btn checkout-submit-btn" type="button">Uygula</button>
-								</div>
-							</div>
+                        <!-- Cart Items -->
+                        <div class="space-y-3 mb-6 max-h-64 overflow-y-auto">
+                            @if (Model.Cart?.Lines != null && Model.Cart.Lines.Any())
+                            {
+                                @foreach (var line in Model.Cart.Lines)
+                                {
+                                    <div class="flex gap-3 p-3 bg-gray-50 rounded-xl">
+                                        <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                                            @if (!string.IsNullOrEmpty(line.ImageUrl))
+                                            {
+                                                <img src="@line.ImageUrl" alt="@line.ProductName" class="w-full h-full object-contain">
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-image text-gray-300 text-2xl"></i>
+                                            }
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="text-sm font-bold text-gray-800 truncate">@line.ProductName</h4>
+                                            <div class="flex justify-between items-center text-sm mt-1">
+                                                <span class="text-gray-400">@line.Quantity x @(line.DiscountPrice ?? line.ActualPrice).ToString("N2")₺</span>
+                                                <span class="font-bold text-gray-800">@((line.Quantity * (line.DiscountPrice ?? line.ActualPrice)).ToString("N2"))₺</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
 
-							<div class="checkout-order-title">Teslimat Bilgileri</div>
-							<div class="mb-3">
-								<div class="d-flex align-items-center mb-2">
-									<i class="fas fa-truck me-2" style="color: var(--primary-color)"></i>
-									<div>Standart Teslimat</div>
-								</div>
-								<div class="text-muted small">Tahmini teslimat: 3-5 iş günü</div>
-							</div>
+                        <!-- Calculations -->
+                        <div class="space-y-3 pt-6 border-t border-gray-100 text-sm">
+                            <div class="flex justify-between text-gray-600">
+                                <span>Ara Toplam</span>
+                                <span class="font-medium" id="subtotal">@(Model.Cart?.ComputeTotalValue().ToString("N2") ?? "0.00")₺</span>
+                            </div>
+                            <div class="flex justify-between text-gray-600">
+                                <span>Kargo</span>
+                                <span class="font-medium" id="shippingCost">29.99₺</span>
+                            </div>
+                            <div class="flex justify-between text-gray-600">
+                                <span>KDV (%18)</span>
+                                <span class="font-medium" id="taxAmount">0.00₺</span>
+                            </div>
+                            <div class="flex justify-between text-primary font-semibold" id="discountRow" style="display: none;">
+                                <span>İndirim</span>
+                                <span id="discountAmount">-0.00₺</span>
+                            </div>
+                        </div>
 
-							<hr>
+                        <div class="pt-6 mt-6 border-t-2 border-dashed border-gray-100">
+                            <div class="flex justify-between items-end">
+                                <span class="text-gray-500 font-medium">Toplam Tutar</span>
+                                <span class="text-3xl font-bold text-gray-800" id="totalAmount">
+                                    @(Model.Cart?.ComputeTotalValue().ToString("N2") ?? "0.00")<span class="text-lg align-top">₺</span>
+                                </span>
+                            </div>
+                        </div>
 
-							<div class="d-flex flex-column gap-2 mt-3">
-								<div class="d-flex align-items-center">
-									<i class="fas fa-undo me-2" style="color: var(--primary-color)"></i>
-									<div>30 gün içinde ücretsiz iade</div>
-								</div>
-								<div class="d-flex align-items-center">
-									<i class="fas fa-shield-alt me-2" style="color: var(--primary-color)"></i>
-									<div>Orijinal ürün garantisi</div>
-								</div>
-								<div class="d-flex align-items-center">
-									<i class="fas fa-headset me-2" style="color: var(--primary-color)"></i>
-									<div>7/24 müşteri desteği</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+                        <!-- Gift Wrap -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 rounded-2xl p-5 mt-6 relative overflow-hidden group">
+                            <div class="absolute right-[-20px] top-[-20px] w-24 h-24 bg-primary/10 rounded-full blur-2xl transition-all group-hover:bg-primary/20"></div>
+                            <div class="flex items-start gap-4 relative z-10">
+                                <div class="p-3 rounded-full bg-white shadow-sm text-primary">
+                                    <i class="fas fa-gift text-lg"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-gray-800 text-sm">Hediye Paketi</h4>
+                                    <p class="text-xs text-gray-500 mt-1 mb-3">Özel hediye paketi (+19.90₺)</p>
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" name="GiftWrap" value="true" class="sr-only peer">
+                                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        <span class="ms-3 text-xs font-medium text-gray-700 peer-checked:text-primary transition-colors">Evet, ekle</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="space-y-4 mt-6">
+                            <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+                                <span>Siparişi Güvenle Tamamla</span>
+                                <i class="fas fa-chevron-right text-sm"></i>
+                            </button>
+                            
+                            <div class="flex items-center justify-center gap-4 text-gray-400 opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
+                                <i class="fab fa-cc-visa text-2xl"></i>
+                                <i class="fab fa-cc-mastercard text-2xl"></i>
+                                <i class="fab fa-cc-amex text-2xl"></i>
+                                <div class="flex items-center gap-1 text-[10px] font-bold border border-gray-300 rounded px-1">
+                                    <i class="fas fa-lock"></i> SSL
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
-<!-- EKLENEBİLCEK KISIMLAR BURDA KALSIN-->
+@section Scripts {
+    <script>
+        function applyCoupon() {
+            const code = document.getElementById('couponCode').value;
+            const messageEl = document.getElementById('couponMessage');
+            
+            if (!code) {
+                messageEl.className = 'mt-2 text-sm text-red-600';
+                messageEl.textContent = 'Lütfen bir kupon kodu girin.';
+                return;
+            }
 
+            // AJAX call to validate coupon
+            fetch('/api/orders/validate-coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    couponCode: code,
+                    orderAmount: parseFloat(document.getElementById('subtotal').textContent.replace('₺', '').replace(',', ''))
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageEl.className = 'mt-2 text-sm text-green-600';
+                    messageEl.textContent = data.message;
+                    document.getElementById('discountRow').style.display = 'flex';
+                    document.getElementById('discountAmount').textContent = `-${data.discountAmount.toFixed(2)}₺`;
+                    updateTotal();
+                } else {
+                    messageEl.className = 'mt-2 text-sm text-red-600';
+                    messageEl.textContent = data.message;
+                }
+            })
+            .catch(error => {
+                messageEl.className = 'mt-2 text-sm text-red-600';
+                messageEl.textContent = 'Kupon doğrulanırken bir hata oluştu.';
+            });
+        }
 
-<!-- Kargo ve Kupon Alanı -->
-<div class="cart-glass-card p-6 sm:p-8">
-	<div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-		<!-- Kargo Seçenekleri -->
-		<div class="space-y-5">
-			<h5 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-				<i class="fas fa-truck text-primary"></i> Kargo Seçenekleri
-			</h5>
-			<div class="space-y-3">
-				<label class="flex items-center gap-4 cursor-pointer p-3 rounded-xl border-2 border-transparent hover:border-blue-500/10 hover:bg-blue-50/30 transition-all">
-					<input type="radio" name="shippingOption" checked class="w-5 h-5 accent-primary">
-					<div class="flex flex-col">
-						<span class="font-bold text-gray-800 text-sm">Standart Kargo</span>
-						<span class="text-xs text-gray-500 italic">2-4 İş Günü • Ücretsiz</span>
-					</div>
-				</label>
-				<label class="flex items-center gap-4 cursor-pointer p-3 rounded-xl border-2 border-transparent hover:border-blue-500/10 hover:bg-blue-50/30 transition-all">
-					<input type="radio" name="shippingOption" class="w-5 h-5 accent-primary">
-					<div class="flex flex-col">
-						<span class="font-bold text-gray-800 text-sm">Ekspres Kargo</span>
-						<span class="text-xs text-gray-500 italic">1 İş Günü • 29.90₺</span>
-					</div>
-				</label>
-				<label class="flex items-center gap-4 cursor-pointer p-3 rounded-xl border-2 border-transparent hover:border-blue-500/10 hover:bg-blue-50/30 transition-all">
-					<input type="radio" name="shippingOption" class="w-5 h-5 accent-primary">
-					<div class="flex flex-col">
-						<span class="font-bold text-gray-800 text-sm">Mağazadan Teslim Alma</span>
-						<span class="text-xs text-gray-500 italic">Anında • Ücretsiz</span>
-					</div>
-				</label>
-			</div>
-		</div>
+        function updateTotal() {
+            const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace('₺', '').replace(',', ''));
+            const shipping = parseFloat(document.getElementById('shippingCost').textContent.replace('₺', '').replace(',', '').replace('Ücretsiz', '0'));
+            const discount = parseFloat(document.getElementById('discountAmount').textContent.replace('₺', '').replace(',', '').replace('-', '')) || 0;
+            
+            const netAmount = subtotal - discount + shipping;
+            const tax = netAmount * 0.18;
+            const total = netAmount + tax;
 
-		<!-- Kupon Alanı -->
-		<div class="space-y-5">
-			<h5 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-				<i class="fas fa-ticket-alt text-primary"></i> İndirim Kuponu
-			</h5>
-			<div class="relative group">
-				<input type="text" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 pl-5 pr-32 focus:outline-none focus:border-primary focus:bg-white transition-all text-sm font-semibold" placeholder="Kupon Kodunuz">
-				<button class="absolute right-2 top-2 bottom-2 bg-primary text-white px-6 rounded-xl font-bold text-xs hover:bg-primary-dark transition-colors shadow-lg shadow-blue-500/20 active:scale-95">Uygula</button>
-			</div>
-			<div class="pt-2">
-				<span class="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block mb-2 px-1">Önerilen Kuponlar</span>
-				<div class="flex flex-wrap gap-2">
-					<span class="cart-badge uppercase cursor-pointer">ILKALIS10</span>
-					<span class="cart-badge uppercase cursor-pointer">YAZFIRSATI25</span>
-					<span class="cart-badge uppercase cursor-pointer">BEDAVA_KARGO</span>
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
+            document.getElementById('taxAmount').textContent = tax.toFixed(2) + '₺';
+            document.getElementById('totalAmount').innerHTML = total.toFixed(2) + '<span class="text-lg align-top">₺</span>';
+        }
 
-<div class="mt-6 p-6 cart-glass-card border-dashed border-2 border-primary/20 bg-blue-50/30">
-	<h6 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-		<i class="fas fa-gift text-primary"></i> Hediye Paketi
-	</h6>
-	<p class="text-xs text-gray-400 font-medium mb-4 italic">Sevdikleriniz için siparişinizi özel bir hediye paketine dönüştürelim (+9.90₺)</p>
-	<button class="w-full p-3 rounded-xl border border-primary/30 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all">Hediye Paketi Ekle</button>
-</div>
+        // Update shipping cost on method change
+        document.querySelectorAll('input[name="ShippingMethod"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const shippingCostEl = document.getElementById('shippingCost');
+                const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace('₺', '').replace(',', ''));
+                
+                if (this.value === 'Standard') {
+                    if (subtotal >= 500) {
+                        shippingCostEl.textContent = 'Ücretsiz';
+                        shippingCostEl.className = 'font-medium text-green-600';
+                    } else {
+                        shippingCostEl.textContent = '29.99₺';
+                        shippingCostEl.className = 'font-medium';
+                    }
+                } else if (this.value === 'Express') {
+                    shippingCostEl.textContent = '49.99₺';
+                    shippingCostEl.className = 'font-medium';
+                } else if (this.value === 'HandlingOnly') {
+                    shippingCostEl.textContent = 'Ücretsiz';
+                    shippingCostEl.className = 'font-medium text-green-600';
+                }
+                
+                updateTotal();
+            });
+        });
+
+        // Initial calculation
+        updateTotal();
+    </script>
+}

@@ -1,11 +1,16 @@
-﻿using Application.Services.Interfaces;
+﻿using Application.Common.Options;
+using Application.Services.Interfaces;
 using Domain.Entities;
+using Microsoft.Extensions.Options;
+using OperationResult = Domain.Entities.OperationResult;
 
 namespace Application.Services.Implementations
 {
     public class FileManager : IFileService
     {
-        private readonly string _uploadRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+        private readonly FileStorageOptions _options;
+        private readonly string _uploadRoot;
+
         private readonly HashSet<string> AllowedTypes = new()
         {
             "image/jpeg",
@@ -15,19 +20,39 @@ namespace Application.Services.Implementations
             "image/webp"
         };
 
+        public FileManager(IOptions<FileStorageOptions> options)
+        {
+            _options = options.Value;
+            _uploadRoot = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "images"
+            );
+        }
+
+        public string GetPublicUrl(string storageKey)
+        {
+            if (string.IsNullOrWhiteSpace(storageKey))
+                return string.Empty;
+
+            return $"{_options.PublicBaseUrl.TrimEnd('/')}/{storageKey.TrimStart('/')}";
+        }
+
         public async Task<OperationResult<string>> UploadAsync(Stream fileStream, string fileName, string contentType, string subFolder)
         {
             if (!AllowedTypes.Contains(contentType))
                 return OperationResult<string>.Failure("Geçersiz dosya türü.", ResultType.ValidationError);
 
             var uniqueFileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}";
-            var pathForDb = $"/images/{subFolder}/{uniqueFileName}";
-            var path = Path.Combine(_uploadRoot, subFolder, uniqueFileName);
+            var storageKey = $"images/{subFolder}/{uniqueFileName}";
+            var physicalPath = Path.Combine(_uploadRoot, subFolder, uniqueFileName);
 
-            using var fs = new FileStream(path, FileMode.Create);
+            Directory.CreateDirectory(Path.GetDirectoryName(physicalPath)!);
+
+            using var fs = new FileStream(physicalPath, FileMode.Create);
             await fileStream.CopyToAsync(fs);
 
-            return OperationResult<string>.Success(pathForDb, "Dosya başarıyla yüklendi.");
+            return OperationResult<string>.Success(storageKey, "Dosya başarıyla yüklendi.");
         }
 
         public async Task<OperationResult<List<string>>> UploadMultipleFilesAsync(IEnumerable<(Stream fileStream, string fileName, string contentType)> files, string subFolder)
@@ -44,6 +69,24 @@ namespace Application.Services.Implementations
             }
 
             return OperationResult<List<string>>.Success(uploadedFileNames, "Tüm dosyalar başarıyla yüklendi.");
+        }
+
+        public OperationResult Delete(string storageKey)
+        {
+            if (string.IsNullOrWhiteSpace(storageKey))
+                return OperationResult.Failure("Geçersiz dosya yolu.", ResultType.ValidationError);
+
+            var relativePath = storageKey
+                .TrimStart('/')
+                .Replace("images/", string.Empty);
+
+            var physicalPath = Path.Combine(_uploadRoot, relativePath);
+
+            if (!File.Exists(physicalPath))
+                return OperationResult.Success("Dosya zaten yok.");
+
+            File.Delete(physicalPath);
+            return OperationResult.Success("Dosya silindi.");
         }
     }
 }

@@ -1,121 +1,281 @@
-﻿
-@model string    
-<div class="complete-container">
-        <div class="complete-header">
-            <div class="complete-checkmark">
-                <i class="fas fa-check"></i>
-            </div>
-            <h1 class="complete-title">Order Confirmed</h1>
-            <p class="complete-subtitle">Thank you for your purchase! Your order has been received and is being processed.</p>
-        </div>
+﻿@using Application.DTOs
+@using Domain.Entities
+@model OrderWithDetailsDto
+@{
+    ViewData["Title"] = "Sipariş Tamamlandı";
+    var paymentSuccess = ViewBag.PaymentSuccess ?? true;
+    var failureReason = ViewBag.FailureReason as string;
+}
 
-        <div class="complete-order-info">
-            <div class="complete-order-number">
-                <strong>Order Number:</strong>
-                <span>#@Model</span>
-            </div>
-            <div class="complete-order-date">
-                <strong>Order Date:</strong> May 5, 2025
-            </div>
-            <div class="complete-order-email">
-                <strong>Confirmation sent to:</strong> customer@example.com
-            </div>
-        </div>
+@section Styles {
+    <style>
+        .custom-glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .smooth-shadow {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        @@keyframes checkmark {
+            0% {
+                transform: scale(0) rotate(45deg);
+            }
+            50% {
+                transform: scale(1.2) rotate(45deg);
+            }
+            100% {
+                transform: scale(1) rotate(45deg);
+            }
+        }
+        .checkmark-animate {
+            animation: checkmark 0.6s ease-in-out;
+        }
+    </style>
+}
 
-        <div class="complete-estimated-delivery">
-            <i class="fas fa-truck"></i>
-            <div class="complete-delivery-text">
-                Estimated delivery: <span class="complete-delivery-date">May 8 - May 12, 2025</span><br>
-                You'll receive tracking information by email once your order ships.
-            </div>
-        </div>
-
-        <div class="complete-order-summary">
-            <h3 class="complete-summary-title">Order Summary</h3>
-
-            <div class="complete-product-item">
-                <div class="complete-product-image">
-                    <img src="/api/placeholder/50/50" alt="Product">
+<div>
+    <div class="container mx-auto px-4 py-8 selection:bg-primary/20">
+        <div class="max-w-4xl mx-auto">
+            
+            <!-- Status Header -->
+            @if (paymentSuccess)
+            {
+                <div class="text-center mb-8">
+                    <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-xl shadow-emerald-500/30 checkmark-animate">
+                        <i class="fas fa-check text-white text-5xl"></i>
+                    </div>
+                    <h1 class="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent mb-3">
+                        Siparişiniz Alındı!
+                    </h1>
+                    <p class="text-gray-600 text-lg">Ödemeniz başarıyla tamamlandı. Siparişiniz hazırlanıyor.</p>
                 </div>
-                <div class="complete-product-details">
-                    <div class="complete-product-name">Premium Headphones</div>
-                    <div class="complete-product-variant">Color: Black | Qty: 1</div>
+            }
+            else
+            {
+                <div class="text-center mb-8">
+                    <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-red-400 to-pink-500 flex items-center justify-center shadow-xl shadow-red-500/30">
+                        <i class="fas fa-times text-white text-5xl"></i>
+                    </div>
+                    <h1 class="text-4xl font-bold bg-gradient-to-r from-red-600 to-pink-500 bg-clip-text text-transparent mb-3">
+                        Ödeme Başarısız
+                    </h1>
+                    <p class="text-gray-600 text-lg">@(failureReason ?? "Ödeme işlemi tamamlanamadı. Lütfen tekrar deneyiniz.")</p>
                 </div>
-                <div class="complete-product-price">$129.99</div>
-            </div>
+            }
 
-            <div class="complete-product-item">
-                <div class="complete-product-image">
-                    <img src="/api/placeholder/50/50" alt="Product">
-                </div>
-                <div class="complete-product-details">
-                    <div class="complete-product-name">Wireless Charger</div>
-                    <div class="complete-product-variant">15W Fast Charging | Qty: 2</div>
-                </div>
-                <div class="complete-product-price">$49.98</div>
-            </div>
-
-            <div class="complete-divider"></div>
-
-            <div class="complete-price-summary">
-                <div class="complete-price-row">
-                    <span>Subtotal</span>
-                    <span>$179.97</span>
-                </div>
-                <div class="complete-price-row">
-                    <span>Shipping</span>
-                    <span>$12.50</span>
-                </div>
-                <div class="complete-price-row">
-                    <span>Tax</span>
-                    <span>$17.99</span>
-                </div>
-                <div class="complete-price-total">
-                    <span>Total</span>
-                    <span>$210.46</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="complete-shipping-info">
-            <h3 class="complete-summary-title">Shipping Information</h3>
-
-            <div class="complete-address-grid">
-                <div class="complete-address-box">
-                    <h4>Shipping Address</h4>
-                    <div class="complete-address-content">
-                        John Doe<br>
-                        123 Main Street<br>
-                        Apt 4B<br>
-                        New York, NY 10001<br>
-                        United States
+            <!-- Order Details Card -->
+            <div class="bg-white rounded-2xl p-6 lg:p-8 smooth-shadow border border-gray-100 mb-6">
+                <div class="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
+                    <div>
+                        <div class="text-sm text-gray-500 mb-1">Sipariş Numarası</div>
+                        <div class="text-2xl font-bold text-primary">#@Model.OrderNumber</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500 mb-1">Sipariş Tarihi</div>
+                        <div class="font-semibold text-gray-800">
+                            <i class="far fa-calendar mr-2"></i>@Model.OrderedAt.ToString("dd MMMM yyyy HH:mm")
+                        </div>
                     </div>
                 </div>
 
-                <div class="complete-address-box">
-                    <h4>Billing Address</h4>
-                    <div class="complete-address-content">
-                        John Doe<br>
-                        123 Main Street<br>
-                        Apt 4B<br>
-                        New York, NY 10001<br>
-                        United States
+                <!-- Order Items -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-box-open text-primary"></i>
+                        Sipariş İçeriği
+                    </h3>
+                    <div class="space-y-3">
+                        @foreach (var line in Model.Lines)
+                        {
+                            <div class="flex items-center gap-4 p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-100">
+                                <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                                    @if (!string.IsNullOrEmpty(line.ImageUrl))
+                                    {
+                                        <img src="@line.ImageUrl" alt="@line.ProductName" class="w-full h-full object-contain">
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-image text-gray-300 text-2xl"></i>
+                                    }
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-gray-900 mb-1">@line.ProductName</h4>
+                                    <div class="flex items-center gap-3 text-sm">
+                                        <span class="text-gray-500">Birim: @((line.DiscountPrice ?? line.ActualPrice).ToString("N2")) ₺</span>
+                                        <span class="text-gray-400">×</span>
+                                        <span class="font-semibold text-blue-600">@line.Quantity adet</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold text-gray-900">
+                                        @(((line.DiscountPrice ?? line.ActualPrice) * line.Quantity).ToString("N2")) ₺
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Price Breakdown -->
+                <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100 mb-6">
+                    <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-receipt text-blue-600"></i>
+                        Fiyat Detayları
+                    </h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Ara Toplam</span>
+                            <span class="font-semibold text-gray-900">@Model.SubTotal.ToString("N2") ₺</span>
+                        </div>
+                        @if (Model.CouponDiscountAmount.HasValue && Model.CouponDiscountAmount.Value > 0)
+                        {
+                            <div class="flex justify-between text-sm">
+                                <span class="text-green-600">Kupon İndirimi (@Model.CouponCode)</span>
+                                <span class="font-semibold text-green-600">-@Model.CouponDiscountAmount.Value.ToString("N2") ₺</span>
+                            </div>
+                        }
+                        @if (Model.CampaignDiscountTotal.HasValue && Model.CampaignDiscountTotal.Value > 0)
+                        {
+                            <div class="flex justify-between text-sm">
+                                <span class="text-green-600">Kampanya İndirimi</span>
+                                <span class="font-semibold text-green-600">-@Model.CampaignDiscountTotal.Value.ToString("N2") ₺</span>
+                            </div>
+                        }
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Kargo</span>
+                            <span class="font-semibold text-gray-900">@(Model.ShippingCost == 0 ? "Ücretsiz" : Model.ShippingCost.ToString("N2") + " ₺")</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">KDV (%18)</span>
+                            <span class="font-semibold text-gray-900">@Model.TaxAmount.ToString("N2") ₺</span>
+                        </div>
+                        <div class="flex justify-between pt-3 border-t border-blue-200">
+                            <span class="font-bold text-gray-900 text-lg">Toplam</span>
+                            <span class="text-2xl font-bold text-blue-600">@Model.TotalAmount.ToString("N2") ₺</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery & Payment Info Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Delivery Address -->
+                    <div class="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-100">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-blue-600"></i>
+                            Teslimat Adresi
+                        </h4>
+                        <div class="text-sm text-gray-700 space-y-1">
+                            <p class="font-semibold text-gray-900">@Model.FirstName @Model.LastName</p>
+                            <p class="flex items-center gap-2">
+                                <i class="fas fa-phone text-blue-600"></i>
+                                @Model.Phone
+                            </p>
+                            <p class="mt-2">@Model.AddressLine</p>
+                            <p>@Model.District / @Model.City</p>
+                            @if (!string.IsNullOrEmpty(Model.PostalCode))
+                            {
+                                <p>@Model.PostalCode</p>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Payment & Shipping Info -->
+                    <div class="space-y-4">
+                        <!-- Payment Info -->
+                        <div class="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-100">
+                            <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-credit-card text-blue-600"></i>
+                                Ödeme Bilgileri
+                            </h4>
+                            <div class="text-sm text-gray-700 space-y-2">
+                                <div class="flex justify-between">
+                                    <span>Ödeme Yöntemi:</span>
+                                    <span class="font-semibold">@Model.PaymentMethod</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Durum:</span>
+                                    <span class="@(Model.PaymentStatus == PaymentStatus.Completed ? "font-semibold text-green-600" : "font-semibold text-yellow-600")">
+                                        @(Model.PaymentStatus == PaymentStatus.Completed ? "Ödendi" : "Beklemede")
+                                    </span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Model.PaymentTransactionId))
+                                {
+                                    <div class="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                                        İşlem No: @Model.PaymentTransactionId
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Shipping Info -->
+                        <div class="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-100">
+                            <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-truck text-blue-600"></i>
+                                Kargo Bilgileri
+                            </h4>
+                            <div class="text-sm text-gray-700 space-y-2">
+                                <div class="flex justify-between">
+                                    <span>Kargo Yöntemi:</span>
+                                    <span class="font-semibold">
+                                        @(Model.ShippingMethod == Domain.Entities.ShippingMethod.Express ? "Hızlı Kargo" : 
+                                          Model.ShippingMethod == Domain.Entities.ShippingMethod.HandlingOnly ? "Mağazadan Teslim" : "Standart Kargo")
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Durum:</span>
+                                    <span class="@(Model.OrderStatus == OrderStatus.Shipped || Model.OrderStatus == OrderStatus.Delivered ? "font-semibold text-green-600" : "font-semibold text-blue-600")">
+                                        @(Model.OrderStatus == OrderStatus.Delivered ? "Teslim Edildi" :
+                                          Model.OrderStatus == OrderStatus.Shipped ? "Kargoda" : "Hazırlanıyor")
+                                    </span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+                                {
+                                    <div class="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                                        Takip No: @Model.TrackingNumber
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="complete-buttons">
-            <a href="#" class="complete-btn complete-btn-primary">Track Your Order</a>
-            <a asp-controller="Home" asp-action="Index" class="complete-btn complete-btn-outline">Return to Store</a>
-        </div>
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                @if (paymentSuccess)
+                {
+                    <a href="/Account/Orders" class="px-8 py-4 bg-primary hover:bg-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-3">
+                        <i class="fas fa-list"></i>
+                        <span>Siparişlerim</span>
+                    </a>
+                    <a href="/Products" class="px-8 py-4 bg-white hover:bg-gray-50 text-gray-800 font-bold rounded-xl shadow-lg border-2 border-gray-200 transition-all flex items-center justify-center gap-3">
+                        <i class="fas fa-shopping-bag"></i>
+                        <span>Alışverişe Devam Et</span>
+                    </a>
+                }
+                else
+                {
+                    <a href="/Order/Checkout" class="px-8 py-4 bg-primary hover:bg-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-3">
+                        <i class="fas fa-redo"></i>
+                        <span>Tekrar Dene</span>
+                    </a>
+                    <a href="/Products" class="px-8 py-4 bg-white hover:bg-gray-50 text-gray-800 font-bold rounded-xl shadow-lg border-2 border-gray-200 transition-all flex items-center justify-center gap-3">
+                        <i class="fas fa-shopping-bag"></i>
+                        <span>Alışverişe Devam Et</span>
+                    </a>
+                }
+            </div>
 
-        <div class="complete-help-section">
-            <p class="complete-help-text">Need help with your order?</p>
-            <div class="complete-help-links">
-                <a href="#" class="complete-help-link">Contact Support</a>
-                <a href="#" class="complete-help-link">Return Policy</a>
-                <a href="#" class="complete-help-link">FAQ</a>
+            <!-- Help Section -->
+            <div class="mt-8 text-center">
+                <div class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-full border border-blue-100">
+                    <i class="fas fa-headset text-blue-600"></i>
+                    <span class="text-sm text-gray-700">Yardıma mı ihtiyacınız var?</span>
+                    <a href="/Contact" class="text-sm font-semibold text-primary hover:text-blue-700 transition-colors">
+                        Bize Ulaşın
+                    </a>
+                </div>
             </div>
         </div>
     </div>
+</div>

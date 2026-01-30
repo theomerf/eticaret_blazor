@@ -7,7 +7,7 @@ namespace Application.Services.Interfaces
     {
         Task<IEnumerable<AddressDto>> GetAllAddressesAsync();
         Task<AddressDto> GetOneAddressAsync(int addressId);
-        Task<IEnumerable<AddressDto>> GetAllUserAddressesOfOneUserAsync(string userId);
+        Task<IEnumerable<AddressDto>> GetAllAddressesOfOneUserAsync(string userId);
         Task<OperationResult<AddressDto>> CreateAddressAsync(AddressDtoForCreation addressDto);
         Task<OperationResult<AddressDto>> MakeAddressDefaultAsync(int addressId);
         Task<OperationResult<AddressDto>> UpdateAddressAsync(AddressDtoForUpdate addressDto);

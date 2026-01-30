@@ -55,5 +55,18 @@ namespace Infrastructure.Persistence.Repositories.Implementations
 
             return logs;
         }
+
+        public async Task<int> GetPaymentAttemptsCountAsync(string ipAddress, DateTime since)
+        {
+            var paymentEventTypes = new[] { "SuspiciousPayment", "MultipleCardAttempts", "PaymentAnomaly" };
+            
+            var count = await FindAll(false)
+                .Where(sl => sl.IpAddress == ipAddress 
+                    && paymentEventTypes.Contains(sl.EventType) 
+                    && sl.Timestamp >= since)
+                .CountAsync();
+
+            return count;
+        }
     }
 }

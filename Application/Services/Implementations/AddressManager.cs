@@ -57,7 +57,7 @@ namespace Application.Services.Implementations
             return addressDto;
         }
 
-        public async Task<IEnumerable<AddressDto>> GetAllUserAddressesOfOneUserAsync(string userId)
+        public async Task<IEnumerable<AddressDto>> GetAllAddressesOfOneUserAsync(string userId)
         {
             var addresses =  await _manager.Address.GetAllUserAddressesOfOneUserAsync(userId, false);
             var addressesDto = _mapper.Map<IEnumerable<AddressDto>>(addresses);

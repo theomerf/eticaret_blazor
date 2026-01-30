@@ -14,53 +14,92 @@ namespace Infrastructure.Persistence.Configurations
                 .IsRequired()
                 .HasMaxLength(20);
 
-            builder.Property(o => o.Name)
+            builder.Property(o => o.UserId)
+                .IsRequired()
+                .HasMaxLength(450);
+
+            builder.Property(o => o.FirstName)
+                .IsRequired()
                 .HasMaxLength(100);
 
-            builder.Property(o => o.Line1)
-                .HasMaxLength(200);
+            builder.Property(o => o.LastName)
+                .IsRequired()
+                .HasMaxLength(100);
 
-            builder.Property(o => o.Line2)
-                .HasMaxLength(200);
-
-            builder.Property(o => o.Line3)
-                .HasMaxLength(200);
+            builder.Property(o => o.Phone)
+                .IsRequired()
+                .HasMaxLength(20);
 
             builder.Property(o => o.City)
+                .IsRequired()
                 .HasMaxLength(100);
+
+            builder.Property(o => o.District)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            builder.Property(o => o.AddressLine)
+                .IsRequired()
+                .HasMaxLength(500);
 
             builder.Property(o => o.PostalCode)
                 .HasMaxLength(20);
 
-            builder.Property(o => o.Country)
-                .HasMaxLength(100);
-
-            builder.Property(o => o.PhoneNumber)
-                .HasMaxLength(20);
-
-            builder.Property(o => o.TrackingNumber)
-                .HasMaxLength(50);  
-
-            builder.Property(o => o.CustomerNotes)
-                .HasMaxLength(1000);
-
-            builder.Property(o => o.AdminNotes)
-                .HasMaxLength(1000);
-
-            builder.Property(o => o.DeletedByUserId)
-                .HasMaxLength(450);
-
-            builder.Property(o => o.TotalAmount)
+            builder.Property(o => o.SubTotal)
                 .HasPrecision(18, 2)
                 .IsRequired();
 
-            builder.Property(o => o.DiscountAmount)
+            builder.Property(o => o.TaxAmount)
                 .HasPrecision(18, 2)
                 .IsRequired();
 
             builder.Property(o => o.ShippingCost)
                 .HasPrecision(18, 2)
                 .IsRequired();
+
+            builder.Property(o => o.TotalAmount)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            builder.Property(o => o.Currency)
+                .IsRequired()
+                .HasMaxLength(3);
+
+            builder.Property(o => o.TotalDiscountAmount)
+                .HasPrecision(18, 2);
+
+            builder.Property(o => o.CouponDiscountAmount)
+                .HasPrecision(18, 2);
+
+            builder.Property(o => o.CampaignDiscountTotal)
+                .HasPrecision(18, 2);
+
+            builder.Property(o => o.CouponCode)
+                .HasMaxLength(50);
+
+            builder.Property(o => o.TrackingNumber)
+                .HasMaxLength(100);
+
+            builder.Property(o => o.ShippingCompanyName)
+                .HasMaxLength(100);
+
+            builder.Property(o => o.ShippingServiceName)
+                .HasMaxLength(100);
+
+            builder.Property(o => o.PaymentProvider)
+                .HasMaxLength(50);
+
+            builder.Property(o => o.PaymentTransactionId)
+                .HasMaxLength(200);
+
+            builder.Property(o => o.CustomerNotes)
+                .HasMaxLength(1000);
+
+            builder.Property(o => o.AdminNotes)
+                .HasMaxLength(2000);
+
+            builder.Property(o => o.DeletedByUserId)
+                .HasMaxLength(450);
 
             builder.HasQueryFilter(o => !o.IsDeleted);
 
@@ -82,9 +121,31 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasIndex(o => o.OrderStatus)
                 .HasDatabaseName("IX_Orders_OrderStatus");
 
+            builder.HasIndex(o => o.PaymentStatus)
+                .HasDatabaseName("IX_Orders_PaymentStatus");
+
+            builder.HasIndex(o => new { o.OrderStatus, o.PaymentStatus, o.IsDeleted })
+                .HasFilter("[IsDeleted] = 0")
+                .HasDatabaseName("IX_Orders_Status_Payment");
+
+            builder.HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(o => o.Lines)
                 .WithOne(ol => ol.Order)
                 .HasForeignKey(ol => ol.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(o => o.AppliedCampaigns)
+                .WithOne(oc => oc.Order)
+                .HasForeignKey(oc => oc.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(o => o.History)
+                .WithOne(oh => oh.Order)
+                .HasForeignKey(oh => oh.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

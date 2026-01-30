@@ -34,6 +34,8 @@ namespace Domain.Entities
         public bool ShowCase { get; set; } = false;
         public ICollection<UserReview>? UserReviews { get; set; }
 
+        #region Validation Methods
+
         public void ValidatePrice()
         {
             if (ActualPrice <= 0)
@@ -81,6 +83,10 @@ namespace Domain.Entities
             ValidateStock();
         }
 
+        #endregion
+
+        #region Business Logic Methods
+
         public void DecreaseStock(int quantity)
         {
             if (quantity <= 0)
@@ -112,6 +118,8 @@ namespace Domain.Entities
             DeletedAt = DateTime.UtcNow;
             DeletedByUserId = deletedByUserId;
         }
+
+        #endregion
     }
 }
 

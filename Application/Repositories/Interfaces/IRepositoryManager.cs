@@ -10,6 +10,10 @@ namespace Application.Repositories.Interfaces
         IAuditLogRepository AuditLog { get; }
         ISecurityLogRepository SecurityLog { get; }
         IAddressRepository Address { get; }
+        ICouponRepository Coupon { get; }
+        ICampaignRepository Campaign { get; }
+        IOrderHistoryRepository OrderHistory { get; }
+        ICouponUsageRepository CouponUsage { get; }
 
         void Save();
         Task SaveAsync();

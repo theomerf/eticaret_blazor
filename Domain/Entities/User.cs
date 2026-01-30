@@ -5,7 +5,6 @@ namespace Domain.Entities
 {
     public class User : IdentityUser
     {
-        public string AvatarUrl { get; set; } = "avatars/default.png";
         public string FirstName { get; set; } = null!;
         public string LastName { get; set; } = null!;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -31,6 +30,7 @@ namespace Domain.Entities
         public DateTime? DeletedAt { get; set; }
         public string? DeletedByUserId { get; set; }
 
+        #region Validation Methods
         public void ValidateForCreation()
         {
             if (string.IsNullOrWhiteSpace(FirstName))
@@ -85,6 +85,10 @@ namespace Domain.Entities
             ValidateForCreation();
         }
 
+        #endregion
+
+        #region Business Logic Methods
+
         public void UpdateLastLogin(string ipAddress)
         {
             LastLoginDate = DateTime.UtcNow;
@@ -115,5 +119,7 @@ namespace Domain.Entities
             DeletedAt = DateTime.UtcNow;
             DeletedByUserId = deletedByUserId;
         }
+
+        #endregion
     }
 }

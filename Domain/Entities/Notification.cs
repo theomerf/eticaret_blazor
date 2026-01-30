@@ -16,6 +16,8 @@ namespace Domain.Entities
         public DateTime? ScheduledFor { get; set; } // Zamanlanmış bildirim
         public bool IsSent { get; set; } = false; // Gönderildi mi?
 
+        #region Validation Methods
+
         public void ValidateForCreation()
         {
             if (string.IsNullOrWhiteSpace(Title))
@@ -44,6 +46,10 @@ namespace Domain.Entities
             }
         }
 
+        #endregion
+
+        #region Business Logic Methods
+
         public void MarkAsRead()
         {
             IsRead = true;
@@ -65,6 +71,8 @@ namespace Domain.Entities
             DeletedAt = DateTime.UtcNow;
             DeletedByUserId = deletedByUserId;
         }
+
+        #endregion
     }
 
     public enum NotificationType

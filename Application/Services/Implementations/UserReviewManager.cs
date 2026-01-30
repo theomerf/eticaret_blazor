@@ -21,6 +21,7 @@ namespace Application.Services.Implementations
         private readonly IProductService _productService;
         private readonly ISecurityLogService _securityLogService;
         private readonly ILogger<UserReviewManager> _logger;
+        private readonly IFileService _fileService;
 
         public UserReviewManager(
             IRepositoryManager manager,
@@ -30,7 +31,8 @@ namespace Application.Services.Implementations
             IHttpContextAccessor httpContextAccessor,
             IProductService productService,
             ISecurityLogService securityLogService,
-            ILogger<UserReviewManager> logger)
+            ILogger<UserReviewManager> logger,
+            IFileService fileService)
         {
             _manager = manager;
             _authService = authService;
@@ -40,6 +42,7 @@ namespace Application.Services.Implementations
             _productService = productService;
             _securityLogService = securityLogService;
             _logger = logger;
+            _fileService = fileService;
         }
 
         public async Task<IEnumerable<UserReviewDto>> GetAllUserReviewsAsync()
@@ -193,6 +196,7 @@ namespace Application.Services.Implementations
             {
                 _manager.ClearTracker();
                 var userReview = await GetOneUserReviewForServiceAsync(userReviewDto.UserReviewId, true);
+                var oldImagePath = userReview.ReviewPictureUrl;
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
 
                 if (userReview.UserId != userId)
@@ -203,6 +207,10 @@ namespace Application.Services.Implementations
                     );
                     throw new UnauthorizedAccessException("Bunun için yetkiniz yok.");
                 }
+
+                var isImageUpdated =
+                    !string.IsNullOrWhiteSpace(userReviewDto.ReviewPictureUrl) &&
+                    userReviewDto.ReviewPictureUrl != userReview.ReviewPictureUrl;
 
                 var product = await _productService.GetOneProductAsync(userReview.ProductId);
 
@@ -231,6 +239,11 @@ namespace Application.Services.Implementations
 
                 await _manager.SaveAsync();
 
+                if (isImageUpdated && !string.IsNullOrWhiteSpace(oldImagePath))
+                {
+                    _fileService.Delete(oldImagePath);
+                }
+
                 _logger.LogInformation(
                     "User review updated. ReviewId: {ReviewId}, UserId: {UserId}, OldRating: {OldRating}, NewRating: {NewRating}, RequiresReapproval: true",
                     userReviewDto.UserReviewId, userId, oldRatingToRemove, userReview.Rating);
@@ -249,6 +262,7 @@ namespace Application.Services.Implementations
             _manager.ClearTracker();
             var userReview = await GetOneUserReviewForServiceAsync(id, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var imagePath = userReview.ReviewPictureUrl;
 
             if (userReview.UserId != userId)
             {
@@ -279,6 +293,11 @@ namespace Application.Services.Implementations
 
             await _manager.SaveAsync();
 
+            if (!string.IsNullOrWhiteSpace(imagePath))
+            {
+                _fileService.Delete(imagePath);
+            }
+
             _logger.LogInformation(
                 "User review soft deleted. ReviewId: {ReviewId}, UserId: {UserId}",
                 id, userId);
@@ -292,6 +311,7 @@ namespace Application.Services.Implementations
             var userReview = await GetOneUserReviewForServiceAsync(id, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+            var imagePath = userReview.ReviewPictureUrl;
 
             var product = await _productService.GetOneProductAsync(userReview.ProductId);
 
@@ -320,6 +340,11 @@ namespace Application.Services.Implementations
                 entityName: "UserReview",
                 entityId: id.ToString()
             );
+
+            if (!string.IsNullOrWhiteSpace(imagePath))
+            {
+                _fileService.Delete(imagePath);
+            }
 
             _logger.LogInformation(
                 "User review deleted by admin. ReviewId: {ReviewId}, AdminId: {AdminId}",

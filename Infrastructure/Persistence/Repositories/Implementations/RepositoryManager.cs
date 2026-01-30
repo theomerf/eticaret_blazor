@@ -14,8 +14,12 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly ISecurityLogRepository _securityLogRepository;
         private readonly IAddressRepository _addressRepository;
+        private readonly ICouponRepository _couponRepository;
+        private readonly ICampaignRepository _campaignRepository;
+        private readonly IOrderHistoryRepository _orderHistoryRepository;
+        private readonly ICouponUsageRepository _couponUsageRepository;
 
-        public RepositoryManager(IProductRepository productRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository)
+        public RepositoryManager(IProductRepository productRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository)
         {
             _context = context;
             _productRepository = productRepository;
@@ -27,6 +31,10 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             _auditLogRepository = auditLogRepository;
             _securityLogRepository = securityLogRepository;
             _addressRepository = addressRepository;
+            _couponRepository = couponRepository;
+            _campaignRepository = campaignRepository;
+            _orderHistoryRepository = orderHistoryRepository;
+            _couponUsageRepository = couponUsageRepository;
         }
 
         public IProductRepository Product => _productRepository;
@@ -38,6 +46,10 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public IAuditLogRepository AuditLog => _auditLogRepository;
         public ISecurityLogRepository SecurityLog => _securityLogRepository;
         public IAddressRepository Address => _addressRepository;
+        public ICouponRepository Coupon => _couponRepository;
+        public ICampaignRepository Campaign => _campaignRepository;
+        public IOrderHistoryRepository OrderHistory => _orderHistoryRepository;
+        public ICouponUsageRepository CouponUsage => _couponUsageRepository;
 
         public void Save()
         {

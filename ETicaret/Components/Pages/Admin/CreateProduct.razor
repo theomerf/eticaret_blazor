@@ -211,7 +211,7 @@
                     }
                     else
                     {
-                        await JSRuntime.InvokeVoidAsync("showToast", uploadResult.Message, "error");
+                        await JSRuntime.InvokeVoidAsync("showToast", "Görsel yüklenirken hata oluştu", "error");
                         return;
                     }
                 }

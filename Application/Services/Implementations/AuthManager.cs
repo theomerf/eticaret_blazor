@@ -95,23 +95,6 @@ namespace Application.Services.Implementations
             return userDto;
         }
 
-        public async Task<OperationResult<UserDto>> UpdateAvatarAsync(string avatarUrl)
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-            var user = await GetOneUserForServiceAsync(userId);
-
-            user.AvatarUrl = avatarUrl;
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                _logger.LogWarning("Avatar update failed for user {UserId}", userId);
-                return OperationResult<UserDto>.Failure("Avatar güncellenemedi.", ResultType.ValidationError);
-            }
-
-            _logger.LogInformation("Avatar updated successfully for user {UserId}", userId);
-            return OperationResult<UserDto>.Success("Avatar başarıyla güncellendi.");
-        }
-
         public async Task<OperationResult<UserDto>> ResetPasswordAsync(ResetPasswordDto model)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";

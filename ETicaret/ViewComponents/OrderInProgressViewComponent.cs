@@ -1,4 +1,4 @@
-﻿using Application.Services.Interfaces;
+﻿/*using Application.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ETicaret.ViewComponents
@@ -16,4 +16,4 @@ namespace ETicaret.ViewComponents
             return orders.Count().ToString();
         }
     }
-}
+}*/

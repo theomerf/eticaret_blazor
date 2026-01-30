@@ -1,0 +1,304 @@
+using Application.Common.Exceptions;
+using Application.Common.Models;
+using Application.DTOs;
+using Application.Repositories.Interfaces;
+using Application.Services.Interfaces;
+using AutoMapper;
+using Domain.Entities;
+using Domain.Exceptions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+
+namespace Application.Services.Implementations
+{
+    public class CampaignManager : ICampaignService
+    {
+        private readonly IRepositoryManager _manager;
+        private readonly IMapper _mapper;
+        private readonly ILogger<CampaignManager> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IAuditLogService _auditLogService;
+
+        public CampaignManager(
+            IRepositoryManager manager,
+            IMapper mapper,
+            ILogger<CampaignManager> logger,
+            IHttpContextAccessor httpContextAccessor,
+            IAuditLogService auditLogService)
+        {
+            _manager = manager;
+            _mapper = mapper;
+            _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
+            _auditLogService = auditLogService;
+        }
+
+        private string GetCurrentUserId() =>
+            _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+
+        private string GetCurrentUserName() =>
+            _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+
+        public async Task<IEnumerable<CampaignDto>> GetAllCampaignsAsync()
+        {
+            var campaigns = await _manager.Campaign.GetAllCampaignsAsync(false);
+            var campaignsDto = _mapper.Map<IEnumerable<CampaignDto>>(campaigns);
+
+            return campaignsDto;
+        }
+
+        public async Task<CampaignDto> GetCampaignByIdAsync(int campaignId)
+        {
+            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, false);
+            if (campaign == null)
+            {
+                throw new CampaignNotFoundException(campaignId);
+            }
+
+            var campaignDto = _mapper.Map<CampaignDto>(campaign);
+
+            return campaignDto;
+        }
+
+        public async Task<IEnumerable<CampaignDto>> GetActiveCampaignsAsync()
+        {
+            var campaigns = await _manager.Campaign.GetActiveCampaignsAsync(false);
+            var campaignsDto = _mapper.Map<IEnumerable<CampaignDto>>(campaigns);
+
+            return campaignsDto;
+        }
+
+        public async Task<IEnumerable<Campaign>> GetApplicableCampaignsAsync(decimal orderAmount)
+        {
+            var activeCampaigns = await _manager.Campaign.GetActiveCampaignsByPriorityAsync(false);
+
+            var applicableCampaigns = activeCampaigns
+                .Where(c => c.IsActiveNow() && (!c.MinOrderAmount.HasValue || orderAmount >= c.MinOrderAmount.Value))
+                .ToList();
+
+            return applicableCampaigns;
+        }
+
+        public async Task<OperationResult<int>> CreateCampaignAsync(CampaignDtoForCreation campaignDto)
+        {
+            try
+            {
+                var campaign = _mapper.Map<Campaign>(campaignDto);
+
+                campaign.ValidateForCreation();
+
+                var userId = GetCurrentUserId();
+                var userName = GetCurrentUserName();
+
+                campaign.CreatedByUserId = userId;
+                campaign.UpdatedByUserId = userId;
+
+                _manager.Campaign.CreateCampaign(campaign);
+                await _manager.SaveAsync();
+
+                await _auditLogService.LogAsync(
+                    userId: userId,
+                    userName: userName,
+                    action: "Create",
+                    entityName: "Campaign",
+                    entityId: campaign.CampaignId.ToString(),
+                    newValues: new
+                    {
+                        campaign.Name,
+                        campaign.Type,
+                        campaign.Value,
+                        campaign.Scope,
+                        campaign.StartsAt,
+                        campaign.EndsAt,
+                        campaign.Priority,
+                        campaign.IsStackable
+                    }
+                );
+
+                _logger.LogInformation(
+                    "Campaign created successfully. CampaignId: {CampaignId}, Name: {Name}, User: {UserId}",
+                    campaign.CampaignId, campaign.Name, userId);
+
+                return OperationResult<int>.Success(campaign.CampaignId, "Kampanya başarıyla oluşturuldu.");
+            }
+            catch (CampaignValidationException ex)
+            {
+                _logger.LogWarning(ex, "Campaign validation failed. Name: {Name}", campaignDto.Name);
+                return OperationResult<int>.Failure(ex.Message, ResultType.ValidationError);
+            }
+        }
+
+        public async Task<OperationResult<CampaignDto>> UpdateCampaignAsync(CampaignDtoForUpdate campaignDto)
+        {
+            try
+            {
+                _manager.ClearTracker();
+                var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignDto.CampaignId, true);
+                if (campaign == null)
+                {
+                    return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);
+                }
+
+                var oldValues = new
+                {
+                    campaign.Name,
+                    campaign.Type,
+                    campaign.Value,
+                    campaign.Scope,
+                    campaign.StartsAt,
+                    campaign.EndsAt,
+                    campaign.Priority,
+                    campaign.IsStackable,
+                    campaign.IsActive
+                };
+
+                _mapper.Map(campaignDto, campaign);
+
+                campaign.ValidateForCreation();
+
+                var userId = GetCurrentUserId();
+                var userName = GetCurrentUserName();
+
+                campaign.UpdatedAt = DateTime.UtcNow;
+                campaign.UpdatedByUserId = userId;
+
+                await _manager.SaveAsync();
+
+                await _auditLogService.LogAsync(
+                    userId: userId,
+                    userName: userName,
+                    action: "Update",
+                    entityName: "Campaign",
+                    entityId: campaign.CampaignId.ToString(),
+                    oldValues: oldValues,
+                    newValues: new
+                    {
+                        campaign.Name,
+                        campaign.Type,
+                        campaign.Value,
+                        campaign.Scope,
+                        campaign.StartsAt,
+                        campaign.EndsAt,
+                        campaign.Priority,
+                        campaign.IsStackable,
+                        campaign.IsActive
+                    }
+                );
+
+                _logger.LogInformation(
+                    "Campaign updated successfully. CampaignId: {CampaignId}, User: {UserId}",
+                    campaign.CampaignId, userId);
+
+                var updatedCampaignDto = _mapper.Map<CampaignDto>(campaign);
+                return OperationResult<CampaignDto>.Success(updatedCampaignDto, "Kampanya başarıyla güncellendi.");
+            }
+            catch (CampaignValidationException ex)
+            {
+                _logger.LogWarning(ex, "Campaign validation failed during update. CampaignId: {CampaignId}", campaignDto.CampaignId);
+                return OperationResult<CampaignDto>.Failure(ex.Message, ResultType.ValidationError);
+            }
+        }
+
+        public async Task<OperationResult<CampaignDto>> DeleteCampaignAsync(int campaignId)
+        {
+            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, true);
+            if (campaign == null)
+            {
+                return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);
+            }
+
+            var userId = GetCurrentUserId();
+            var userName = GetCurrentUserName();
+
+            campaign.SoftDelete(userId);
+            await _manager.SaveAsync();
+
+            await _auditLogService.LogAsync(
+                userId: userId,
+                userName: userName,
+                action: "Delete",
+                entityName: "Campaign",
+                entityId: campaignId.ToString()
+            );
+
+            _logger.LogInformation(
+                "Campaign soft deleted. CampaignId: {CampaignId}, User: {UserId}",
+                campaignId, userId);
+
+            return OperationResult<CampaignDto>.Success("Kampanya başarıyla silindi.");
+        }
+
+        public async Task<OperationResult<CampaignDto>> ActivateCampaignAsync(int campaignId)
+        {
+            _manager.ClearTracker();
+            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, true);
+            if (campaign == null)
+            {
+                return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);
+            }
+
+            var userId = GetCurrentUserId();
+            var userName = GetCurrentUserName();
+
+            campaign.Activate();
+            campaign.UpdatedAt = DateTime.UtcNow;
+            campaign.UpdatedByUserId = userId;
+
+            await _manager.SaveAsync();
+
+            await _auditLogService.LogAsync(
+                userId: userId,
+                userName: userName,
+                action: "Activate",
+                entityName: "Campaign",
+                entityId: campaignId.ToString(),
+                newValues: new { IsActive = true }
+            );
+
+            _logger.LogInformation(
+                "Campaign activated. CampaignId: {CampaignId}, User: {UserId}",
+                campaignId, userId);
+
+            var campaignDto = _mapper.Map<CampaignDto>(campaign);
+            return OperationResult<CampaignDto>.Success(campaignDto, "Kampanya aktif edildi.");
+        }
+
+        public async Task<OperationResult<CampaignDto>> DeactivateCampaignAsync(int campaignId)
+        {
+            _manager.ClearTracker();
+            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, true);
+            if (campaign == null)
+            {
+                return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);
+            }
+
+            var userId = GetCurrentUserId();
+            var userName = GetCurrentUserName();
+
+            campaign.Deactivate();
+            campaign.UpdatedAt = DateTime.UtcNow;
+            campaign.UpdatedByUserId = userId;
+
+            await _manager.SaveAsync();
+
+            await _auditLogService.LogAsync(
+                userId: userId,
+                userName: userName,
+                action: "Deactivate",
+                entityName: "Campaign",
+                entityId: campaignId.ToString(),
+                newValues: new { IsActive = false }
+            );
+
+            _logger.LogInformation(
+                "Campaign deactivated. CampaignId: {CampaignId}, User: {UserId}",
+                campaignId, userId);
+
+            var campaignDto = _mapper.Map<CampaignDto>(campaign);
+            return OperationResult<CampaignDto>.Success(campaignDto, "Kampanya deaktif edildi.");
+        }
+
+
+    }
+}

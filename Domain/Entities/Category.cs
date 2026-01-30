@@ -23,6 +23,8 @@ namespace Domain.Entities
         public bool IsVisible { get; set; } = true;
         public bool IsFeatured { get; set; } = false;
 
+        #region Validation Methods
+
         public void ValidateForCreation()
         {
             if (string.IsNullOrWhiteSpace(CategoryName))
@@ -76,11 +78,17 @@ namespace Domain.Entities
             return HasCircularReference(parent.ParentId.Value, allCategories);
         }
 
+        #endregion
+
+        #region Business Logic Methods
+
         public void SoftDelete(string deletedByUserId)
         {
             IsDeleted = true;
             DeletedAt = DateTime.UtcNow;
             DeletedByUserId = deletedByUserId;
         }
+
+        #endregion
     }
 }

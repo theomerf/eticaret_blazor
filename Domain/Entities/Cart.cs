@@ -8,6 +8,8 @@
         public int Version { get; private set; } = 1;
         public List<CartLine> Lines { get; set; } = new();
 
+        #region Validation Methods
+
         public virtual CartOperationResult SetQuantity(int prouductId, int newQuantity)
         {
             if (newQuantity < 0)
@@ -120,6 +122,8 @@
         {
             Version++;
         }
+
+        #endregion
 
     }
 

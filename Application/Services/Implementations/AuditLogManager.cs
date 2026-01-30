@@ -51,5 +51,37 @@ namespace Application.Services.Implementations
 
             return logs;
         }
+
+        public async Task LogPaymentEventAsync(string userId, string userName, string action, string orderNumber,
+            string? transactionId, decimal amount, string status, string? provider = null)
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+
+            var paymentDetails = new
+            {
+                OrderNumber = orderNumber,
+                TransactionId = transactionId,
+                Amount = amount,
+                Status = status,
+                Provider = provider ?? "Unknown",
+                Timestamp = DateTime.UtcNow
+            };
+
+            var auditLog = new AuditLog
+            {
+                UserId = userId,
+                UserName = userName,
+                Action = action,
+                EntityName = "Payment",
+                EntityId = transactionId ?? orderNumber,
+                NewValues = JsonSerializer.Serialize(paymentDetails),
+                IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                UserAgent = httpContext?.Request.Headers["User-Agent"].ToString(),
+                Timestamp = DateTime.UtcNow
+            };
+
+            _manager.AuditLog.Add(auditLog);
+            await _manager.SaveAsync();
+        }
     }
 }

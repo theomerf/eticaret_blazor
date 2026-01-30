@@ -57,7 +57,7 @@
         productsCount = await ProductService.GetProductsCountAsync();
         categoriesCount = await CategoryService.GetCategoriesCountAsync();
         usersCount = await AuthService.GetUsersCountAsync();
-        ordersInProgressCount = await OrderService.GetNumberOfInProcessAsync();
+        /*ordersInProgressCount = await OrderService.GetNumberOfInProcessAsync();*/
         products = await ProductService.GetShowcaseProductsAsync();
     }
 }

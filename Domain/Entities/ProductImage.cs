@@ -12,6 +12,8 @@ namespace Domain.Entities
         public string? Caption { get; set; }
         public int DisplayOrder { get; set; } = 0;
 
+        #region Validation Methods
+
         public void ValidateForCreation()
         {
             if (string.IsNullOrWhiteSpace(ImageUrl))
@@ -39,5 +41,7 @@ namespace Domain.Entities
                 throw new ProductValidationException("Başlık en fazla 512 karakter olabilir.");
             }
         }
+
+        #endregion
     }
 }

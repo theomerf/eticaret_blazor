@@ -25,6 +25,8 @@ namespace Domain.Entities
         public int ProductId { get; set; }
         public Product? Product { get; set; }
 
+        #region Validation Methods
+
         public void ValidateForCreation()
         {
             if (Rating < 1 || Rating > 5)
@@ -77,6 +79,10 @@ namespace Domain.Entities
             ValidateForCreation();
         }
 
+        #endregion
+
+        #region Business Logic Methods
+
         public void MarkAsHelpful()
         {
             HelpfulCount++;
@@ -122,5 +128,7 @@ namespace Domain.Entities
             DeletedAt = DateTime.UtcNow;
             DeletedByUserId = deletedByUserId;
         }
+
+        #endregion
     }
 }

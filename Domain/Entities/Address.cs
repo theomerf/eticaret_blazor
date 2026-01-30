@@ -31,6 +31,8 @@ namespace Domain.Entities
             DeletedByUserId = deletedByUserId;
         }
 
+        #region Validation Methods
+
         public void ValidateForCreation()
         {
             if (string.IsNullOrWhiteSpace(Title))
@@ -103,5 +105,7 @@ namespace Domain.Entities
         {
             ValidateForCreation();
         }
+
+        #endregion
     }
 }

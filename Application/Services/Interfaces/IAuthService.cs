@@ -10,7 +10,6 @@ namespace Application.Services.Interfaces
         IEnumerable<IdentityRole> Roles { get; }
         Task<int> GetUsersCountAsync();
         Task<UserDto> GetOneUserAsync(string userId);
-        Task<OperationResult<UserDto>> UpdateAvatarAsync(string avatarUrl);
         Task<OperationResult<UserDto>> ResetPasswordAsync(ResetPasswordDto model);
         Task<OperationResult<UserDto>> ChangePasswordAsync(ChangePasswordDto model);
         Task<OperationResult<UserDto>> CreateUserAsync(UserDtoForCreation userDto);

@@ -22,9 +22,6 @@ namespace Infrastructure.Persistence.Configurations
                    .IsRequired()
                    .HasMaxLength(100);
 
-            builder.Property(a => a.AvatarUrl)
-                   .HasMaxLength(2048);
-
             builder.Property(a => a.DeletedByUserId)
                    .HasMaxLength(450);
 

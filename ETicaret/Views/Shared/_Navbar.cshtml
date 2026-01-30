@@ -1,16 +1,4 @@
 @using ETicaret.Extensions
-@{
-    var avatarUrl = "";
-    if (User?.Identity?.IsAuthenticated == true)
-    {
-        var avatarContent = await Component.InvokeAsync("Avatar");
-        using (var writer = new System.IO.StringWriter())
-        {
-            avatarContent.WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
-            avatarUrl = writer.ToString();
-        }
-    }
-}
 
 <div id="navbarWrapper" class="fixed top-0 left-0 w-full z-[1050] transition-all duration-300">
     
@@ -20,7 +8,7 @@
         <div class="mx-auto px-4 sm:px-6 lg:px-24 xl:px-48">
             <div class="flex items-center justify-between w-full">
                 <a class="flex items-center font-bold text-white no-underline flex-shrink-0" href="/">
-                    <img src="~/images/logo-placeholder.png" class="w-32 sm:w-40 lg:w-64 h-auto object-contain brightness-110 saturate-120" alt="Logo" />
+                    <img src="~/images/logo.png" class="w-32 sm:w-40 lg:w-64 h-auto object-contain brightness-110 saturate-120" alt="Logo" />
                 </a>
 
                 @{
@@ -83,8 +71,8 @@
                             <div id="userDropdown" class="relative">
                                 <div class="flex items-center text-white font-semibold cursor-pointer" 
                                    role="button">
-                                    <div class="rounded-full overflow-hidden transition-all duration-400 bg-button p-0.5 hover:scale-110 shadow-lg border-none">
-                                        <img src="/images/@avatarUrl" alt="Avatar" class="rounded-full w-8 h-8 sm:w-9 sm:h-9 object-cover" />
+                                    <div class="rounded-full overflow-hidden transition-all duration-400 hover:scale-110 shadow-lg border-2 border-white/20 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-cyan-500 text-white font-bold text-sm">
+                                        @(User.FindFirst("first_name")?.Value?.FirstOrDefault().ToString().ToUpper() ?? User.Identity.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
                                     </div>
                                     <span class="hidden lg:inline text-sm ml-2">@User.FindFirst("first_name")?.Value @User.FindFirst("last_name")?.Value</span>
                                 </div>
@@ -92,11 +80,8 @@
                                 <div id="userDropdownMenu" class="hidden absolute right-[-1rem] sm:right-auto sm:left-1/2 sm:-translate-x-1/2 mt-3 w-[260px] max-w-[95vw] sm:w-auto sm:min-w-[280px] border-none rounded-3xl p-0 overflow-hidden bg-dropdown-gradient border border-white/20 z-[1100]" 
                                      style="box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); backdrop-filter: blur(20px);">
                                     <div class="bg-primary p-4 text-center relative overflow-hidden">
-                                        <div class="w-[70px] h-[70px] sm:w-[90px] sm:h-[90px] mx-auto mb-3 rounded-full overflow-hidden relative">
-                                            <img src="/images/@avatarUrl" 
-                                                 alt="Avatar" 
-                                                 class="w-full h-full object-cover border-0 transition-transform duration-300 hover:scale-105"
-                                                 style="box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);" />
+                                        <div class="w-[70px] h-[70px] sm:w-[90px] sm:h-[90px] mx-auto mb-3 rounded-full overflow-hidden relative flex items-center justify-center bg-cyan-500 text-white font-bold text-3xl shadow-lg border-4 border-white/20">
+                                            @(User.FindFirst("first_name")?.Value?.FirstOrDefault().ToString().ToUpper() ?? User.Identity.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
                                         </div>
                                         <h6 class="mb-0 font-semibold text-white text-center text-sm sm:text-base">@User.Identity.Name</h6>
                                         <small class="text-blue-100 block text-center">@(User.IsInRole("Admin") ? "Admin" : "Üye")</small>

@@ -19,6 +19,11 @@ namespace Infrastructure.Persistence
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SecurityLog> SecurityLogs { get; set; }
         public DbSet<Address> Addresses { get; set; }
+        public DbSet<Campaign> Campaigns { get; set; }
+        public DbSet<Coupon> Coupons { get; set; }
+        public DbSet<CouponUsage> CouponUsages { get; set; }
+        public DbSet<OrderCampaign> OrderCampaigns { get; set; }
+        public DbSet<OrderHistory> OrderHistories { get; set; }
 
         public RepositoryContext(DbContextOptions<RepositoryContext> options)
             : base(options)

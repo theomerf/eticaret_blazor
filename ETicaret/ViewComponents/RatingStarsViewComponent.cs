@@ -5,19 +5,10 @@ namespace ETicaret.ViewComponents
 {
     public class RatingStarsViewComponent : ViewComponent
     {
-        public IViewComponentResult Invoke(string mode, int? ratingsCount = null, double? averageRating = null, ProductDto? productDto = null, IEnumerable<UserReviewDto>? userReviewsDto = null)
+        public IViewComponentResult Invoke(string mode, double? averageRating = null, ProductDto? productDto = null, IEnumerable<UserReviewDto>? userReviewsDto = null)
         {
-           /* IEnumerable<int> ratings = await _manager.UserReviewService.GetAllRatingsForProductAsync(productId, false);*/
             if (mode == "ratings"){
                 return View(userReviewsDto);
-            }
-            else if(mode == "average")
-            {
-                return View("average", averageRating);
-            }
-            else if (mode == "count")
-            {
-                return View("count", ratingsCount);
             }
             else if (mode == "stars")
             {
@@ -29,7 +20,7 @@ namespace ETicaret.ViewComponents
             }
             else
             {
-                return Content("Invalid mode");
+                return Content("Geçersiz mod");
             }
 
         }

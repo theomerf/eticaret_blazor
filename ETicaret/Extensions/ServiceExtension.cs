@@ -96,6 +96,10 @@ namespace ETicaret.Extensions
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             services.AddScoped<ISecurityLogRepository, SecurityLogRepository>();
             services.AddScoped<IAddressRepository, AddressRepository>();
+            services.AddScoped<ICampaignRepository, CampaignRepository>();
+            services.AddScoped<ICouponRepository, CouponRepository>();
+            services.AddScoped<ICouponUsageRepository, CouponUsageRepository>();
+            services.AddScoped<IOrderHistoryRepository, OrderHistoryRepository>();
         }
 
         public static void ConfigureServiceRegistration(this IServiceCollection services)
@@ -118,6 +122,9 @@ namespace ETicaret.Extensions
             services.AddSingleton<IHtmlSanitizerService, HtmlSanitizerManager>();
             services.AddHttpClient();
             services.AddScoped<IAddressService, AddressManager>();
+            services.AddScoped<ICampaignService, CampaignManager>();
+            services.AddScoped<ICouponService, CouponManager>();
+            services.AddScoped<IPaymentService, PaymentService>();
         }
         public static void ConfigureApplicationCookie(this IServiceCollection services)
         {

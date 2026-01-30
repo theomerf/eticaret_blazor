@@ -14,16 +14,11 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             _context = context;
         }
 
-        public void Create(T entity)
-        {
-            _context.Set<T>().Add(entity);
-        }
-
         public IQueryable<T> FindAll(bool trackChanges)
         {
             return trackChanges
-            ? _context.Set<T>()
-            : _context.Set<T>().AsNoTracking();
+                ? _context.Set<T>()
+                : _context.Set<T>().AsNoTracking();
         }
 
         public int Count(bool trackChanges)
@@ -40,7 +35,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 : await _context.Set<T>().AsNoTracking().CountAsync();
         }
 
-        public IQueryable<T?> FindByCondition(Expression<Func<T, bool>> expression, bool trackChanges)
+        public IQueryable<T> FindByCondition(Expression<Func<T, bool>> expression, bool trackChanges)
         {
             return trackChanges
                 ? _context.Set<T>().Where(expression)
@@ -54,15 +49,19 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 : _context.Set<T>().Where(expression).AsNoTracking();
         }
 
-
-        public void Remove(T entity)
+        public void Create(T entity)
         {
-            _context.Set<T>().Remove(entity);
+            _context.Set<T>().Add(entity);
         }
 
         public void Update(T entity)
         {
             _context.Set<T>().Update(entity);
+        }
+
+        public void Remove(T entity)
+        {
+            _context.Set<T>().Remove(entity);
         }
 
         public void RemoveRange(IEnumerable<T> entities)

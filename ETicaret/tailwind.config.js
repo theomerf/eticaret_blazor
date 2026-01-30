@@ -8,7 +8,8 @@ module.exports = {
         "./wwwroot/js/**/*.js"
     ],
     theme: {
-        extend: {},
+        extend: {
+        },
     },
     plugins: [],
 }

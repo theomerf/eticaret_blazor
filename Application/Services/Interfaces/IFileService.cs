@@ -1,4 +1,6 @@
 ﻿using Domain.Entities;
+using System.ClientModel.Primitives;
+using OperationResult = Domain.Entities.OperationResult;
 
 namespace Application.Services.Interfaces
 {
@@ -6,5 +8,6 @@ namespace Application.Services.Interfaces
     {
         Task<OperationResult<string>> UploadAsync(Stream fileStream, string fileName, string contentType, string subFolder);
         Task<OperationResult<List<string>>> UploadMultipleFilesAsync(IEnumerable<(Stream fileStream, string fileName, string contentType)> files, string subFolder);
+        OperationResult Delete(string storageKey);
     }
 }

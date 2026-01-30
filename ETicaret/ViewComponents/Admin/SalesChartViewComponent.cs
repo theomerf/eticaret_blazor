@@ -1,4 +1,4 @@
-﻿using Application.Services.Interfaces;
+﻿/*using Application.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ETicaret.ViewComponents.Admin
@@ -20,3 +20,4 @@ namespace ETicaret.ViewComponents.Admin
     }
 
 }
+*/

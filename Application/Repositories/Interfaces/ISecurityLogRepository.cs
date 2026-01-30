@@ -9,5 +9,6 @@ namespace Application.Repositories.Interfaces
         Task<IEnumerable<SecurityLog>> GetFailedLoginsAsync(DateTime since);
         Task<int> GetFailedLoginCountAsync(string ipAddress, DateTime since);
         Task<IEnumerable<SecurityLog>> GetRecentAsync(int count = 100);
+        Task<int> GetPaymentAttemptsCountAsync(string ipAddress, DateTime since);
     }
 }
