@@ -52,6 +52,16 @@ namespace Application.Services.Implementations
         public async Task<AddressDto> GetOneAddressAsync(int addressId)
         {
             var address = await GetOneAddressForServiceAsync(addressId, false);
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+
+            if (address.UserId != userId)
+            {
+                await _securityLogService.LogUnauthorizedAccessAsync(
+                    userId: userId,
+                    requestPath: _httpContextAccessor.HttpContext?.Request?.Path.ToString() ?? ""
+                );
+                throw new UnauthorizedAccessException("Bunun için yetkiniz yok.");
+            }
             var addressDto = _mapper.Map<AddressDto>(address);
 
             return addressDto;

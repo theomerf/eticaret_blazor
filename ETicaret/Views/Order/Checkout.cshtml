@@ -3,29 +3,18 @@
     ViewData["Title"] = "Alışverişi Tamamla";
 }
 
-@section Styles {
-    <style>
-        .custom-glass {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-        }
-        .smooth-shadow {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
-        .option-radio:checked + div {
-            border-color: #2575fc;
-            background-color: #eff6ff;
-        }
-        .option-radio:checked + div .radio-indicator {
-            border-color: #2575fc;
-            background-color: #2575fc;
-        }
-    </style>
+@section Scripts {
+    <script asp-append-version="true" src="~/js/checkout.js"></script>
 }
 
 <div>
     <div class="container mx-auto px-4 selection:bg-primary/20">
         <form asp-action="Checkout" asp-controller="Order" method="post" id="checkoutForm">
+            @Html.AntiForgeryToken()
+
+            <!-- Hidden fields for selected address -->
+            <input type="hidden" name="AddressId" id="selectedAddressId" value="0">
+
             <div class="flex flex-col lg:flex-row gap-8 relative">
 
                 <!-- LEFT SIDE: Forms & Options -->
@@ -47,14 +36,15 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 @foreach (var address in Model.Addresses)
                                 {
-                                    var isFirst = Model.Addresses.First() == address;
-                                    <label class="relative cursor-pointer group">
-                                        <input type="radio" name="AddressId" value="@address.AddressId" 
-                                               class="peer sr-only" @(isFirst ? "checked" : "") required>
+                                    var isFirst = Model.Addresses.ToList().IndexOf(address) == 0;
+                                    <label class="relative cursor-pointer group address-card" data-address-id="@address.AddressId">
+                                        <input type="radio" name="AddressSelector" value="@address.AddressId" 
+                                               class="peer sr-only address-radio" @(isFirst ? "checked" : "") required
+                                               onchange="selectAddress(@address.AddressId)">
                                         <div class="p-5 rounded-xl border-2 @(isFirst ? "border-primary bg-blue-50/30" : "border-gray-100 hover:border-gray-300 bg-white hover:bg-gray-50") peer-checked:border-primary peer-checked:bg-blue-50/30 transition-all h-full">
                                             <div class="flex justify-between items-start mb-2">
                                                 <span class="font-bold text-gray-800">@address.Title</span>
-                                                <span class="w-5 h-5 rounded-full border-2 @(isFirst ? "border-primary bg-primary" : "border-gray-300") peer-checked:border-primary peer-checked:bg-primary flex items-center justify-center text-white text-xs transition-all">
+                                                <span class="w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-primary peer-checked:bg-primary flex items-center justify-center text-white text-xs transition-all address-check">
                                                     <i class="fas fa-check"></i>
                                                 </span>
                                             </div>
@@ -79,7 +69,7 @@
                         {
                             <div class="text-center py-8">
                                 <p class="text-gray-500 mb-4">Kayıtlı adresiniz bulunmamaktadır.</p>
-                                <a href="/Account/Addresses" class="text-primary hover:text-blue-700 font-semibold">
+                                <a href="/Account/Addresses" class="bg-button inline-block text-white transition-all duration-[400ms] shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:bg-button-hover rounded-lg px-3 py-2 font-semibold">
                                     + Yeni Adres Ekle
                                 </a>
                             </div>
@@ -97,7 +87,7 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <label class="cursor-pointer">
-                                <input type="radio" name="PaymentMethod" value="CreditCard" class="peer sr-only" checked required>
+                                <input type="radio" name="PaymentMethod" value="0" class="peer sr-only" checked required>
                                 <div class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all h-24">
                                     <i class="fas fa-credit-card text-2xl mb-2 text-gray-600 peer-checked:text-primary"></i>
                                     <span class="text-sm font-semibold text-gray-700 peer-checked:text-primary">Banka/Kredi Kartı</span>
@@ -105,7 +95,7 @@
                             </label>
 
                             <label class="cursor-pointer">
-                                <input type="radio" name="PaymentMethod" value="BankTransfer" class="peer sr-only">
+                                <input type="radio" name="PaymentMethod" value="1" class="peer sr-only">
                                 <div class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all h-24">
                                     <i class="fas fa-university text-2xl mb-2 text-gray-600 peer-checked:text-primary"></i>
                                     <span class="text-sm font-semibold text-gray-700 peer-checked:text-primary">Havale/EFT</span>
@@ -113,7 +103,7 @@
                             </label>
 
                             <label class="cursor-pointer">
-                                <input type="radio" name="PaymentMethod" value="CashOnDelivery" class="peer sr-only">
+                                <input type="radio" name="PaymentMethod" value="2" class="peer sr-only">
                                 <div class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all h-24">
                                     <i class="fas fa-hand-holding-usd text-2xl mb-2 text-gray-600 peer-checked:text-primary"></i>
                                     <span class="text-sm font-semibold text-gray-700 peer-checked:text-primary">Kapıda Ödeme</span>
@@ -133,7 +123,7 @@
 
                         <div class="space-y-3">
                             <label class="cursor-pointer">
-                                <input type="radio" name="ShippingMethod" value="Standard" class="peer sr-only" checked required>
+                                <input type="radio" name="ShippingMethod" value="0" class="peer sr-only" checked required>
                                 <div class="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all">
                                     <div class="flex items-center gap-4">
                                         <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-primary">
@@ -152,7 +142,7 @@
                             </label>
 
                             <label class="cursor-pointer">
-                                <input type="radio" name="ShippingMethod" value="Express" class="peer sr-only">
+                                <input type="radio" name="ShippingMethod" value="1" class="peer sr-only">
                                 <div class="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all">
                                     <div class="flex items-center gap-4">
                                         <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-primary">
@@ -168,7 +158,7 @@
                             </label>
 
                             <label class="cursor-pointer">
-                                <input type="radio" name="ShippingMethod" value="HandlingOnly" class="peer sr-only">
+                                <input type="radio" name="ShippingMethod" value="2" class="peer sr-only">
                                 <div class="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 bg-white hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-blue-50/10 transition-all">
                                     <div class="flex items-center gap-4">
                                         <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-primary">
@@ -198,11 +188,24 @@
                                    class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors" 
                                    placeholder="Kupon kodunuzu girin">
                             <button type="button" onclick="applyCoupon()" 
-                                    class="px-6 py-3 bg-primary hover:bg-secondary text-white font-semibold rounded-xl transition-colors">
+                                    class="px-6 py-3 bg-button transition-all duration-[400ms] shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:bg-button-hover text-white font-semibold rounded-xl">
                                 Uygula
                             </button>
                         </div>
                         <div id="couponMessage" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <!-- 5. Customer Notes (Optional) -->
+                    <div class="bg-white rounded-2xl p-6 lg:p-8 smooth-shadow border border-gray-100">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                                <i class="fas fa-sticky-note"></i>
+                            </span>
+                            Sipariş Notu (Opsiyonel)
+                        </h2>
+                        <textarea name="CustomerNotes" id="customerNotes" rows="3"
+                                  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors resize-none"
+                                  placeholder="Siparişinizle ilgili özel notunuz varsa buraya yazabilirsiniz..."></textarea>
                     </div>
                 </div>
 
@@ -234,7 +237,7 @@
                                         <div class="flex-1 min-w-0">
                                             <h4 class="text-sm font-bold text-gray-800 truncate">@line.ProductName</h4>
                                             <div class="flex justify-between items-center text-sm mt-1">
-                                                <span class="text-gray-400">@line.Quantity x @(line.DiscountPrice ?? line.ActualPrice).ToString("N2")₺</span>
+                                                <span class="text-gray-400">@line.Quantity x @((line.DiscountPrice ?? line.ActualPrice).ToString("N2"))₺</span>
                                                 <span class="font-bold text-gray-800">@((line.Quantity * (line.DiscountPrice ?? line.ActualPrice)).ToString("N2"))₺</span>
                                             </div>
                                         </div>
@@ -293,7 +296,7 @@
 
                         <!-- Submit Button -->
                         <div class="space-y-4 mt-6">
-                            <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+                            <button type="submit" id="submitButton" class="w-full bg-button transition-all duration-[400ms] shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:bg-button-hover text-white font-bold py-4 rounded-xl active:scale-[0.98] flex items-center justify-center gap-3">
                                 <span>Siparişi Güvenle Tamamla</span>
                                 <i class="fas fa-chevron-right text-sm"></i>
                             </button>
@@ -313,89 +316,3 @@
         </form>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        function applyCoupon() {
-            const code = document.getElementById('couponCode').value;
-            const messageEl = document.getElementById('couponMessage');
-            
-            if (!code) {
-                messageEl.className = 'mt-2 text-sm text-red-600';
-                messageEl.textContent = 'Lütfen bir kupon kodu girin.';
-                return;
-            }
-
-            // AJAX call to validate coupon
-            fetch('/api/orders/validate-coupon', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    couponCode: code,
-                    orderAmount: parseFloat(document.getElementById('subtotal').textContent.replace('₺', '').replace(',', ''))
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    messageEl.className = 'mt-2 text-sm text-green-600';
-                    messageEl.textContent = data.message;
-                    document.getElementById('discountRow').style.display = 'flex';
-                    document.getElementById('discountAmount').textContent = `-${data.discountAmount.toFixed(2)}₺`;
-                    updateTotal();
-                } else {
-                    messageEl.className = 'mt-2 text-sm text-red-600';
-                    messageEl.textContent = data.message;
-                }
-            })
-            .catch(error => {
-                messageEl.className = 'mt-2 text-sm text-red-600';
-                messageEl.textContent = 'Kupon doğrulanırken bir hata oluştu.';
-            });
-        }
-
-        function updateTotal() {
-            const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace('₺', '').replace(',', ''));
-            const shipping = parseFloat(document.getElementById('shippingCost').textContent.replace('₺', '').replace(',', '').replace('Ücretsiz', '0'));
-            const discount = parseFloat(document.getElementById('discountAmount').textContent.replace('₺', '').replace(',', '').replace('-', '')) || 0;
-            
-            const netAmount = subtotal - discount + shipping;
-            const tax = netAmount * 0.18;
-            const total = netAmount + tax;
-
-            document.getElementById('taxAmount').textContent = tax.toFixed(2) + '₺';
-            document.getElementById('totalAmount').innerHTML = total.toFixed(2) + '<span class="text-lg align-top">₺</span>';
-        }
-
-        // Update shipping cost on method change
-        document.querySelectorAll('input[name="ShippingMethod"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const shippingCostEl = document.getElementById('shippingCost');
-                const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace('₺', '').replace(',', ''));
-                
-                if (this.value === 'Standard') {
-                    if (subtotal >= 500) {
-                        shippingCostEl.textContent = 'Ücretsiz';
-                        shippingCostEl.className = 'font-medium text-green-600';
-                    } else {
-                        shippingCostEl.textContent = '29.99₺';
-                        shippingCostEl.className = 'font-medium';
-                    }
-                } else if (this.value === 'Express') {
-                    shippingCostEl.textContent = '49.99₺';
-                    shippingCostEl.className = 'font-medium';
-                } else if (this.value === 'HandlingOnly') {
-                    shippingCostEl.textContent = 'Ücretsiz';
-                    shippingCostEl.className = 'font-medium text-green-600';
-                }
-                
-                updateTotal();
-            });
-        });
-
-        // Initial calculation
-        updateTotal();
-    </script>
-}

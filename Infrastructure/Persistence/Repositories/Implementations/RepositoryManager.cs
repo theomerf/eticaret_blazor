@@ -18,8 +18,9 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         private readonly ICampaignRepository _campaignRepository;
         private readonly IOrderHistoryRepository _orderHistoryRepository;
         private readonly ICouponUsageRepository _couponUsageRepository;
+        private readonly IOrderLinePaymentTransactionRepository _orderLinePaymentTransactionRepository;
 
-        public RepositoryManager(IProductRepository productRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository)
+        public RepositoryManager(IProductRepository productRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository, IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository)
         {
             _context = context;
             _productRepository = productRepository;
@@ -35,6 +36,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             _campaignRepository = campaignRepository;
             _orderHistoryRepository = orderHistoryRepository;
             _couponUsageRepository = couponUsageRepository;
+            _orderLinePaymentTransactionRepository = orderLinePaymentTransactionRepository;
         }
 
         public IProductRepository Product => _productRepository;
@@ -50,6 +52,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public ICampaignRepository Campaign => _campaignRepository;
         public IOrderHistoryRepository OrderHistory => _orderHistoryRepository;
         public ICouponUsageRepository CouponUsage => _couponUsageRepository;
+        public IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction => _orderLinePaymentTransactionRepository;
 
         public void Save()
         {

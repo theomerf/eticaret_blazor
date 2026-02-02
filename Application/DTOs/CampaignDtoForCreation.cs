@@ -4,9 +4,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// DTO for creating campaigns with comprehensive validation
-    /// </summary>
     public record CampaignDtoForCreation
     {
         [Required(ErrorMessage = "Kampanya adı gereklidir.")]

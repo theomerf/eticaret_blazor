@@ -2,9 +2,6 @@ using Domain.Entities;
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// Summary DTO for coupon lists
-    /// </summary>
     public record CouponDto
     {
         public int CouponId { get; set; }

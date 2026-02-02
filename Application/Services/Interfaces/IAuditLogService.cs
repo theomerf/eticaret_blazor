@@ -12,5 +12,8 @@ namespace Application.Services.Interfaces
         // Payment-specific audit logging
         Task LogPaymentEventAsync(string userId, string userName, string action, string orderNumber, 
             string? transactionId, decimal amount, string status, string? provider = null);
+
+        Task LogPaymentTransactionAsync(string userId, string userName, string action, string orderNumber,
+            string? transactionId, decimal amount, string status, string? provider = null);
     }
 }

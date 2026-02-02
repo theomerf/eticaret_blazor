@@ -50,6 +50,14 @@ namespace Domain.Entities
         public string? PaymentTransactionId { get; set; }
         public DateTime? PaidAt { get; set; }
         
+        // Payment Details from Iyzico
+        public string? CardType { get; set; } // CREDIT_CARD, DEBIT_CARD
+        public string? CardAssociation { get; set; } // MASTER_CARD, VISA, TROY, AMEX
+        public string? CardFamily { get; set; } // Bonus, Axess, World, Maximum, etc.
+        public string? BankName { get; set; } // İş Bankası, Garanti, etc.
+        public int? InstallmentCount { get; set; } // 1 = Peşin, 2+ = Taksit
+        public string? LastFourDigits { get; set; } // Son 4 hane
+        
         public bool GiftWrap { get; set; }
         
         public string? CustomerNotes { get; set; }
@@ -75,9 +83,9 @@ namespace Domain.Entities
                 throw new OrderValidationException("Sipariş numarası boş olamaz.");
             }
 
-            if (OrderNumber.Length < 5 || OrderNumber.Length > 20)
+            if (OrderNumber.Length < 5 || OrderNumber.Length > 50)
             {
-                throw new OrderValidationException("Sipariş numarası 5-20 karakter arasında olmalıdır.");
+                throw new OrderValidationException("Sipariş numarası 5-50 karakter arasında olmalıdır.");
             }
         }
 
@@ -228,7 +236,9 @@ namespace Domain.Entities
             }
         }
 
-        public void MarkAsPaid(string transactionId, string provider)
+        public void MarkAsPaid(string transactionId, string provider, string? cardType = null, 
+            string? cardAssociation = null, string? cardFamily = null, string? bankName = null, 
+            int? installmentCount = null, string? lastFourDigits = null)
         {
             if (PaymentStatus == PaymentStatus.Completed)
             {
@@ -244,6 +254,14 @@ namespace Domain.Entities
             PaymentTransactionId = transactionId;
             PaymentProvider = provider;
             PaidAt = DateTime.UtcNow;
+            
+            // Set payment details
+            CardType = cardType;
+            CardAssociation = cardAssociation;
+            CardFamily = cardFamily;
+            BankName = bankName;
+            InstallmentCount = installmentCount;
+            LastFourDigits = lastFourDigits;
             
             if (OrderStatus == OrderStatus.Pending)
             {
@@ -313,8 +331,18 @@ namespace Domain.Entities
 
         public bool CanBeRefunded()
         {
-            return PaymentStatus == PaymentStatus.Completed && 
-                   (OrderStatus == OrderStatus.Cancelled || OrderStatus == OrderStatus.Returned);
+            if (OrderStatus != OrderStatus.Delivered || PaymentStatus != PaymentStatus.Completed)
+            {
+                return false;
+            }
+
+            if (DeliveredAt.HasValue)
+            {
+                var daysSinceDelivery = (DateTime.UtcNow - DeliveredAt.Value).TotalDays;
+                return daysSinceDelivery <= 7;
+            }
+
+            return false;
         }
 
         public void MarkAsRefunded()
@@ -326,6 +354,22 @@ namespace Domain.Entities
 
             PaymentStatus = PaymentStatus.Refunded;
         }
+
+        public void MarkAsFailed(string failureReason)
+        {
+            OrderStatus = OrderStatus.Failed;
+            PaymentStatus = PaymentStatus.Failed;
+            
+            if (!string.IsNullOrWhiteSpace(AdminNotes))
+            {
+                AdminNotes += $"\n[Ödeme Başarısız - {DateTime.UtcNow:yyyy-MM-dd HH:mm}] {failureReason}";
+            }
+            else
+            {
+                AdminNotes = $"[Ödeme Başarısız - {DateTime.UtcNow:yyyy-MM-dd HH:mm}] {failureReason}";
+            }
+        }
+
 
         public void SoftDelete(string deletedByUserId)
         {
@@ -344,7 +388,8 @@ namespace Domain.Entities
         Shipped,        // Kargoya verildi
         Delivered,      // Teslim edildi
         Cancelled,      // İptal edildi
-        Returned        // İade edildi
+        Returned,       // İade edildi
+        Failed         // Başarısız
     }
 
     public enum ShippingMethod

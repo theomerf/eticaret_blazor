@@ -4,12 +4,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// DTO for creating new orders with comprehensive validation
-    /// </summary>
     public record OrderDtoForCreation
     {
-        // Customer Information
         [Required(ErrorMessage = "Ad gereklidir.")]
         [MaxLength(100, ErrorMessage = "Ad en fazla 100 karakter olabilir.")]
         [MinLength(2, ErrorMessage = "Ad en az 2 karakter olmalıdır.")]
@@ -27,7 +23,6 @@ namespace Application.DTOs
         [RegularExpression(@"^[\d\s\-\+\(\)]+$", ErrorMessage = "Geçerli bir telefon numarası giriniz.")]
         public string Phone { get; set; } = null!;
 
-        // Address Information
         [Required(ErrorMessage = "Şehir gereklidir.")]
         [MaxLength(100, ErrorMessage = "Şehir en fazla 100 karakter olabilir.")]
         [MinLength(2, ErrorMessage = "Şehir en az 2 karakter olmalıdır.")]
@@ -50,27 +45,22 @@ namespace Application.DTOs
         [RegularExpression(@"^[\d\-\s]*$", ErrorMessage = "Geçerli bir posta kodu giriniz.")]
         public string? PostalCode { get; set; }
 
-        // Shipping Method
         [Required(ErrorMessage = "Kargo yöntemi gereklidir.")]
         public ShippingMethod ShippingMethod { get; set; }
 
-        // Payment Method
         [Required(ErrorMessage = "Ödeme yöntemi gereklidir.")]
         public PaymentMethod PaymentMethod { get; set; }
 
-        // Optional Fields
         public bool GiftWrap { get; set; }
 
         [MaxLength(1000, ErrorMessage = "Müşteri notu en fazla 1000 karakter olabilir.")]
         [NoXss]
         public string? CustomerNotes { get; set; }
 
-        // Coupon
         [MaxLength(50, ErrorMessage = "Kupon kodu en fazla 50 karakter olabilir.")]
         [RegularExpression(@"^[A-Z0-9\-]*$", ErrorMessage = "Kupon kodu sadece büyük harf, rakam ve tire içerebilir.")]
         public string? CouponCode { get; set; }
 
-        // Cart Lines (will be converted to OrderLines)
         [Required(ErrorMessage = "Sepet boş olamaz.")]
         [MinLength(1, ErrorMessage = "Sepet en az bir ürün içermelidir.")]
         public ICollection<CartLineDto> CartLines { get; set; } = new List<CartLineDto>();

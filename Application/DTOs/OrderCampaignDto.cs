@@ -2,9 +2,6 @@ using Domain.Entities;
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// DTO for applied campaigns in orders
-    /// </summary>
     public record OrderCampaignDto
     {
         public int OrderCampaignId { get; set; }

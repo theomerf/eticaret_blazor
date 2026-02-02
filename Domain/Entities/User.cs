@@ -7,12 +7,13 @@ namespace Domain.Entities
     {
         public string FirstName { get; set; } = null!;
         public string LastName { get; set; } = null!;
+        public string IdentityNumber { get; set; } = "11111111111";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? BirthDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
         public ICollection<Address>? Addresses { get; set; }
         public ICollection<UserReview>? UserReviews { get; set; }
-        public ICollection<int>? FavouriteProductsId { get; set; }
+        public ICollection<int> FavouriteProductsId { get; set; } = new List<int>();
 
         public string? LastLoginIpAddress { get; set; }
         public string? RegistrationIpAddress { get; set; }

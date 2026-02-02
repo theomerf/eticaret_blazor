@@ -2,9 +2,6 @@
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// Summary DTO for order lists - lightweight version for cards/lists
-    /// </summary>
     public record OrderDto
     {
         public int OrderId { get; set; }
@@ -18,6 +15,7 @@ namespace Application.DTOs
         public PaymentStatus PaymentStatus { get; set; }
         
         public DateTime OrderedAt { get; set; }
+        public DateTime? DeliveredAt { get; set; }
         public decimal TotalAmount { get; set; }
         public string Currency { get; set; } = "TRY";
         

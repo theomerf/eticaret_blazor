@@ -13,6 +13,8 @@ namespace Domain.Entities
         public Product? Product { get; set; }
         
         public string ProductName { get; set; } = null!;
+        public string CategoryName { get; set; } = null!;
+        public string? SubCategoryName { get; set; }
         public int Quantity { get; set; }
         public decimal ActualPrice { get; set; }
         public decimal? DiscountPrice { get; set; }

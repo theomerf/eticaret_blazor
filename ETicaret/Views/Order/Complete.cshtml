@@ -7,32 +7,6 @@
     var failureReason = ViewBag.FailureReason as string;
 }
 
-@section Styles {
-    <style>
-        .custom-glass {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-        }
-        .smooth-shadow {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
-        @@keyframes checkmark {
-            0% {
-                transform: scale(0) rotate(45deg);
-            }
-            50% {
-                transform: scale(1.2) rotate(45deg);
-            }
-            100% {
-                transform: scale(1) rotate(45deg);
-            }
-        }
-        .checkmark-animate {
-            animation: checkmark 0.6s ease-in-out;
-        }
-    </style>
-}
-
 <div>
     <div class="container mx-auto px-4 py-8 selection:bg-primary/20">
         <div class="max-w-4xl mx-auto">
@@ -192,16 +166,58 @@
                                     <span>Ödeme Yöntemi:</span>
                                     <span class="font-semibold">@Model.PaymentMethod</span>
                                 </div>
-                                <div class="flex justify-between">
+                                
+                                @if (!string.IsNullOrEmpty(Model.CardAssociation))
+                                {
+                                     <div class="flex justify-between">
+                                        <span>Kart:</span>
+                                        <span class="font-semibold">@Model.CardAssociation @(Model.CardType != null ? $"({Model.CardType})" : "")</span>
+                                    </div>
+                                }
+                                
+                                @if (!string.IsNullOrEmpty(Model.CardFamily))
+                                {
+                                     <div class="flex justify-between">
+                                        <span>Kart Programı:</span>
+                                        <span class="font-semibold">@Model.CardFamily</span>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(Model.BankName))
+                                {
+                                     <div class="flex justify-between">
+                                        <span>Banka:</span>
+                                        <span class="font-semibold">@Model.BankName</span>
+                                    </div>
+                                }
+
+                                @if (Model.InstallmentCount.HasValue)
+                                {
+                                     <div class="flex justify-between">
+                                        <span>Ödeme Planı:</span>
+                                        <span class="font-semibold">@(Model.InstallmentCount.Value == 1 ? "Tek Çekim" : $"{Model.InstallmentCount.Value} Taksit")</span>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(Model.LastFourDigits))
+                                {
+                                     <div class="flex justify-between">
+                                        <span>Kart No:</span>
+                                        <span class="font-semibold">**** **** **** @Model.LastFourDigits</span>
+                                    </div>
+                                }
+
+                                <div class="flex justify-between pt-2 border-t border-gray-200 mt-2">
                                     <span>Durum:</span>
                                     <span class="@(Model.PaymentStatus == PaymentStatus.Completed ? "font-semibold text-green-600" : "font-semibold text-yellow-600")">
                                         @(Model.PaymentStatus == PaymentStatus.Completed ? "Ödendi" : "Beklemede")
                                     </span>
                                 </div>
+                                
                                 @if (!string.IsNullOrEmpty(Model.PaymentTransactionId))
                                 {
-                                    <div class="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
-                                        İşlem No: @Model.PaymentTransactionId
+                                    <div class="text-xs text-gray-500 mt-1 text-right">
+                                        Ref: @Model.PaymentTransactionId
                                     </div>
                                 }
                             </div>

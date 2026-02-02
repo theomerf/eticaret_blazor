@@ -28,13 +28,25 @@ namespace Application.Mappings
             CreateMap<UserReviewDto, UserReviewDtoForUpdate>();
             CreateMap<CartDto, Cart>().ReverseMap();
             CreateMap<CartLineDto, CartLine>().ReverseMap();
-            CreateMap<Order, OrderDto>().ReverseMap();
             CreateMap<Notification, NotificationDto>();
             CreateMap<NotificationDtoForCreation, Notification>();
             CreateMap<NotificationDtoForBulkCreation, Notification>();
             CreateMap<Address, AddressDto>();
             CreateMap<AddressDtoForCreation, Address>();
             CreateMap<AddressDtoForUpdate, Address>();
+            CreateMap<Order, OrderDto>();
+            CreateMap<Order, OrderWithDetailsDto>();
+            CreateMap<OrderDtoForCreation, Order>();
+            CreateMap<OrderDtoForUpdate, Order>();
+            CreateMap<OrderLine, OrderLineDto>();
+            CreateMap<OrderHistory, OrderHistoryDto>();
+            CreateMap<Campaign, CampaignDto>();
+            CreateMap<CampaignDtoForCreation, Campaign>();
+            CreateMap<CampaignDtoForUpdate, Campaign>();
+            CreateMap<Coupon, CouponDto>();
+            CreateMap<CouponDtoForCreation, Coupon>();
+            CreateMap<CouponDtoForUpdate, Coupon>();
+            CreateMap<OrderCampaign, OrderCampaignDto>();
         }
     }
 }

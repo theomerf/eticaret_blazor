@@ -2,9 +2,6 @@ using Domain.Entities;
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// Summary DTO for campaign lists
-    /// </summary>
     public record CampaignDto
     {
         public int CampaignId { get; set; }
@@ -25,7 +22,6 @@ namespace Application.DTOs
         public int Priority { get; set; }
         public bool IsStackable { get; set; }
         
-        // Computed properties
         public bool IsCurrentlyActive => IsActive && DateTime.UtcNow >= StartsAt && DateTime.UtcNow <= EndsAt;
     }
 }

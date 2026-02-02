@@ -12,7 +12,7 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.Property(o => o.OrderNumber)
                 .IsRequired()
-                .HasMaxLength(20);
+                .HasMaxLength(50);
 
             builder.Property(o => o.UserId)
                 .IsRequired()
@@ -91,6 +91,21 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.Property(o => o.PaymentTransactionId)
                 .HasMaxLength(200);
+
+            builder.Property(o => o.CardType)
+                .HasMaxLength(50);
+
+            builder.Property(o => o.CardAssociation)
+                .HasMaxLength(50);
+
+            builder.Property(o => o.CardFamily)
+                .HasMaxLength(50);
+
+            builder.Property(o => o.BankName)
+                .HasMaxLength(100);
+
+            builder.Property(o => o.LastFourDigits)
+                .HasMaxLength(4);
 
             builder.Property(o => o.CustomerNotes)
                 .HasMaxLength(1000);

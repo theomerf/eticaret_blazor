@@ -152,6 +152,7 @@ namespace ETicaret.Controllers
                         new Claim(ClaimTypes.NameIdentifier, user.Id),
                         new Claim("first_name", user.FirstName),
                         new Claim("last_name", user.LastName),
+                        new Claim("identity_number", user.IdentityNumber)
                     };
 
                     var roles = await _userManager.GetRolesAsync(user);

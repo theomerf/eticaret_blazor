@@ -24,6 +24,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public async Task<Category?> GetOneCategoryAsync(int id, bool trackChanges)
         {
             var category = await FindByCondition(p => p.CategoryId.Equals(id), trackChanges)
+                .Include(c => c.ParentCategory)
                 .FirstOrDefaultAsync();
 
             return category;

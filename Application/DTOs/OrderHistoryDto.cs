@@ -2,9 +2,6 @@ using Domain.Entities;
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// DTO for order history events
-    /// </summary>
     public record OrderHistoryDto
     {
         public int OrderHistoryId { get; set; }

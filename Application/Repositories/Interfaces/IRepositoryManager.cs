@@ -14,6 +14,7 @@ namespace Application.Repositories.Interfaces
         ICampaignRepository Campaign { get; }
         IOrderHistoryRepository OrderHistory { get; }
         ICouponUsageRepository CouponUsage { get; }
+        IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction { get; }
 
         void Save();
         Task SaveAsync();

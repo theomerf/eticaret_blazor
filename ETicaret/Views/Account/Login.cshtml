@@ -59,8 +59,6 @@
                     <div class="@(Model.IsRegister ? "hidden" : "block") animate-slideDown"
                          id="loginTabPane">
 
-                        @await Html.PartialAsync("_Notification")
-
                         <div asp-validation-summary="All" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-lg hidden validation-summary-errors"></div>
 
                         <form method="post" asp-action="Login" id="loginForm">

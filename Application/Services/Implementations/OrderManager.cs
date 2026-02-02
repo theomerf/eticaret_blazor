@@ -22,9 +22,10 @@ namespace Application.Services.Implementations
         private readonly ILogger<OrderManager> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ISecurityLogService _securityLogService;
-        private readonly IPaymentService _paymentService;
+        private readonly IPaymentProvider _paymentProvider;
         private readonly ICouponService _couponService;
         private readonly ICampaignService _campaignService;
+        private readonly ICartService _cartService;
         private readonly ResiliencePipeline _retryPipeline;
 
         public OrderManager(
@@ -33,18 +34,20 @@ namespace Application.Services.Implementations
             ILogger<OrderManager> logger,
             IHttpContextAccessor httpContextAccessor,
             ISecurityLogService securityLogService,
-            IPaymentService paymentService,
+            IPaymentProvider paymentProvider,
             ICouponService couponService,
-            ICampaignService campaignService)
+            ICampaignService campaignService,
+            ICartService cartService)
         {
             _manager = manager;
             _mapper = mapper;
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
             _securityLogService = securityLogService;
-            _paymentService = paymentService;
+            _paymentProvider = paymentProvider;
             _couponService = couponService;
             _campaignService = campaignService;
+            _cartService = cartService;
 
             // Resilience pipeline for database operations
             _retryPipeline = new ResiliencePipelineBuilder()
@@ -92,8 +95,9 @@ namespace Application.Services.Implementations
             return $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
         }
 
-        public async Task<OperationResult<int>> CreateOrderAsync(OrderDtoForCreation orderDto, string userId)
+        public async Task<OperationResult<int>> CreateOrderAsync(OrderDtoForCreation orderDto)
         {
+            var userId = GetCurrentUserId();
             try
             {
                 return await _retryPipeline.ExecuteAsync(async cancellationToken =>
@@ -129,10 +133,8 @@ namespace Application.Services.Implementations
                         Currency = "TRY"
                     };
 
-                    // Create order lines from cart
                     foreach (var cartLine in orderDto.CartLines)
                     {
-                        // Verify product exists and has stock
                         var product = await _manager.Product.GetOneProductAsync(cartLine.ProductId, false);
                         if (product == null)
                         {
@@ -143,11 +145,19 @@ namespace Application.Services.Implementations
                         {
                             return OperationResult<int>.Failure($"Yetersiz stok: {product.ProductName}. Mevcut: {product.Stock}", ResultType.ValidationError);
                         }
+                        var category = await _manager.Category.GetOneCategoryAsync(product.CategoryId, false);
+
+                        if (category == null || category.CategoryName == null)
+                        {
+                            return OperationResult<int>.Failure($"Kategori bulunamadı: ID {product.CategoryId}", ResultType.NotFound);
+                        }
 
                         var orderLine = new OrderLine
                         {
                             ProductId = cartLine.ProductId,
                             ProductName = cartLine.ProductName,
+                            CategoryName = category.CategoryName,
+                            SubCategoryName = category.ParentCategory != null ? category.ParentCategory.CategoryName : null,
                             Quantity = cartLine.Quantity,
                             ActualPrice = product.ActualPrice,
                             DiscountPrice = product.DiscountPrice,
@@ -157,17 +167,13 @@ namespace Application.Services.Implementations
                         orderLine.ValidateForCreation();
                         order.Lines.Add(orderLine);
 
-                        // Decrease product stock
                         product.DecreaseStock(cartLine.Quantity);
                     }
 
-                    // Calculate subtotal
                     order.SubTotal = order.Lines.Sum(l => (l.DiscountPrice ?? l.ActualPrice) * l.Quantity);
 
-                    // Track remaining amount for discount calculations
                     decimal remainingAmount = order.SubTotal;
 
-                    // Apply coupon first if provided
                     if (!string.IsNullOrWhiteSpace(orderDto.CouponCode))
                     {
                         var couponResult = await _couponService.ValidateCouponForOrderAsync(orderDto.CouponCode, order.SubTotal, userId);
@@ -177,7 +183,6 @@ namespace Application.Services.Implementations
                             order.CouponCode = coupon.Code;
                             order.CouponDiscountAmount = coupon.CalculateDiscount(order.SubTotal);
                             
-                            // Reduce remaining amount by coupon discount
                             remainingAmount -= order.CouponDiscountAmount.Value;
                             
                             _logger.LogInformation(
@@ -186,10 +191,8 @@ namespace Application.Services.Implementations
                         }
                     }
 
-                    // Apply campaigns with priority and stackable logic
                     var applicableCampaigns = await _campaignService.GetApplicableCampaignsAsync(order.SubTotal);
                     
-                    // Sort campaigns by priority (higher priority first)
                     var sortedCampaigns = applicableCampaigns.OrderByDescending(c => c.Priority).ToList();
                     
                     decimal campaignDiscountTotal = 0;
@@ -197,11 +200,9 @@ namespace Application.Services.Implementations
 
                     foreach (var campaign in sortedCampaigns)
                     {
-                        // Skip if a non-stackable campaign was already applied
                         if (nonStackableApplied)
                             break;
 
-                        // Calculate discount on remaining amount (after previous discounts)
                         var discount = campaign.CalculateDiscount(remainingAmount);
                         
                         if (discount > 0)
@@ -221,14 +222,12 @@ namespace Application.Services.Implementations
                             order.AppliedCampaigns.Add(orderCampaign);
                             campaignDiscountTotal += discount;
                             
-                            // Reduce remaining amount for next campaign
                             remainingAmount -= discount;
 
                             _logger.LogInformation(
                                 "Campaign applied. Name: {CampaignName}, Priority: {Priority}, Discount: {Discount}, Remaining: {Remaining}, Stackable: {Stackable}",
                                 campaign.Name, campaign.Priority, discount, remainingAmount, campaign.IsStackable);
 
-                            // If campaign is not stackable, stop applying more campaigns
                             if (!campaign.IsStackable)
                             {
                                 nonStackableApplied = true;
@@ -239,7 +238,6 @@ namespace Application.Services.Implementations
                     order.CampaignDiscountTotal = campaignDiscountTotal;
                     order.TotalDiscountAmount = (order.CouponDiscountAmount ?? 0) + (order.CampaignDiscountTotal ?? 0);
 
-                    // Ensure total discount doesn't exceed subtotal
                     if (order.TotalDiscountAmount > order.SubTotal)
                     {
                         _logger.LogWarning(
@@ -248,7 +246,6 @@ namespace Application.Services.Implementations
                         order.TotalDiscountAmount = order.SubTotal;
                     }
 
-                    // Calculate shipping cost
                     decimal baseShippingCost = order.ShippingMethod switch
                     {
                         ShippingMethod.Standard => 29.99m,
@@ -257,7 +254,6 @@ namespace Application.Services.Implementations
                         _ => 0
                     };
 
-                    // Apply free shipping threshold (e.g., free shipping for orders over 500 TL)
                     const decimal freeShippingThreshold = 500m;
                     decimal netAmountAfterDiscounts = order.SubTotal - (order.TotalDiscountAmount ?? 0);
                     
@@ -275,15 +271,12 @@ namespace Application.Services.Implementations
                     decimal taxableAmount = netAmountAfterDiscounts + order.ShippingCost;
                     order.TaxAmount = taxableAmount * 0.18m;
 
-                    // Calculate total
                     order.CalculateTotals();
 
-                    // Domain validation
                     order.ValidateForCreation();
 
                     _manager.Order.CreateOrder(order);
 
-                    // Create OrderHistory entry
                     var currentUserId = GetCurrentUserId();
                     var historyEntry = OrderHistory.CreateEvent(
                         orderId: 0, // Will be set after save
@@ -295,7 +288,6 @@ namespace Application.Services.Implementations
 
                     await _manager.SaveAsync();
 
-                    // Record coupon usage if coupon was applied
                     if (!string.IsNullOrWhiteSpace(order.CouponCode))
                     {
                         var coupon = await _manager.Coupon.GetCouponByCodeAsync(order.CouponCode, true);
@@ -319,6 +311,8 @@ namespace Application.Services.Implementations
                         "Order created successfully. OrderId: {OrderId}, OrderNumber: {OrderNumber}, User: {UserId}, Total: {Total}",
                         order.OrderId, order.OrderNumber, userId, order.TotalAmount);
 
+                    await _cartService.ClearCartAsync(userId);
+
                     return OperationResult<int>.Success(order.OrderId, "Sipariş başarıyla oluşturuldu.");
                 }, CancellationToken.None);
             }
@@ -334,48 +328,49 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<OrderWithDetailsDto>> GetOrderByIdAsync(int orderId, string userId)
+        public async Task<OrderWithDetailsDto> GetOrderByIdAsync(int orderId)
         {
             var currentUserId = GetCurrentUserId();
             
             var order = await _manager.Order.GetOrderWithDetailsAsync(orderId, false);
             if (order == null)
             {
-                return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
+                throw new OrderNotFoundException(orderId);
             }
 
-            // Validate user access
             ValidateUserAccess(order.UserId, currentUserId);
 
             var orderDto = _mapper.Map<OrderWithDetailsDto>(order);
-            return OperationResult<OrderWithDetailsDto>.Success(orderDto);
+
+            return orderDto;
         }
 
-        public async Task<OperationResult<OrderWithDetailsDto>> GetOrderByNumberAsync(string orderNumber, string userId)
+        public async Task<OrderWithDetailsDto> GetOrderByNumberAsync(string orderNumber)
         {
             var currentUserId = GetCurrentUserId();
             
             var order = await _manager.Order.GetOrderByNumberAsync(orderNumber, false);
             if (order == null)
             {
-                return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
+                throw new OrderNotFoundException(orderNumber);
             }
 
-            // Validate user access
             ValidateUserAccess(order.UserId, currentUserId);
 
             var orderDto = _mapper.Map<OrderWithDetailsDto>(order);
-            return OperationResult<OrderWithDetailsDto>.Success(orderDto);
+
+            return orderDto;
         }
 
-        public async Task<OperationResult<IEnumerable<OrderDto>>> GetUserOrdersAsync(string userId)
+        public async Task<IEnumerable<OrderDto>> GetUserOrdersAsync(string userId)
         {
             var currentUserId = GetCurrentUserId();
             ValidateUserAccess(userId, currentUserId);
 
             var orders = await _manager.Order.GetUserOrdersAsync(userId, false);
             var ordersDto = _mapper.Map<IEnumerable<OrderDto>>(orders);
-            return OperationResult<IEnumerable<OrderDto>>.Success(ordersDto);
+
+            return ordersDto;
         }
 
         public async Task<OperationResult<OrderWithDetailsDto>> UpdateOrderStatusAsync(OrderDtoForUpdate orderDto)
@@ -389,14 +384,11 @@ namespace Application.Services.Implementations
 
             var userId = GetCurrentUserId();
             var hasChanges = false;
-
-            // Update order status if provided
             if (orderDto.OrderStatus.HasValue && order.OrderStatus != orderDto.OrderStatus.Value)
             {
                 order.OrderStatus = orderDto.OrderStatus.Value;
                 hasChanges = true;
 
-                // Create history entry based on new status
                 OrderEventType eventType = orderDto.OrderStatus.Value switch
                 {
                     OrderStatus.Processing => OrderEventType.OrderProcessing,
@@ -416,14 +408,12 @@ namespace Application.Services.Implementations
                 _manager.OrderHistory.CreateOrderHistory(historyEntry);
             }
 
-            // Update payment status if provided
             if (orderDto.PaymentStatus.HasValue && order.PaymentStatus != orderDto.PaymentStatus.Value)
             {
                 order.PaymentStatus = orderDto.PaymentStatus.Value;
                 hasChanges = true;
             }
 
-            // Update shipping info
             if (!string.IsNullOrWhiteSpace(orderDto.TrackingNumber))
             {
                 order.TrackingNumber = orderDto.TrackingNumber;
@@ -442,14 +432,12 @@ namespace Application.Services.Implementations
                 hasChanges = true;
             }
 
-            // Update admin notes
             if (!string.IsNullOrWhiteSpace(orderDto.AdminNotes))
             {
                 order.AdminNotes = orderDto.AdminNotes;
                 hasChanges = true;
             }
 
-            // Update payment info
             if (!string.IsNullOrWhiteSpace(orderDto.PaymentProvider))
             {
                 order.PaymentProvider = orderDto.PaymentProvider;
@@ -471,35 +459,114 @@ namespace Application.Services.Implementations
                     order.OrderId, userId);
             }
 
-            var orderDto2 = _mapper.Map<OrderWithDetailsDto>(order);
-            return OperationResult<OrderWithDetailsDto>.Success(orderDto2, "Sipariş güncellendi.");
+            var orderDtoForReturn = _mapper.Map<OrderWithDetailsDto>(order);
+
+            return OperationResult<OrderWithDetailsDto>.Success(orderDtoForReturn, "Sipariş güncellendi.");
         }
 
-        public async Task<OperationResult<OrderWithDetailsDto>> CancelOrderAsync(int orderId, string reason, string userId)
+        public async Task<OperationResult<OrderWithDetailsDto>> CancelOrderAsync(int orderId, string reason)
         {
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderByIdAsync(orderId, true);
+            var userId = GetCurrentUserId();
+            var order = await _manager.Order.GetOrderWithDetailsAsync(orderId, true);
+
             if (order == null)
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
             }
 
-            var currentUserId = GetCurrentUserId();
-            ValidateUserAccess(order.UserId, currentUserId);
+            ValidateUserAccess(order.UserId, userId);
 
             if (!order.CanBeCancelled())
             {
-                return OperationResult<OrderWithDetailsDto>.Failure("Bu sipariş iptal edilemez.", ResultType.ValidationError);
+                return OperationResult<OrderWithDetailsDto>.Failure(
+                    "Bu sipariş iptal edilemez. Sadece beklemede veya işleniyor durumundaki siparişler iptal edilebilir.",
+                    ResultType.ValidationError);
             }
 
+            // Check if payment was completed - if so, refund it
+            if (order.PaymentStatus == PaymentStatus.Completed)
+            {
+                _logger.LogInformation("Order has completed payment, initiating refund. OrderId: {OrderId}", orderId);
+
+                // Get payment transactions for this order
+                var paymentTransactions = await _manager.OrderLinePaymentTransaction
+                    .GetByOrderIdAsync(orderId, true);
+
+                if (paymentTransactions != null && paymentTransactions.Any())
+                {
+                    var userIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+                    var refundErrors = new List<string>();
+
+                    // Refund each item transaction
+                    foreach (var transaction in paymentTransactions)
+                    {
+                        if (transaction!.IsRefunded)
+                        {
+                            _logger.LogInformation("Transaction already refunded. PaymentTransactionId: {PaymentTransactionId}",
+                                transaction.PaymentTransactionId);
+                            continue;
+                        }
+
+                        var refundRequest = new IyzicoRefundRequest
+                        {
+                            PaymentTransactionId = transaction.PaymentTransactionId,
+                            Price = transaction.PaidPrice,
+                            Currency = order.Currency,
+                            Ip = userIp,
+                            Reason = "BUYER_REQUEST",
+                            Description = $"Sipariş iptali - {order.OrderNumber} - {reason}"
+                        };
+
+                        var refundResult = await _paymentProvider.RefundPaymentAsync(refundRequest);
+
+                        if (refundResult.IsSuccess && refundResult.Data != null)
+                        {
+                            // Mark transaction as refunded
+                            transaction.IsRefunded = true;
+                            transaction.RefundTransactionId = refundResult.Data.PaymentTransactionId;
+                            transaction.RefundedAt = DateTime.UtcNow;
+                            _manager.OrderLinePaymentTransaction.UpdateOrderLinePaymentTransaction(transaction);
+
+                            _logger.LogInformation(
+                                "Payment refunded for cancelled order. PaymentTransactionId: {PaymentTransactionId}",
+                                transaction.PaymentTransactionId);
+                        }
+                        else
+                        {
+                            var errorMsg = $"Item {transaction.ItemId}: {refundResult.Message}";
+                            refundErrors.Add(errorMsg);
+                            _logger.LogError("Refund failed for cancelled order item. Error: {Error}", errorMsg);
+                        }
+                    }
+
+                    // If any refund failed, return error
+                    if (refundErrors.Any())
+                    {
+                        return OperationResult<OrderWithDetailsDto>.Failure(
+                            $"Sipariş iptal edildi ancak ödeme iadesi kısmen başarısız: {string.Join(", ", refundErrors)}. Lütfen müşteri hizmetleri ile iletişime geçin.",
+                            ResultType.Error);
+                    }
+
+                    // Mark payment as refunded
+                    order.PaymentStatus = PaymentStatus.Refunded;
+                    _logger.LogInformation("Payment fully refunded for cancelled order. OrderId: {OrderId}", orderId);
+                }
+                else
+                {
+                    _logger.LogWarning("No payment transactions found for paid order cancellation. OrderId: {OrderId}", orderId);
+                }
+            }
+
+            // Cancel the order
             order.Cancel(reason);
 
             // Create history entry
             var historyEntry = OrderHistory.CreateEvent(
                 orderId: order.OrderId,
                 eventType: OrderEventType.Cancelled,
-                description: $"Sipariş iptal edildi. Sebep: {reason}",
-                userId: currentUserId
+                description: $"Sipariş müşteri tarafından iptal edildi. Sebep: {reason}",
+                userId: userId
             );
             _manager.OrderHistory.CreateOrderHistory(historyEntry);
 
@@ -510,17 +577,22 @@ namespace Application.Services.Implementations
                 if (product != null)
                 {
                     product.IncreaseStock(line.Quantity);
+                    _logger.LogInformation("Stock restored for product {ProductId}: +{Quantity}",
+                        line.ProductId, line.Quantity);
                 }
             }
 
             await _manager.SaveAsync();
 
-            _logger.LogInformation(
-                "Order cancelled. OrderId: {OrderId}, Reason: {Reason}, User: {UserId}",
-                orderId, reason, currentUserId);
+            var successMessage = order.PaymentStatus == PaymentStatus.Refunded
+                ? "Sipariş başarıyla iptal edildi ve ödeme iadesi yapıldı."
+                : "Sipariş başarıyla iptal edildi.";
+
+            _logger.LogInformation("Order cancelled successfully. OrderId: {OrderId}, User: {UserId}, PaymentRefunded: {PaymentRefunded}",
+                orderId, userId, order.PaymentStatus == PaymentStatus.Refunded);
 
             var orderDto = _mapper.Map<OrderWithDetailsDto>(order);
-            return OperationResult<OrderWithDetailsDto>.Success(orderDto, "Sipariş iptal edildi.");
+            return OperationResult<OrderWithDetailsDto>.Success(orderDto, successMessage);
         }
 
         public async Task<OperationResult<OrderWithDetailsDto>> MarkAsShippedAsync(int orderId, string trackingNumber, string? companyName, string? serviceName)
@@ -535,7 +607,6 @@ namespace Application.Services.Implementations
             var userId = GetCurrentUserId();
             order.MarkAsShipped(trackingNumber, companyName, serviceName);
 
-            // Create history entry
             var historyEntry = OrderHistory.CreateEvent(
                 orderId: order.OrderId,
                 eventType: OrderEventType.Shipped,
@@ -566,7 +637,6 @@ namespace Application.Services.Implementations
             var userId = GetCurrentUserId();
             order.MarkAsDelivered();
 
-            // Create history entry
             var historyEntry = OrderHistory.CreateEvent(
                 orderId: order.OrderId,
                 eventType: OrderEventType.Delivered,
@@ -585,102 +655,156 @@ namespace Application.Services.Implementations
             return OperationResult<OrderWithDetailsDto>.Success(orderDto, "Sipariş teslim edildi.");
         }
 
-        public async Task<OperationResult<PaymentResponse>> InitiatePaymentAsync(int orderId, string userId)
-        {
-            var order = await _manager.Order.GetOrderByIdAsync(orderId, false);
-            if (order == null)
-            {
-                return OperationResult<PaymentResponse>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
-            }
-
-            var currentUserId = GetCurrentUserId();
-            ValidateUserAccess(order.UserId, currentUserId);
-
-            if (order.PaymentStatus != PaymentStatus.Pending)
-            {
-                return OperationResult<PaymentResponse>.Failure("Bu sipariş için ödeme zaten işlenmiş.", ResultType.ValidationError);
-            }
-
-            var paymentRequest = new PaymentRequest
-            {
-                OrderNumber = order.OrderNumber,
-                Amount = order.TotalAmount,
-                Currency = order.Currency,
-                CustomerEmail = $"{order.UserId}@example.com", // In production, get from user profile
-                CustomerName = $"{order.FirstName} {order.LastName}",
-                CallbackUrl = $"https://yourdomain.com/api/orders/payment-callback"
-            };
-
-            var paymentResult = await _paymentService.InitiatePaymentAsync(paymentRequest);
-            
-            if (paymentResult.IsSuccess && paymentResult.Data != null)
-            {
-                // Update order with payment provider info
-                _manager.ClearTracker();
-                var orderToUpdate = await _manager.Order.GetOrderByIdAsync(orderId, true);
-                if (orderToUpdate != null)
-                {
-                    orderToUpdate.PaymentProvider = "MockPaymentGateway";
-                    orderToUpdate.PaymentTransactionId = paymentResult.Data.TransactionId;
-                    await _manager.SaveAsync();
-                }
-
-                _logger.LogInformation(
-                    "Payment initiated. OrderId: {OrderId}, TransactionId: {TransactionId}",
-                    orderId, paymentResult.Data.TransactionId);
-            }
-
-            return paymentResult;
-        }
-
         public async Task<OperationResult<OrderWithDetailsDto>> HandlePaymentCallbackAsync(PaymentCallbackDto callback)
         {
-            // Validate callback
-            var validationResult = await _paymentService.ValidateCallbackAsync(callback);
-            if (!validationResult.IsSuccess)
+            var retrieveResult = await _paymentProvider.VerifyPaymentAsync(callback.Token);
+            if (!retrieveResult.IsSuccess || retrieveResult.Data == null)
             {
-                return OperationResult<OrderWithDetailsDto>.Failure("Ödeme callback doğrulanamadı.", ResultType.ValidationError);
+                _logger.LogWarning("Payment callback retrieval failed. Token: {Token}", callback.Token);
+                return OperationResult<OrderWithDetailsDto>.Failure(
+                    "Ödeme sonucu alınamadı.", 
+                    ResultType.Error);
             }
 
+            var paymentResult = retrieveResult.Data;
+
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderByNumberAsync(callback.OrderNumber, true);
+            var order = await _manager.Order.GetOrderByNumberAsync(paymentResult.BasketId, true);
             if (order == null)
             {
+                _logger.LogError("Order not found for payment callback. BasketId: {BasketId}", paymentResult.BasketId);
                 return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
             }
 
-            if (callback.IsSuccess)
+            if (paymentResult.PaymentStatus == "SUCCESS" && paymentResult.FraudStatus == 1)
             {
-                order.MarkAsPaid(callback.TransactionId, callback.Provider ?? "Unknown");
+                string? bankName = null;
+                // BIN sorgusu ile banka adını al
+                if (!string.IsNullOrEmpty(paymentResult.BinNumber))
+                {
+                    try
+                    {
+                        // Sadece ilk 6 veya 8 hane yeterli
+                        var binResult = await _paymentProvider.GetBinDetailsAsync(paymentResult.BinNumber);
+                        if (binResult.IsSuccess && binResult.Data != null)
+                        {
+                            bankName = binResult.Data.BankName;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to get BIN details. BinNumber: {BinNumber}", paymentResult.BinNumber);
+                    }
+                }
+
+                order.MarkAsPaid(
+                    paymentResult.PaymentId, 
+                    "Iyzico",
+                    cardType: paymentResult.CardType,
+                    cardAssociation: paymentResult.CardAssociation,
+                    cardFamily: paymentResult.CardFamily,
+                    bankName: bankName, 
+                    installmentCount: paymentResult.Installment,
+                    lastFourDigits: paymentResult.LastFourDigits
+                );
+
+                // Save itemTransactions for refund capability
+                if (paymentResult.ItemTransactions != null && paymentResult.ItemTransactions.Any())
+                {
+                    foreach (var item in paymentResult.ItemTransactions)
+                    {
+                        // Find matching order line by itemId
+                        // ItemId format from Iyzico: "BI{ProductId}" or similar
+                        var orderLine = order.Lines.FirstOrDefault(l =>
+                            item.ItemId.Contains(l.ProductId.ToString()) ||
+                            item.ItemId.Contains(l.OrderLineId.ToString()));
+
+                        if (orderLine != null)
+                        {
+                            // Check if transaction already exists
+                            var existingTransaction = await _manager.OrderLinePaymentTransaction
+                                .GetByOrderLineIdAsync(orderLine.OrderLineId, false);
+
+                            if (existingTransaction == null)
+                            {
+                                var paymentTransaction = new OrderLinePaymentTransaction
+                                {
+                                    OrderLineId = orderLine.OrderLineId,
+                                    ItemId = item.ItemId,
+                                    PaymentTransactionId = item.PaymentTransactionId,
+                                    TransactionStatus = item.TransactionStatus,
+                                    Price = item.Price,
+                                    PaidPrice = item.PaidPrice,
+                                    IsRefunded = false,
+                                    CreatedAt = DateTime.UtcNow
+                                };
+
+                                _manager.OrderLinePaymentTransaction.CreateOrderLinePaymentTransaction(paymentTransaction);
+
+                                _logger.LogInformation(
+                                    "Payment transaction saved. OrderLineId: {OrderLineId}, PaymentTransactionId: {PaymentTransactionId}",
+                                    orderLine.OrderLineId, item.PaymentTransactionId);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Could not match itemTransaction to order line. ItemId: {ItemId}, OrderId: {OrderId}",
+                                item.ItemId, order.OrderId);
+                        }
+                    }
+                }
 
                 // Create history entry
                 var historyEntry = OrderHistory.CreateEvent(
                     orderId: order.OrderId,
                     eventType: OrderEventType.PaymentCompleted,
-                    description: $"Ödeme alındı. İşlem ID: {callback.TransactionId}",
-                    userId: "System"
+                    description: $"Ödeme alındı. İşlem ID: {paymentResult.PaymentId}, Kart: {paymentResult.CardAssociation} {paymentResult.LastFourDigits}",
+                    userId: null,
+                    isSystemEvent: true
                 );
                 _manager.OrderHistory.CreateOrderHistory(historyEntry);
 
                 _logger.LogInformation(
-                    "Payment successful. OrderId: {OrderId}, TransactionId: {TransactionId}",
-                    order.OrderId, callback.TransactionId);
+                    "Payment successful. OrderId: {OrderId}, PaymentId: {PaymentId}, FraudStatus: {FraudStatus}",
+                    order.OrderId, paymentResult.PaymentId, paymentResult.FraudStatus);
             }
             else
             {
+                // Payment failed or fraud detected
+                var failureReason = paymentResult.PaymentStatus != "SUCCESS" 
+                    ? $"Ödeme başarısız: {paymentResult.ErrorMessage}" 
+                    : $"Fraud kontrolü başarısız. FraudStatus: {paymentResult.FraudStatus}";
+
+                order.MarkAsFailed(failureReason);
+
+                // Restore product stock since payment failed
+                foreach (var line in order.Lines)
+                {
+                    var product = await _manager.Product.GetOneProductAsync(line.ProductId, true);
+                    if (product != null)
+                    {
+                        product.IncreaseStock(line.Quantity);
+                        _logger.LogInformation("Stock restored for failed order. ProductId: {ProductId}, Quantity: +{Quantity}",
+                            line.ProductId, line.Quantity);
+                    }
+                }
+
                 // Create history entry for failed payment
                 var historyEntry = OrderHistory.CreateEvent(
                     orderId: order.OrderId,
                     eventType: OrderEventType.PaymentFailed,
-                    description: $"Ödeme başarısız. Sebep: {callback.FailureReason}",
-                    userId: "System"
+                    description: failureReason,
+                    userId: null,
+                    isSystemEvent: true
                 );
                 _manager.OrderHistory.CreateOrderHistory(historyEntry);
 
                 _logger.LogWarning(
-                    "Payment failed. OrderId: {OrderId}, Reason: {Reason}",
-                    order.OrderId, callback.FailureReason);
+                    "Payment failed or fraud detected. OrderId: {OrderId}, Status: {Status}, FraudStatus: {FraudStatus}, OrderStatus: Failed",
+                    order.OrderId, paymentResult.PaymentStatus, paymentResult.FraudStatus);
             }
+
 
             await _manager.SaveAsync();
 
@@ -691,39 +815,82 @@ namespace Application.Services.Implementations
         public async Task<OperationResult<OrderWithDetailsDto>> RefundOrderAsync(int orderId)
         {
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderByIdAsync(orderId, true);
+            var order = await _manager.Order.GetOrderWithDetailsAsync(orderId, true);
             if (order == null)
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
             }
-
             if (!order.CanBeRefunded())
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Bu sipariş iade edilemez.", ResultType.ValidationError);
             }
-
-            // Initiate refund with payment provider
-            if (!string.IsNullOrWhiteSpace(order.PaymentTransactionId))
+            // Get payment transactions for this order
+            var paymentTransactions = await _manager.OrderLinePaymentTransaction
+                .GetByOrderIdAsync(orderId, true);
+            if (!paymentTransactions.Any() || paymentTransactions == null)
             {
-                var refundResult = await _paymentService.RefundPaymentAsync(order.PaymentTransactionId, order.TotalAmount);
-                if (!refundResult.IsSuccess)
+                _logger.LogWarning("No payment transactions found for refund. OrderId: {OrderId}", orderId);
+                return OperationResult<OrderWithDetailsDto>.Failure(
+                    "İade için ödeme bilgisi bulunamadı. Manuel iade gerekiyor.",
+                    ResultType.ValidationError);
+            }
+            var userId = GetCurrentUserId();
+            var userIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            // Refund each item transaction
+            var refundErrors = new List<string>();
+            foreach (var transaction in paymentTransactions)
+            {
+                if (transaction!.IsRefunded)
                 {
-                    return OperationResult<OrderWithDetailsDto>.Failure("İade işlemi başarısız oldu.", ResultType.Error);
+                    _logger.LogInformation("Transaction already refunded. PaymentTransactionId: {PaymentTransactionId}",
+                        transaction.PaymentTransactionId);
+                    continue;
+                }
+                var refundRequest = new IyzicoRefundRequest
+                {
+                    PaymentTransactionId = transaction.PaymentTransactionId,
+                    Price = transaction.PaidPrice,
+                    Currency = order.Currency,
+                    Ip = userIp,
+                    Reason = "BUYER_REQUEST",
+                    Description = $"Sipariş iadesi - {order.OrderNumber}"
+                };
+                var refundResult = await _paymentProvider.RefundPaymentAsync(refundRequest);
+                if (refundResult.IsSuccess && refundResult.Data != null)
+                {
+                    // Mark transaction as refunded
+                    transaction.IsRefunded = true;
+                    transaction.RefundTransactionId = refundResult.Data.PaymentTransactionId;
+                    transaction.RefundedAt = DateTime.UtcNow;
+                    _manager.OrderLinePaymentTransaction.UpdateOrderLinePaymentTransaction(transaction);
+                    _logger.LogInformation(
+                        "Item refunded successfully. PaymentTransactionId: {PaymentTransactionId}",
+                        transaction.PaymentTransactionId);
+                }
+                else
+                {
+                    var errorMsg = $"Item {transaction.ItemId}: {refundResult.Message}";
+                    refundErrors.Add(errorMsg);
+                    _logger.LogError("Refund failed for item. Error: {Error}", errorMsg);
                 }
             }
-
-            var userId = GetCurrentUserId();
+            // If any refund failed, return error
+            if (refundErrors.Any())
+            {
+                return OperationResult<OrderWithDetailsDto>.Failure(
+                    $"İade işlemi kısmen başarısız: {string.Join(", ", refundErrors)}",
+                    ResultType.Error);
+            }
+            // All refunds successful - mark order as refunded
             order.MarkAsRefunded();
-
             // Create history entry
             var historyEntry = OrderHistory.CreateEvent(
                 orderId: order.OrderId,
                 eventType: OrderEventType.Refunded,
-                description: "Sipariş iade edildi",
+                description: "Sipariş iade edildi. İyzico üzerinden otomatik iade yapıldı.",
                 userId: userId
             );
             _manager.OrderHistory.CreateOrderHistory(historyEntry);
-
             // Restore product stock
             foreach (var line in order.Lines)
             {
@@ -733,16 +900,15 @@ namespace Application.Services.Implementations
                     product.IncreaseStock(line.Quantity);
                 }
             }
-
             await _manager.SaveAsync();
-
             _logger.LogInformation(
-                "Order refunded. OrderId: {OrderId}, User: {UserId}",
+                "Order refunded successfully. OrderId: {OrderId}, User: {UserId}",
                 orderId, userId);
-
             var orderDto = _mapper.Map<OrderWithDetailsDto>(order);
-            return OperationResult<OrderWithDetailsDto>.Success(orderDto, "Sipariş iade edildi.");
+            return OperationResult<OrderWithDetailsDto>.Success(orderDto, "Sipariş başarıyla iade edildi.");
         }
+
+
 
         public async Task<int> GetUserOrdersCountAsync(string userId)
         {

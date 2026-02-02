@@ -1,5 +1,7 @@
-﻿using Application.DTOs;
+﻿using Application.Common.Models;
+using Application.DTOs;
 using Application.Services.Interfaces;
+using Domain.Entities;
 using ETicaret.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,35 +17,42 @@ namespace ETicaret.Controllers
         private readonly IAddressService _addressService;
         private readonly ICouponService _couponService;
         private readonly ICampaignService _campaignService;
+        private readonly IPaymentProvider _paymentProvider;
+        private readonly ILogger<OrderController> _logger;
 
         public OrderController(
             IOrderService orderService,
             ICartService cartService,
             IAddressService addressService,
             ICouponService couponService,
-            ICampaignService campaignService)
+            ICampaignService campaignService,
+            IPaymentProvider paymentProvider,
+            ILogger<OrderController> logger)
         {
             _orderService = orderService;
             _cartService = cartService;
             _addressService = addressService;
             _couponService = couponService;
             _campaignService = campaignService;
+            _paymentProvider = paymentProvider;
+            _logger = logger;
         }
 
         private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        private string GetUserEmail() => User.FindFirstValue(ClaimTypes.Name) ?? "";
+        private string GetIdentityNumber() => User.FindFirstValue("identity_number") ?? "";
 
-        /// <summary>
-        /// GET: Display checkout page with cart, addresses, and campaigns
-        /// </summary>
         public async Task<IActionResult> Checkout()
         {
             var userId = GetUserId();
-            
+
             var cartDto = SessionCart.GetCartDto(HttpContext.Session);
-            
+
             if (cartDto.Lines == null || !cartDto.Lines.Any())
             {
-                TempData["error"] = "Sepetiniz boş.";
+                TempData["toastContent"] = "Sepetiniz boş.";
+                TempData["toastType"] = "error";
+
                 return RedirectToAction("Index", "Cart");
             }
 
@@ -60,129 +69,214 @@ namespace ETicaret.Controllers
             return View(model);
         }
 
-        /// <summary>
-        /// POST: Process checkout form, create order, and redirect to payment
-        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Checkout([FromForm] OrderDtoForCreation orderDto)
+        public async Task<IActionResult> Checkout([FromForm] CheckoutFormModel formData)
         {
-            if (!ModelState.IsValid)
-            {
-                TempData["error"] = "Lütfen tüm alanları doldurun.";
-                return RedirectToAction("Checkout");
-            }
-
             var userId = GetUserId();
-            
+
+            _logger.LogInformation("Checkout form submitted. AddressId: {AddressId}, PaymentMethod: {PaymentMethod}, ShippingMethod: {ShippingMethod}",
+                formData.AddressId, formData.PaymentMethod, formData.ShippingMethod);
+
             var cartDto = SessionCart.GetCartDto(HttpContext.Session);
             if (cartDto.Lines == null || !cartDto.Lines.Any())
             {
-                TempData["error"] = "Sepetiniz boş.";
+                TempData["toastContent"] = "Sepetiniz boş.";
+                TempData["toastType"] = "error";
+
                 return RedirectToAction("Index", "Cart");
             }
 
-            // Populate cart lines from session
-            orderDto.CartLines = cartDto.Lines.Select(l => new CartLineDto
+            if (formData.AddressId <= 0)
             {
-                ProductId = l.ProductId,
-                ProductName = l.ProductName,
-                Quantity = l.Quantity,
-                ActualPrice = l.ActualPrice,
-                DiscountPrice = l.DiscountPrice,
-                ImageUrl = l.ImageUrl
-            }).ToList();
+                TempData["toastContent"] = "Lütfen bir teslimat adresi seçin.";
+                TempData["toastType"] = "error";
 
-            // Create order
-            var orderResult = await _orderService.CreateOrderAsync(orderDto, userId);
-
-            if (!orderResult.IsSuccess)
-            {
-                TempData["error"] = orderResult.Message;
                 return RedirectToAction("Checkout");
             }
 
-            // Clear cart after successful order creation
+            var address = await _addressService.GetOneAddressAsync(formData.AddressId);
+
+            var orderDto = new OrderDtoForCreation
+            {
+                FirstName = address.FirstName,
+                LastName = address.LastName,
+                Phone = address.Phone,
+                City = address.City,
+                District = address.District,
+                AddressLine = address.AddressLine,
+                PostalCode = address.PostalCode,
+                ShippingMethod = formData.ShippingMethod,
+                PaymentMethod = formData.PaymentMethod,
+                GiftWrap = formData.GiftWrap,
+                CustomerNotes = formData.CustomerNotes,
+                CouponCode = formData.CouponCode,
+                CartLines = cartDto.Lines.Select(l => new CartLineDto
+                {
+                    ProductId = l.ProductId,
+                    ProductName = l.ProductName,
+                    Quantity = l.Quantity,
+                    ActualPrice = l.ActualPrice,
+                    DiscountPrice = l.DiscountPrice,
+                    ImageUrl = l.ImageUrl
+                }).ToList()
+            };
+
+            var orderResult = await _orderService.CreateOrderAsync(orderDto);
+
+            if (!orderResult.IsSuccess)
+            {
+                TempData["toastContent"] = orderResult.Message;
+                TempData["toastType"] = "error";
+
+                return RedirectToAction("Checkout");
+            }
+
+            var orderId = orderResult.Data;
+
             HttpContext.Session.Remove("cart");
 
-            // Initiate payment
-            var paymentResult = await _orderService.InitiatePaymentAsync(orderResult.Data, userId);
+            var order = await _orderService.GetOrderByIdAsync(orderId);
 
-            if (!paymentResult.IsSuccess)
+            if (formData.PaymentMethod == PaymentMethod.CreditCard)
             {
-                TempData["error"] = "Sipariş oluşturuldu ancak ödeme başlatılamadı: " + paymentResult.Message;
-                return RedirectToAction("OrderDetails", new { orderId = orderResult.Data });
-            }
+                // Kredi kartı ödemesi - Iyzico ödeme sayfasına yönlendir
+                var callbackUrl = $"{Request.Scheme}://{Request.Host}/order/paymentCallback";
 
-            // Redirect to external payment page (Iyzico)
-            if (!string.IsNullOrEmpty(paymentResult.Data?.PaymentUrl))
+                var paymentRequest = new IyzicoCheckoutFormInitRequest
+                {
+                    OrderId = orderId,
+                    OrderNumber = order.OrderNumber,
+                    SubTotal = order.SubTotal,
+                    TotalAmount = order.TotalAmount,
+                    Currency = "TRY",
+                    CustomerEmail = GetUserEmail(),
+                    CustomerIdentityNumber = GetIdentityNumber(),
+                    BillingAddress = address,
+                    OrderLines = order.Lines,
+                    CallbackUrl = callbackUrl
+                };
+
+                var paymentResult = await _paymentProvider.CreatePaymentAsync(paymentRequest);
+
+                if (!paymentResult.IsSuccess || string.IsNullOrEmpty(paymentResult.Data?.PaymentPageUrl))
+                {
+                    _logger.LogError("Payment initiation failed. OrderId: {OrderId}, Error: {Error}",
+                        orderId, paymentResult.Message);
+                    TempData["toastContent"] = "Ödeme başlatılamadı: " + paymentResult.Message;
+                    TempData["toastType"] = "error";
+
+                    return Redirect("/account/orders");
+                }
+
+                HttpContext.Session.SetString("PaymentToken", paymentResult.Data.Token);
+                HttpContext.Session.SetInt32("PaymentOrderId", orderId);
+
+                return Redirect(paymentResult.Data.PaymentPageUrl);
+            }
+            else if (formData.PaymentMethod == PaymentMethod.BankTransfer)
             {
-                return Redirect(paymentResult.Data.PaymentUrl);
-            }
+                TempData["toastContent"] = "Siparişiniz oluşturuldu. Havale/EFT bilgileri sipariş detaylarında görüntülenebilir.";
+                TempData["toastType"] = "success";
 
-            // Fallback if payment URL is not available
-            TempData["error"] = "Ödeme sayfasına yönlendirilemedi.";
-            return RedirectToAction("OrderDetails", new { orderId = orderResult.Data });
+                return RedirectToAction("Complete", new { orderId, success = true });
+            }
+            else
+            {
+                TempData["toastContent"] = "Siparişiniz başarıyla oluşturuldu. Kapıda ödeme yapılacaktır.";
+                TempData["toastType"] = "success";
+
+                return RedirectToAction("Complete", new { orderId, success = true });
+            }
         }
 
-        /// <summary>
-        /// GET: Display order completion page after payment
-        /// </summary>
-        public async Task<IActionResult> Complete(string orderNumber, bool success = true, string? reason = null)
+        [AllowAnonymous]
+        public async Task<IActionResult> PaymentCallback(string? token)
         {
-            if (string.IsNullOrEmpty(orderNumber))
+            _logger.LogInformation("Payment callback received. Token: {Token}", token);
+
+            var status = Request.Query["status"].FirstOrDefault();
+
+            var checkoutToken = token ?? HttpContext.Session.GetString("PaymentToken");
+
+            if (string.IsNullOrEmpty(checkoutToken))
             {
-                TempData["error"] = "Sipariş numarası bulunamadı.";
-                return RedirectToAction("MyOrders");
+                _logger.LogWarning("Payment callback received with no token.");
+                TempData["toastContent"] = "Ödeme bilgisi (token) bulunamadı.";
+                TempData["toastType"] = "error";
+
+                return Redirect("/account/orders");
             }
 
+            try
+            {
+                var paymentCallback = new PaymentCallbackDto
+                {
+                    Token = checkoutToken,
+                    Provider = "Iyzico"
+                };
+
+                var callbackResult = await _orderService.HandlePaymentCallbackAsync(paymentCallback);
+
+                HttpContext.Session.Remove("PaymentToken");
+                HttpContext.Session.Remove("PaymentOrderId");
+
+                if (!callbackResult.IsSuccess || callbackResult.Data == null)
+                {
+                    _logger.LogWarning("Payment callback processing failed. Token: {Token}, Error: {Error}", 
+                        checkoutToken, callbackResult.Message);
+                    
+                    TempData["toastContent"] = callbackResult.Message ?? "Ödeme işlemi tamamlanamadı.";
+                    TempData["toastType"] = "error";
+
+                    return Redirect("/account/orders");
+                }
+
+                var order = callbackResult.Data;
+                var paymentSuccess = order.PaymentStatus == PaymentStatus.Completed;
+
+                _logger.LogInformation(
+                    "Payment callback processed. OrderId: {OrderId}, PaymentStatus: {PaymentStatus}",
+                    order.OrderId, order.PaymentStatus);
+
+                return RedirectToAction("Complete", new { orderId = order.OrderId, success = paymentSuccess });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing payment callback. Token: {Token}", checkoutToken);
+                TempData["toastContent"] = "Ödeme işlemi sırasında beklenmedik bir hata oluştu.";
+                TempData["toastType"] = "error";
+
+                return Redirect("/account/orders");
+            }
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public Task<IActionResult> PaymentCallbackPost([FromForm] string? token)
+        {
+            return PaymentCallback(token);
+        }
+
+        public async Task<IActionResult> Complete(int orderId, bool success = true, string? reason = null)
+        {
             var userId = GetUserId();
-            var result = await _orderService.GetOrderByNumberAsync(orderNumber, userId);
-
-            if (!result.IsSuccess)
-            {
-                TempData["error"] = "Sipariş bulunamadı.";
-                return RedirectToAction("MyOrders");
-            }
+            var order = await _orderService.GetOrderByIdAsync(orderId);
 
             ViewBag.PaymentSuccess = success;
             ViewBag.FailureReason = reason;
 
-            return View(result.Data);
+            return View(order);
         }
+    }
 
-        /// <summary>
-        /// GET: Display user's order list
-        /// </summary>
-        public async Task<IActionResult> MyOrders()
-        {
-            var userId = GetUserId();
-            var result = await _orderService.GetUserOrdersAsync(userId);
-
-            if (!result.IsSuccess)
-            {
-                TempData["error"] = result.Message;
-                return View(new List<OrderDto>());
-            }
-
-            return View(result.Data);
-        }
-
-        /// <summary>
-        /// GET: Display single order details
-        /// </summary>
-        public async Task<IActionResult> OrderDetails(int orderId)
-        {
-            var userId = GetUserId();
-            var result = await _orderService.GetOrderByIdAsync(orderId, userId);
-
-            if (!result.IsSuccess)
-            {
-                TempData["error"] = "Sipariş bulunamadı.";
-                return RedirectToAction("MyOrders");
-            }
-
-            return View(result.Data);
-        }
+    public class CheckoutFormModel
+    {
+        public int AddressId { get; set; }
+        public ShippingMethod ShippingMethod { get; set; }
+        public PaymentMethod PaymentMethod { get; set; }
+        public bool GiftWrap { get; set; }
+        public string? CustomerNotes { get; set; }
+        public string? CouponCode { get; set; }
     }
 }

@@ -32,19 +32,8 @@ try
     builder.Services.AddMemoryCache();
     builder.Services.ConfigureCsv();
     builder.Services.ConfigureBaseApiAdress();
-
-    builder.Services.Configure<FileStorageOptions>(
-    builder.Configuration.GetSection("FileStorage"));
-
-    builder.Services.Configure<Application.Common.Models.IyzicoSettings>(
-        builder.Configuration.GetSection("Iyzico"));
-
-    builder.Services.AddHttpClient("Iyzico", client =>
-    {
-        var iyzicoSettings = builder.Configuration.GetSection("Iyzico").Get<Application.Common.Models.IyzicoSettings>();
-        client.BaseAddress = new Uri(iyzicoSettings?.BaseUrl ?? "https://sandbox-api.iyzipay.com");
-        client.Timeout = TimeSpan.FromSeconds(iyzicoSettings?.TimeoutSeconds ?? 30);
-    });
+    builder.Services.ConfigureFileStorageService(builder.Configuration);
+    builder.Services.ConfigurePaymentServices(builder.Configuration);
 
     builder.Services.AddAutoMapper(typeof(MappingProfile));
 

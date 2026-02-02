@@ -1,4 +1,5 @@
-﻿using Application.Common.Security;
+﻿using Application.Common.Options;
+using Application.Common.Security;
 using Application.Repositories.Interfaces;
 using Application.Services.Implementations;
 using Application.Services.Interfaces;
@@ -100,6 +101,7 @@ namespace ETicaret.Extensions
             services.AddScoped<ICouponRepository, CouponRepository>();
             services.AddScoped<ICouponUsageRepository, CouponUsageRepository>();
             services.AddScoped<IOrderHistoryRepository, OrderHistoryRepository>();
+            services.AddScoped<IOrderLinePaymentTransactionRepository, OrderLinePaymentTransactionRepository>();
         }
 
         public static void ConfigureServiceRegistration(this IServiceCollection services)
@@ -124,7 +126,7 @@ namespace ETicaret.Extensions
             services.AddScoped<IAddressService, AddressManager>();
             services.AddScoped<ICampaignService, CampaignManager>();
             services.AddScoped<ICouponService, CouponManager>();
-            services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<IPaymentProvider, IyzicoPaymentProvider>();
         }
         public static void ConfigureApplicationCookie(this IServiceCollection services)
         {
@@ -194,6 +196,24 @@ namespace ETicaret.Extensions
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                     new HttpClientHandler { UseCookies = true });
+        }
+
+        public static void ConfigureFileStorageService(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<FileStorageOptions>(
+            configuration.GetSection("FileStorage"));
+        }
+
+        public static void ConfigurePaymentServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<IyzicoSettings>(configuration.GetSection("Iyzico"));
+
+            services.AddHttpClient("Iyzico", client =>
+            {
+                var iyzicoSettings = configuration.GetSection("Iyzico").Get<IyzicoSettings>();
+                client.BaseAddress = new Uri(iyzicoSettings?.BaseUrl ?? "https://sandbox-api.iyzipay.com");
+                client.Timeout = TimeSpan.FromSeconds(iyzicoSettings?.TimeoutSeconds ?? 30);
+            });
         }
     }
 }

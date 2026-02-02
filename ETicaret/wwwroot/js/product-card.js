@@ -416,7 +416,7 @@
         initCartState();
     }
 
-    document.addEventListener('visibilitychange', function () {
+    document.addEventListener('visibilitychange', async function () {
         if (!document.hidden) {
             try {
                 const response = await fetch('/api/cart/version');

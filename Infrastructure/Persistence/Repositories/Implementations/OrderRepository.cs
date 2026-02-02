@@ -43,9 +43,26 @@ namespace Infrastructure.Persistence.Repositories.Implementations
 
         public async Task<IEnumerable<Order>> GetUserOrdersAsync(string userId, bool trackChanges)
         {
-            var orders = await FindAllByCondition(o => o.UserId == userId, trackChanges)
-                .Include(o => o.Lines)
+            var orders = await FindAllByCondition(
+                o => o.UserId == userId && o.OrderStatus != OrderStatus.Failed, 
+                trackChanges)
                 .OrderByDescending(o => o.OrderedAt)
+                .Select(o => new Order
+                {
+                    OrderId = o.OrderId,
+                    OrderNumber = o.OrderNumber,
+                    FirstName = o.FirstName,
+                    LastName = o.LastName,
+                    OrderStatus = o.OrderStatus,
+                    PaymentStatus = o.PaymentStatus,    
+                    OrderedAt = o.OrderedAt,
+                    TotalAmount = o.TotalAmount,
+                    Currency = o.Currency,
+                    Lines = o.Lines.Select(l => new OrderLine
+                    {
+                        ImageUrl = l.ImageUrl,
+                    }).ToList()
+                })
                 .ToListAsync();
 
             return orders;
@@ -109,7 +126,9 @@ namespace Infrastructure.Persistence.Repositories.Implementations
 
         public async Task<int> GetUserOrdersCountAsync(string userId)
         {
-            var count = await FindAllByCondition(o => o.UserId == userId, false)
+            var count = await FindAllByCondition(
+                o => o.UserId == userId && o.OrderStatus != OrderStatus.Failed, 
+                false)
                 .CountAsync();
 
             return count;
@@ -128,7 +147,9 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public async Task<decimal> GetUserTotalSpentAsync(string userId)
         {
             var totalSpent = await FindAllByCondition(
-                o => o.UserId == userId && o.PaymentStatus == PaymentStatus.Completed,
+                o => o.UserId == userId && 
+                     o.PaymentStatus == PaymentStatus.Completed && 
+                     o.OrderStatus != OrderStatus.Failed,
                 false)
                 .SumAsync(o => o.TotalAmount);
 

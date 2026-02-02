@@ -28,104 +28,43 @@ namespace ETicaret.Controllers.Api
 
         private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
 
-        /// <summary>
-        /// AJAX: Get order details by ID
-        /// </summary>
         [Authorize]
         [HttpGet("{orderId:int}")]
         public async Task<IActionResult> GetOrder(int orderId)
         {
-            var userId = GetUserId();
-            var result = await _orderService.GetOrderByIdAsync(orderId, userId);
-
-            if (!result.IsSuccess)
-            {
-                return result.Type == ResultType.NotFound
-                    ? NotFound(new
-                    {
-                        success = false,
-                        message = result.Message,
-                        type = result.Type
-                    })
-                    : StatusCode(500, new
-                    {
-                        success = false,
-                        message = result.Message,
-                        type = result.Type
-                    });
-            }
+            var order = await _orderService.GetOrderByIdAsync(orderId);
 
             return Ok(new
             {
-                success = true,
-                data = result.Data
+                data = order
             });
         }
 
-        /// <summary>
-        /// AJAX: Get order by order number
-        /// </summary>
         [Authorize]
         [HttpGet("by-number/{orderNumber}")]
         public async Task<IActionResult> GetOrderByNumber(string orderNumber)
         {
-            var userId = GetUserId();
-            var result = await _orderService.GetOrderByNumberAsync(orderNumber, userId);
-
-            if (!result.IsSuccess)
-            {
-                return result.Type == ResultType.NotFound
-                    ? NotFound(new
-                    {
-                        success = false,
-                        message = result.Message,
-                        type = result.Type
-                    })
-                    : StatusCode(500, new
-                    {
-                        success = false,
-                        message = result.Message,
-                        type = result.Type
-                    });
-            }
+            var order = await _orderService.GetOrderByNumberAsync(orderNumber);
 
             return Ok(new
             {
-                success = true,
-                data = result.Data
+                data = order
             });
         }
 
-        /// <summary>
-        /// AJAX: Get user's order list
-        /// </summary>
         [Authorize]
         [HttpGet("my-orders")]
         public async Task<IActionResult> GetMyOrders()
         {
             var userId = GetUserId();
-            var result = await _orderService.GetUserOrdersAsync(userId);
-
-            if (!result.IsSuccess)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = result.Message,
-                    type = result.Type
-                });
-            }
+            var order = await _orderService.GetUserOrdersAsync(userId);
 
             return Ok(new
             {
-                success = true,
-                data = result.Data
+                data = order
             });
         }
 
-        /// <summary>
-        /// AJAX: Cancel order
-        /// </summary>
         [Authorize]
         [HttpPost("{orderId:int}/cancel")]
         public async Task<IActionResult> CancelOrder(int orderId, [FromBody] CancelOrderRequest request)
@@ -140,8 +79,7 @@ namespace ETicaret.Controllers.Api
                 });
             }
 
-            var userId = GetUserId();
-            var result = await _orderService.CancelOrderAsync(orderId, request.Reason, userId);
+            var result = await _orderService.CancelOrderAsync(orderId, request.Reason);
 
             if (!result.IsSuccess)
             {
@@ -162,18 +100,15 @@ namespace ETicaret.Controllers.Api
             });
         }
 
-        /// <summary>
-        /// Webhook: Payment callback from Iyzico (or other payment gateway)
-        /// </summary>
-        [HttpPost("payment-callback")]
-        [AllowAnonymous] // Payment gateway needs to call this without authentication
-        public async Task<IActionResult> PaymentCallback([FromBody] PaymentCallbackDto callback)
+        [Authorize]
+        [HttpPost("{orderId}/refund")]
+        public async Task<IActionResult> RefundOrder(int orderId)
         {
-            var result = await _orderService.HandlePaymentCallbackAsync(callback);
+            var result = await _orderService.RefundOrderAsync(orderId);
 
             if (!result.IsSuccess)
             {
-                return StatusCode(500, new
+                return Ok(new
                 {
                     success = false,
                     message = result.Message,
@@ -181,24 +116,15 @@ namespace ETicaret.Controllers.Api
                 });
             }
 
-            // Redirect user to complete page
-            var redirectUrl = callback.IsSuccess
-                ? $"/Order/Complete?orderNumber={callback.OrderNumber}&success=true"
-                : $"/Order/Complete?orderNumber={callback.OrderNumber}&success=false&reason={Uri.EscapeDataString(callback.FailureReason ?? "Unknown")}";
-
             return Ok(new
             {
                 success = true,
-                message = "Ödeme işlendi.",
+                message = "Sipariş iadesi başarıyla tamamlandı.",
                 type = "success",
-                redirectUrl = redirectUrl,
                 data = result.Data
             });
         }
 
-        /// <summary>
-        /// AJAX: Get user order statistics
-        /// </summary>
         [Authorize]
         [HttpGet("statistics")]
         public async Task<IActionResult> GetStatistics()
@@ -218,9 +144,6 @@ namespace ETicaret.Controllers.Api
             });
         }
 
-        /// <summary>
-        /// AJAX: Validate coupon code
-        /// </summary>
         [Authorize]
         [HttpPost("validate-coupon")]
         public async Task<IActionResult> ValidateCoupon([FromBody] ValidateCouponRequest request)
@@ -260,31 +183,54 @@ namespace ETicaret.Controllers.Api
             });
         }
 
-        /// <summary>
-        /// AJAX: Get active campaigns
-        /// </summary>
         [Authorize]
         [HttpGet("active-campaigns")]
         public async Task<IActionResult> GetActiveCampaigns()
         {
-            var result = await _campaignService.GetActiveCampaignsAsync();
+            var campaigns = await _campaignService.GetActiveCampaignsAsync();
 
             return Ok(new
             {
                 success = true,
-                data = result
+                data = campaigns
             });
         }
-    }
 
-    public record CancelOrderRequest
-    {
-        public string Reason { get; set; } = null!;
-    }
+        [HttpPost("webhook")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Webhook([FromBody] IyzicoWebhook webhook)
+        {
+            System.Diagnostics.Debug.WriteLine($"Webhook received: PaymentId={webhook.PaymentId}, Status={webhook.Status}");
 
-    public record ValidateCouponRequest
-    {
-        public string CouponCode { get; set; } = null!;
-        public decimal OrderAmount { get; set; }
+            if (webhook.IsSuccess && !string.IsNullOrEmpty(webhook.PaymentConversationId))
+            {
+                var callback = new PaymentCallbackDto
+                {
+                    OrderNumber = webhook.PaymentConversationId,
+                    TransactionId = webhook.PaymentId.ToString(),
+                    IsSuccess = true,
+                    Provider = "Iyzico"
+                };
+
+                await _orderService.HandlePaymentCallbackAsync(callback);
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "Webhook processed."
+            });
+        }
+
+        public record CancelOrderRequest
+        {
+            public string Reason { get; set; } = null!;
+        }
+
+        public record ValidateCouponRequest
+        {
+            public string CouponCode { get; set; } = null!;
+            public decimal OrderAmount { get; set; }
+        }
     }
 }

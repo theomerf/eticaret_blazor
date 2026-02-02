@@ -652,12 +652,28 @@ namespace ETicaret.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("BankName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<decimal?>("CampaignDiscountTotal")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CardAssociation")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CardFamily")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CardType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("City")
                         .IsRequired()
@@ -704,8 +720,15 @@ namespace ETicaret.Migrations
                     b.Property<bool>("GiftWrap")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("InstallmentCount")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<string>("LastFourDigits")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -714,8 +737,8 @@ namespace ETicaret.Migrations
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("int");
@@ -937,6 +960,10 @@ namespace ETicaret.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -969,6 +996,9 @@ namespace ETicaret.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<string>("SubCategoryName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("OrderLineId");
 
                     b.HasIndex("OrderId")
@@ -978,6 +1008,81 @@ namespace ETicaret.Migrations
                         .HasDatabaseName("IX_OrderLines_ProductId");
 
                     b.ToTable("OrderLines");
+                });
+
+            modelBuilder.Entity("Domain.Entities.OrderLinePaymentTransaction", b =>
+                {
+                    b.Property<int>("OrderLinePaymentTransactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderLinePaymentTransactionId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRefunded")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ItemId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("OrderLineId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PaidPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PaymentTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RefundTransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TransactionStatus")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderLinePaymentTransactionId");
+
+                    b.HasIndex("IsRefunded")
+                        .HasDatabaseName("IX_OrderLinePaymentTransactions_IsRefunded");
+
+                    b.HasIndex("OrderLineId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_OrderLinePaymentTransactions_OrderLineId");
+
+                    b.HasIndex("PaymentTransactionId")
+                        .HasDatabaseName("IX_OrderLinePaymentTransactions_PaymentTransactionId");
+
+                    b.HasIndex("OrderLineId", "IsRefunded")
+                        .HasDatabaseName("IX_OrderLinePaymentTransactions_OrderLine_Refund");
+
+                    b.ToTable("OrderLinePaymentTransactions");
                 });
 
             modelBuilder.Entity("Domain.Entities.Product", b =>
@@ -1266,12 +1371,17 @@ namespace ETicaret.Migrations
                         .HasColumnType("bit");
 
                     b.PrimitiveCollection<string>("FavouriteProductsId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IdentityNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -1728,6 +1838,17 @@ namespace ETicaret.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Domain.Entities.OrderLinePaymentTransaction", b =>
+                {
+                    b.HasOne("Domain.Entities.OrderLine", "OrderLine")
+                        .WithMany()
+                        .HasForeignKey("OrderLineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrderLine");
                 });
 
             modelBuilder.Entity("Domain.Entities.Product", b =>

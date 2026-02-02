@@ -24,6 +24,7 @@
 
     a {
         text-decoration: none !important;
+        display: inline-block;
     }
 
     a:hover {
@@ -206,6 +207,10 @@
 
     .animate-fadeIn {
         animation: fadeIn 0.3s ease-in;
+    }
+
+    .checkmark-animate {
+        animation: checkmark 0.6s ease-in-out;
     }
 }
 
@@ -668,62 +673,6 @@
         @apply text-center py-16 px-5 bg-white/95 rounded-2xl backdrop-blur-md border border-white/20;
     }
 
-    /* ALERTS */
-    .custom-alert {
-        @apply flex items-start border-none rounded-xl p-4 relative mb-4 border-l-4 border-transparent transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg;
-    }
-
-    .alert-icon {
-        @apply text-2xl mr-4 flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0;
-    }
-
-    .alert-content {
-        @apply flex-grow;
-    }
-
-    .alert-heading {
-        @apply font-semibold text-[0.95rem];
-    }
-
-    .btn-close {
-        @apply absolute top-3 right-3 opacity-60 transition-opacity duration-300 hover:opacity-100;
-    }
-
-    .custom-alert-info {
-        @apply bg-purple-50 border-l-purple-600;
-    }
-
-    .custom-alert-info .alert-icon {
-        @apply text-purple-600 bg-purple-100;
-    }
-
-    .custom-alert-info .alert-heading {
-        @apply text-purple-600;
-    }
-
-    .custom-alert-success {
-        @apply bg-green-50 border-l-green-600;
-    }
-
-    .custom-alert-success .alert-icon {
-        @apply text-green-600 bg-green-100;
-    }
-
-    .custom-alert-success .alert-heading {
-        @apply text-green-600;
-    }
-
-    .custom-alert-danger {
-        @apply bg-red-50 border-l-red-600;
-    }
-
-    .custom-alert-danger .alert-icon {
-        @apply text-red-600 bg-red-100;
-    }
-
-    .custom-alert-danger .alert-heading {
-        @apply text-red-600;
-    }
-
+    /* COMPLETE */
 
 }

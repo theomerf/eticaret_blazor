@@ -24,6 +24,7 @@ namespace Infrastructure.Persistence
         public DbSet<CouponUsage> CouponUsages { get; set; }
         public DbSet<OrderCampaign> OrderCampaigns { get; set; }
         public DbSet<OrderHistory> OrderHistories { get; set; }
+        public DbSet<OrderLinePaymentTransaction> OrderLinePaymentTransactions { get; set; }
 
         public RepositoryContext(DbContextOptions<RepositoryContext> options)
             : base(options)

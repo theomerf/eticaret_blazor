@@ -200,6 +200,25 @@ namespace Application.Services.Implementations
             }, CancellationToken.None);
         }
 
+        public async Task<CartOperationResult> ClearCartAsync(string? userId)
+        {
+            ValidateUserAccess(userId);
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return CartOperationResult.Success("Sepet temizlendi");
+            }
+
+            _manager.ClearTracker();
+            var cart = await GetOrCreateCartAsync(userId, true);
+            cart.Clear();
+
+            await _manager.SaveAsync();
+            _logger.LogInformation("Sepet temizlendi. Kullanıcı: {UserId}", userId);
+
+            return CartOperationResult.Success("Sepet temizlendi");
+        }
+
         public async Task<CartDto> GetCartAsync(string? userId, bool validate = false)
         {
             ValidateUserAccess(userId);

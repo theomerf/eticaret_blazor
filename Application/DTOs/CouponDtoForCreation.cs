@@ -4,9 +4,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Application.DTOs
 {
-    /// <summary>
-    /// DTO for creating coupons with comprehensive validation
-    /// </summary>
     public record CouponDtoForCreation
     {
         [Required(ErrorMessage = "Kupon kodu gereklidir.")]

@@ -1,11 +1,7 @@
 ﻿using Application.DTOs;
 using Application.Services.Interfaces;
-using Domain.Entities;
-using ETicaret.Components.Pages.Admin;
 using Infrastructure.Persistence;
 using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ETicaret.Extensions
 {
@@ -30,20 +26,26 @@ namespace ETicaret.Extensions
             {
                 return;
             }
+
             var categories = new List<CategoryDtoForCreation>();
             var lines = File.ReadAllLines(csvFilePath, Encoding.UTF8);
 
             for (int i = 1; i < lines.Length; i++)
             {
-                var columns = lines[i].Split(';');
+                var line = lines[i].Trim();
+                if (line.StartsWith("\"") && line.EndsWith("\""))
+                {
+                    line = line.Substring(1, line.Length - 2);
+                }
+
+                var columns = line.Split(';');
 
                 var category = new CategoryDtoForCreation()
                 {
                     CategoryName = columns[1].Trim(),
-                    ParentId = columns[2] == "null" ? null : int.TryParse(columns[2], out var categoryId) ? categoryId : 0,
+                    ParentId = columns[2].Trim() == "null" ? null : int.TryParse(columns[2].Trim(), out var categoryId) ? categoryId : 0,
                     Description = columns[3].Trim(),
                 };
-
                 categories.Add(category);
             }
 
@@ -61,22 +63,30 @@ namespace ETicaret.Extensions
             {
                 return;
             }
+
             var products = new List<ProductDtoForCreation>();
             var productImages = new List<ProductImageDtoForCreation>();
             var lines = File.ReadAllLines(csvFilePath, Encoding.UTF8);
 
             for (int i = 1; i < lines.Length; i++)
             {
-                var columns = lines[i].Split(';');
+                var line = lines[i].Trim();
+                if (line.StartsWith("\"") && line.EndsWith("\""))
+                {
+                    line = line.Substring(1, line.Length - 2);
+                }
+
+                var columns = line.Split(';');
 
                 var product = new ProductDtoForCreation()
                 {
                     ProductName = columns[0].Trim(),
-                    CategoryId = int.TryParse(columns[1], out var categoryId) ? categoryId : 0,
-                    ActualPrice = decimal.TryParse(columns[4], out var actualPrice) ? actualPrice : 0,
-                    DiscountPrice = decimal.TryParse(columns[3], out var discountPrice) ? discountPrice : 0,
+                    CategoryId = int.TryParse(columns[1].Trim(), out var categoryId) ? categoryId : 0,
+                    ActualPrice = decimal.TryParse(columns[4].Trim(), out var actualPrice) ? actualPrice : 0,
+                    DiscountPrice = decimal.TryParse(columns[3].Trim(), out var discountPrice) ? discountPrice : 0,
                     Summary = columns[5].Trim(),
-                    ShowCase = columns[6] == "true" ? true : false,
+                    ShowCase = columns[6].Trim() == "true",
+                    Stock = 30
                 };
 
                 var productImage = new ProductImageDtoForCreation()
