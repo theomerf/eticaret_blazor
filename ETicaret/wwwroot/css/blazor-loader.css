@@ -1,0 +1,19 @@
+#pre-blazor-loading {
+    display: block;
+}
+
+#pre-blazor-loading.blazor-loaded {
+    display: none !important;
+}
+
+#blazor-container {
+    display: none;
+}
+
+#blazor-container.blazor-loaded {
+    display: block;
+}
+
+.skeleton-box {
+    background: #f0f0f0;
+}

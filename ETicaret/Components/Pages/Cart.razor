@@ -7,7 +7,7 @@
 @inject IJSRuntime JSRuntime
 @inject ILogger<Cart> _logger
 
-<div>
+<div data-blazor-loaded="true">
     <h2 class="page-title">Alışveriş Sepetim</h2>
 
     @if (CartState.IsLoading && !_initialLoadComplete)

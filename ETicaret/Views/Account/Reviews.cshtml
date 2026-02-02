@@ -4,4 +4,20 @@
     ViewData["UseBlazor"] = true;
 }
 
-<component type="typeof(Reviews)" render-mode="Server" />
+@section Scripts {
+    <link rel="stylesheet" href="~/css/blazor-loader.css" />
+    <script src="~/js/blazor-loader.js" asp-append-version="true"></script>
+}
+
+<div id="pre-blazor-loading">
+    <div class="flex flex-col items-center justify-center min-h-[75vh]">
+        <div class="relative mb-4">
+            <div class="w-16 h-16 border-4 border-gray-200 border-t-amber-500 rounded-full animate-spin"></div>
+        </div>
+        <p class="text-gray-500 font-medium text-lg">Yükleniyor...</p>
+    </div>
+</div>
+
+<div id="blazor-container">
+    <component type="typeof(Reviews)" render-mode="Server" />
+</div>
