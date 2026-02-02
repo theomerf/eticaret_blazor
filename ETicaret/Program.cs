@@ -11,6 +11,7 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .Enrich.WithMachineName()
     .Enrich.WithThreadId()
+    .WriteTo.Console()
     .CreateLogger();
 
 try
