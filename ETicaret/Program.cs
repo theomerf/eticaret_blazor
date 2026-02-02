@@ -17,6 +17,9 @@ try
 {
     Log.Information("Starting ETicaret web application...");
 
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
     builder.Host.UseSerilog();
 
     builder.Services.AddHttpContextAccessor();
@@ -81,7 +84,10 @@ try
         app.UseHsts();
     }
 
-    app.UseHttpsRedirection();
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseStaticFiles();
 
     app.UseRouting();
