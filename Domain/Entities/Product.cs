@@ -1,4 +1,5 @@
 ﻿using Domain.Exceptions;
+using NpgsqlTypes;
 
 namespace Domain.Entities
 {
@@ -33,6 +34,9 @@ namespace Domain.Entities
 
         public bool ShowCase { get; set; } = false;
         public ICollection<UserReview>? UserReviews { get; set; }
+
+
+        public NpgsqlTsVector SearchVector { get; set; } = null!;
 
         #region Validation Methods
 

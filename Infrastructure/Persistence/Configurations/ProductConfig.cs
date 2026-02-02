@@ -89,6 +89,20 @@ namespace Infrastructure.Persistence.Configurations
                 .HasForeignKey(pi => pi.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasGeneratedTsVectorColumn(
+                p => p.SearchVector,
+                "turkish",
+                p => new { p.ProductName, p.Summary, p.Brand })
+            .HasIndex(p => p.SearchVector)
+            .HasMethod("GIN");
+
+            builder.HasGeneratedTsVectorColumn(
+                p => p.SearchVector,
+                "turkish",
+                p => new { p.ProductName, p.Brand, p.Summary, p.LongDescription, p.MetaTitle, p.MetaDescription, p.Gtin })
+                .HasIndex(p => p.SearchVector)
+                .HasMethod("GIN"); // Hızlı tam metin arama indeksi
+
             builder.Ignore(p => p.Discount);
         }
     }
