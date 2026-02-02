@@ -13,6 +13,7 @@ using Infrastructure.Security;
 using Infrastructure.Services.Implementations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 
 namespace ETicaret.Extensions
@@ -23,10 +24,10 @@ namespace ETicaret.Extensions
         {
             services.AddDbContext<RepositoryContext>(options =>
             {
-                options.UseSqlServer(configuration.GetConnectionString("mssqlconnection"),
-                b => b.MigrationsAssembly("ETicaret"));
-
-                options.EnableSensitiveDataLogging(true);
+                options.UseNpgsql(
+                    configuration.GetConnectionString("postgresqlconnection"),
+                    b => b.MigrationsAssembly("ETicaret")
+                );
             });
         }
 

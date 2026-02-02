@@ -55,3 +55,8 @@ nunit-*.xml
 
 # Node.Js
 node_modules/
+
+# Environment specific appsettings
+appsettings.Development.json
+appsettings.Local.json
+
