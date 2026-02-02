@@ -783,7 +783,7 @@ namespace ETicaret.Migrations
                 name: "IX_Addresses_UserId_IsDefault",
                 table: "Addresses",
                 columns: new[] { "UserId", "IsDefault", "IsDeleted" },
-                filter: "[IsDefault] = 1 AND [IsDeleted] = 0");
+                filter: "\"IsDefault\" = true AND \"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -820,7 +820,7 @@ namespace ETicaret.Migrations
                 name: "IX_Accounts_IsDeleted_Filtered",
                 table: "AspNetUsers",
                 column: "IsDeleted",
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
@@ -853,13 +853,13 @@ namespace ETicaret.Migrations
                 name: "IX_Campaigns_Active_Dates",
                 table: "Campaigns",
                 columns: new[] { "IsActive", "StartsAt", "EndsAt" },
-                filter: "[IsActive] = 1 AND [IsDeleted] = 0");
+                filter: "\"IsActive\" = true AND \"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Campaigns_IsDeleted_Filtered",
                 table: "Campaigns",
                 column: "IsDeleted",
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Campaigns_Priority",
@@ -870,7 +870,7 @@ namespace ETicaret.Migrations
                 name: "IX_Campaigns_Scope_Active",
                 table: "Campaigns",
                 columns: new[] { "Scope", "IsActive" },
-                filter: "[IsActive] = 1 AND [IsDeleted] = 0");
+                filter: "\"IsActive\" = true AND \"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CartLines_CartId",
@@ -886,13 +886,13 @@ namespace ETicaret.Migrations
                 name: "IX_Categories_IsDeleted_Filtered",
                 table: "Categories",
                 column: "IsDeleted",
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_IsVisible_Order",
                 table: "Categories",
                 columns: new[] { "IsVisible", "DisplayOrder", "IsDeleted" },
-                filter: "[IsDeleted] = 0 AND [IsVisible] = 1");
+                filter: "\"IsDeleted\" = false AND \"IsVisible\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_ParentCategoryCategoryId",
@@ -914,7 +914,7 @@ namespace ETicaret.Migrations
                 name: "IX_Coupons_Active_Dates",
                 table: "Coupons",
                 columns: new[] { "IsActive", "StartsAt", "EndsAt" },
-                filter: "[IsActive] = 1 AND [IsDeleted] = 0");
+                filter: "\"IsActive\" = true AND \"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Coupons_Code",
@@ -926,7 +926,7 @@ namespace ETicaret.Migrations
                 name: "IX_Coupons_IsDeleted_Filtered",
                 table: "Coupons",
                 column: "IsDeleted",
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CouponUsages_Coupon_User",
@@ -958,13 +958,13 @@ namespace ETicaret.Migrations
                 name: "IX_Notifications_Scheduled",
                 table: "Notifications",
                 columns: new[] { "ScheduledFor", "IsSent" },
-                filter: "[ScheduledFor] IS NOT NULL AND [IsSent] = 0");
+                filter: "\"ScheduledFor\" IS NOT NULL AND \"IsSent\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Notifications_User_Unread",
                 table: "Notifications",
                 columns: new[] { "UserId", "IsRead", "IsDeleted" },
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Notifications_UserId",
@@ -1059,13 +1059,13 @@ namespace ETicaret.Migrations
                 name: "IX_Orders_Status_Payment",
                 table: "Orders",
                 columns: new[] { "OrderStatus", "PaymentStatus", "IsDeleted" },
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_User_Status",
                 table: "Orders",
                 columns: new[] { "UserId", "OrderStatus", "IsDeleted" },
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_UserId",
@@ -1081,7 +1081,7 @@ namespace ETicaret.Migrations
                 name: "IX_ProductImage_ProductId_Primary_Filtered",
                 table: "ProductImages",
                 columns: new[] { "ProductId", "IsPrimary" },
-                filter: "[IsPrimary] = 1 AND [IsDeleted] = 0");
+                filter: "\"IsPrimary\" = true AND \"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_Brand",
@@ -1107,7 +1107,7 @@ namespace ETicaret.Migrations
                 name: "IX_Products_IsDeleted_Filtered",
                 table: "Products",
                 column: "IsDeleted",
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_Slug",
@@ -1140,7 +1140,7 @@ namespace ETicaret.Migrations
                 name: "IX_UserReviews_Product_Approved",
                 table: "UserReviews",
                 columns: new[] { "ProductId", "IsApproved", "IsDeleted" },
-                filter: "[IsApproved] = 1 AND [IsDeleted] = 0");
+                filter: "\"IsApproved\" = true AND \"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserReviews_ProductId",
