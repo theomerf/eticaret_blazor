@@ -50,7 +50,7 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Addresses_UserId");
 
             builder.HasIndex(a => new { a.UserId, a.IsDefault, a.IsDeleted })
-                .HasFilter("[IsDefault] = 1 AND [IsDeleted] = 0")
+                .HasFilter("\"IsDefault\" = true AND \"IsDeleted\" = false")
                 .HasDatabaseName("IX_Addresses_UserId_IsDefault");
 
             builder.HasOne(a => a.User)

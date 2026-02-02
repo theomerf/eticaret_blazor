@@ -62,7 +62,7 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Products_CategoryId");
 
             builder.HasIndex(p => p.IsDeleted)
-                .HasFilter("[IsDeleted] = 0")
+                .HasFilter("\"IsDeleted\" = false")
                 .HasDatabaseName("IX_Products_IsDeleted_Filtered");
 
             builder.HasIndex(p => new { p.CategoryId, p.IsDeleted, p.ShowCase })

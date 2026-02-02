@@ -49,11 +49,11 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Categories_ParentId");
 
             builder.HasIndex(c => c.IsDeleted)
-                .HasFilter("[IsDeleted] = 0")
+                .HasFilter("\"IsDeleted\" = false")
                 .HasDatabaseName("IX_Categories_IsDeleted_Filtered");
 
             builder.HasIndex(c => new { c.IsVisible, c.DisplayOrder, c.IsDeleted })
-                .HasFilter("[IsDeleted] = 0 AND [IsVisible] = 1")
+                .HasFilter("\"IsDeleted\" = false AND \"IsVisible\" = true")
                 .HasDatabaseName("IX_Categories_IsVisible_Order");
 
             builder.HasMany(c => c.Products)

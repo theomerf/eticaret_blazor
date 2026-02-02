@@ -38,7 +38,7 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_UserReviews_UserId");
 
             builder.HasIndex(r => new { r.ProductId, r.IsApproved, r.IsDeleted })
-                .HasFilter("[IsApproved] = 1 AND [IsDeleted] = 0")
+                .HasFilter("\"IsApproved\" = true AND \"IsDeleted\" = false")
                 .HasDatabaseName("IX_UserReviews_Product_Approved");
 
             builder.HasIndex(r => r.ReviewDate)
