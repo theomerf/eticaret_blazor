@@ -24,9 +24,6 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(p => p.MetaDescription)
                 .HasMaxLength(160);
 
-            builder.Property(p => p.LongDescription)
-                .HasColumnType("nvarchar(max)");
-
             builder.Property(p => p.Summary)
                 .HasMaxLength(1000);
 
