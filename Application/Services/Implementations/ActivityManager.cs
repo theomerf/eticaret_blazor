@@ -34,7 +34,7 @@ namespace Application.Services.Implementations
                 Icon = icon,
                 ColorClass = colorClass,
                 Link = link,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             _manager.Activity.CreateActivity(activity);
