@@ -22,7 +22,6 @@ namespace Application.Services.Implementations
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
         private readonly INotificationService _notificationService;
-        private readonly IActivityService _activityService;
         private readonly ILogger<AuthManager> _logger;
 
         public AuthManager(
@@ -33,7 +32,6 @@ namespace Application.Services.Implementations
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
             INotificationService notificationService,
-            IActivityService activityService,
             ILogger<AuthManager> logger)
         {
             _roleManager = roleManager;
@@ -43,7 +41,6 @@ namespace Application.Services.Implementations
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
             _notificationService = notificationService;
-            _activityService = activityService;
             _logger = logger;
         }
 
@@ -221,14 +218,6 @@ namespace Application.Services.Implementations
                         user.LastName,
                         userDto.RolesList
                     }
-                );
-
-                await _activityService.LogActivityAsync(
-                    "Yeni Üye", 
-                    $"{user.FirstName} {user.LastName} siteye kayıt oldu.", 
-                    "fa-user-plus", 
-                    "text-green-500 bg-green-100", 
-                    $"/admin/users/edit/{user.Id}"
                 );
 
                 _logger.LogInformation("User created successfully. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
