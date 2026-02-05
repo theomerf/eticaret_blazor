@@ -19,8 +19,9 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         private readonly IOrderHistoryRepository _orderHistoryRepository;
         private readonly ICouponUsageRepository _couponUsageRepository;
         private readonly IOrderLinePaymentTransactionRepository _orderLinePaymentTransactionRepository;
+        private readonly IActivityRepository _activityRepository;
 
-        public RepositoryManager(IProductRepository productRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository, IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository)
+        public RepositoryManager(IProductRepository productRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository, IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository, IActivityRepository activityRepository)
         {
             _context = context;
             _productRepository = productRepository;
@@ -37,6 +38,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             _orderHistoryRepository = orderHistoryRepository;
             _couponUsageRepository = couponUsageRepository;
             _orderLinePaymentTransactionRepository = orderLinePaymentTransactionRepository;
+            _activityRepository = activityRepository;
         }
 
         public IProductRepository Product => _productRepository;
@@ -53,6 +55,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public IOrderHistoryRepository OrderHistory => _orderHistoryRepository;
         public ICouponUsageRepository CouponUsage => _couponUsageRepository;
         public IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction => _orderLinePaymentTransactionRepository;
+        public IActivityRepository Activity => _activityRepository;
 
         public void Save()
         {
@@ -67,6 +70,11 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public void ClearTracker()
         {
             _context.ChangeTracker.Clear();
+        }
+
+        public async Task CanConnectAsync()
+        {
+            await _context.Database.CanConnectAsync();
         }
     }
 }

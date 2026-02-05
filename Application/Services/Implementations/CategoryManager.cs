@@ -18,6 +18,7 @@ namespace Application.Services.Implementations
         private readonly IMapper _mapper;
         private readonly IMemoryCache _cache;
         private readonly IAuditLogService _auditLogService;
+        private readonly IActivityService _activityService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<CategoryManager> _logger;
 
@@ -27,6 +28,7 @@ namespace Application.Services.Implementations
             IMemoryCache cache,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
+            IActivityService activityService,
             ILogger<CategoryManager> logger)
         {
             _manager = manager;
@@ -34,6 +36,7 @@ namespace Application.Services.Implementations
             _cache = cache;
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
+            _activityService = activityService;
             _logger = logger;
         }
 
@@ -174,6 +177,14 @@ namespace Application.Services.Implementations
                         category.IsVisible,
                         category.DisplayOrder
                     }
+                );
+
+                await _activityService.LogActivityAsync(
+                    "Yeni Kategori",
+                    $"{category.CategoryName} kategorisi oluşturuldu.",
+                    "fa-folder-plus",
+                    "text-indigo-500 bg-indigo-100",
+                    $"/admin/categories/edit/{category.CategoryId}"
                 );
 
                 _logger.LogInformation(

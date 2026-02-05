@@ -22,5 +22,8 @@ namespace Application.Services.Interfaces
 
         Task<int> GetUserOrdersCountAsync(string userId);
         Task<decimal> GetUserTotalSpentAsync(string userId);
+        Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN);
+
+        Task<int> GetOrdersInProcessCountAsync();
     }
 }

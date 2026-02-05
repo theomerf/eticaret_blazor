@@ -43,11 +43,11 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Notifications_UserId");
 
             builder.HasIndex(n => new { n.UserId, n.IsRead, n.IsDeleted })
-                .HasFilter("\"IsDeleted\" = false")
+                .HasFilter("[IsDeleted] = 0")
                 .HasDatabaseName("IX_Notifications_User_Unread");
 
             builder.HasIndex(n => new { n.ScheduledFor, n.IsSent })
-                .HasFilter("\"ScheduledFor\" IS NOT NULL AND \"IsSent\" = false")
+                .HasFilter("[ScheduledFor] IS NOT NULL AND [IsSent] = 0")
                 .HasDatabaseName("IX_Notifications_Scheduled");
 
             builder.HasOne(n => n.User)

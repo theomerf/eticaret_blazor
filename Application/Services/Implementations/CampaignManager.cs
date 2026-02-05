@@ -19,19 +19,22 @@ namespace Application.Services.Implementations
         private readonly ILogger<CampaignManager> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
+        private readonly IActivityService _activityService;
 
         public CampaignManager(
             IRepositoryManager manager,
             IMapper mapper,
             ILogger<CampaignManager> logger,
             IHttpContextAccessor httpContextAccessor,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IActivityService activityService)
         {
             _manager = manager;
             _mapper = mapper;
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
+            _activityService = activityService;
         }
 
         private string GetCurrentUserId() =>
@@ -114,6 +117,14 @@ namespace Application.Services.Implementations
                         campaign.Priority,
                         campaign.IsStackable
                     }
+                );
+
+                await _activityService.LogActivityAsync(
+                    "Yeni Kampanya",
+                    $"{campaign.Name} kampanyası oluşturuldu.",
+                    "fa-bullhorn",
+                    "text-pink-500 bg-pink-100",
+                    $"/admin/campaigns/edit/{campaign.CampaignId}"
                 );
 
                 _logger.LogInformation(

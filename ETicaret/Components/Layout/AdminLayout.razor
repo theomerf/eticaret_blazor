@@ -1,17 +1,20 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="d-flex flex-column vh-100">
-    <header>
+<div class="flex flex-col h-screen overflow-hidden">
+    <header class="shrink-0">
         <AdminNavbar />
     </header>
-    <div class="container">
-        <div>
+    <div class="flex flex-1 min-h-0">
+        <aside class="w-64 shrink-0 overflow-hidden">
+            <AdminSidebar />
+        </aside>
+        <div class="flex flex-col flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 lg:px-6 xl:px-16">
             <Notification />
+            <main role="main" class="flex-1 lg:mt-4" id="main-content">
+                @Body
+            </main>
         </div>
-        <main role="main" id="main-content">
-            @Body
-        </main>
     </div>
 </div>
 
-<div id="toastContainer" class="toast-container" style="position: fixed !important; bottom: 0 !important; right: 0 !important; z-index: 9999;"></div>
+<div id="toastContainer" class="toast-container"></div>

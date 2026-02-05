@@ -47,6 +47,7 @@ namespace Application.Mappings
             CreateMap<CouponDtoForCreation, Coupon>();
             CreateMap<CouponDtoForUpdate, Coupon>();
             CreateMap<OrderCampaign, OrderCampaignDto>();
+			CreateMap<Activity, ActivityDto>();
         }
     }
 }

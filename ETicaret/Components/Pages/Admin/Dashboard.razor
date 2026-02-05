@@ -7,15 +7,47 @@
 @inject ICategoryService CategoryService
 @inject IAuthService AuthService
 @inject IOrderService OrderService
+@inject IUserReviewService UserReviewService
+@inject IActivityService ActivityService
+@inject ISystemService SystemService
 @attribute [Authorize(Roles = "Admin")]
 
-<HeadContent>
-    <link rel="stylesheet" href="css/dashboard-admin.css" />
-</HeadContent>
+<div class="bg-primary text-white rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.15)] mb-8 relative overflow-hidden animate-slideDown">
+    <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-black/10 rounded-full blur-2xl pointer-events-none"></div>
 
-<DashboardCards IsLoading="isLoading" CategoriesCount="categoriesCount" ProductsCount="productsCount" OrdersInProgressCount="ordersInProgressCount" UsersCount="usersCount"/>
+    <div class="flex flex-col md:flex-row justify-between items-center relative z-10 gap-6">
+        <div>
+            <h1 class="text-3xl md:text-4xl font-bold flex items-center gap-3">
+                <span class="bg-white/20 p-2 rounded-xl backdrop-blur-sm shadow-inner">
+                    <i class="fas fa-gauge"></i>
+                </span>
+                Admin Gösterge Paneli
+            </h1>
+            <p class="opacity-90 text-lg mt-3 font-medium max-w-2xl text-blue-50">Hoş geldiniz! İşletmenizin genel durumunu, siparişleri ve analizleri buradan takip edebilirsiniz.</p>
+        </div>
+        <div class="text-right">
+            <div class="bg-white/10 backdrop-blur-md text-white rounded-2xl p-4 text-center border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300 cursor-default">
+                <i class="fas fa-sun text-4xl mb-2 text-yellow-300 drop-shadow-md animate-pulse"></i>
+                <div class="text-2xl font-bold">24°C</div>
+                <small class="text-blue-100 font-semibold tracking-wide">Bursa, Türkiye</small>
+            </div>
+        </div>
+    </div>
+</div>
 
-<Showcase Products="products" IsLoading="isLoading"/>
+<DashboardPanels IsLoading="isLoading" 
+                 CategoriesCount="categoriesCount" 
+                 ProductsCount="productsCount" 
+                 OrdersInProcessCount="ordersInProcessCount" 
+                 UsersCount="usersCount" 
+                 ReviewsCount="reviewsCount" 
+                 RolesCount="rolesCount"
+                 RecentActivities="recentActivities"
+                 TopSellingProducts="topSellingProducts"
+                 SystemStatus="systemStatus"/>
+
+<Showcase Products="showcaseProducts" IsLoading="isLoading"/>
 
 @code {
     [CascadingParameter]
@@ -27,8 +59,13 @@
     private int? productsCount;
     private int? categoriesCount;
     private int? usersCount;
-    private int? ordersInProgressCount;
-    private IEnumerable<ProductDto> products = new List<ProductDto>();
+    private int? ordersInProcessCount;
+    private int? reviewsCount;
+    private int? rolesCount;
+    private IEnumerable<ActivityDto> recentActivities = new List<ActivityDto>();
+    private IEnumerable<ProductDto> showcaseProducts = new List<ProductDto>();
+    private IEnumerable<ProductSalesDto> topSellingProducts = new List<ProductSalesDto>();
+    private SystemStatusDto? systemStatus;
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,7 +94,14 @@
         productsCount = await ProductService.GetProductsCountAsync();
         categoriesCount = await CategoryService.GetCategoriesCountAsync();
         usersCount = await AuthService.GetUsersCountAsync();
-        /*ordersInProgressCount = await OrderService.GetNumberOfInProcessAsync();*/
-        products = await ProductService.GetShowcaseProductsAsync();
+        ordersInProcessCount = await OrderService.GetOrdersInProcessCountAsync();
+        reviewsCount = await UserReviewService.GetCountAsync();
+        rolesCount = AuthService.Roles.Count();
+        recentActivities = await ActivityService.GetRecentActivitiesAsync(5);
+        showcaseProducts = await ProductService.GetShowcaseProductsAsync();
+        recentActivities = await ActivityService.GetRecentActivitiesAsync(5);
+        showcaseProducts = await ProductService.GetShowcaseProductsAsync();
+        topSellingProducts = await OrderService.GetTopSellingProductsAsync(4);
+        systemStatus = await SystemService.GetSystemStatusAsync();
     }
 }

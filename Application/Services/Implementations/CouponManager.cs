@@ -20,6 +20,7 @@ namespace Application.Services.Implementations
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
         private readonly ISecurityLogService _securityLogService;
+        private readonly IActivityService _activityService;
 
         public CouponManager(
             IRepositoryManager manager,
@@ -27,7 +28,8 @@ namespace Application.Services.Implementations
             ILogger<CouponManager> logger,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
-            ISecurityLogService securityLogService)
+            ISecurityLogService securityLogService,
+            IActivityService activityService)
         {
             _manager = manager;
             _mapper = mapper;
@@ -35,6 +37,7 @@ namespace Application.Services.Implementations
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
             _securityLogService = securityLogService;
+            _activityService = activityService;
         }
 
         private string GetCurrentUserId() =>
@@ -117,6 +120,14 @@ namespace Application.Services.Implementations
                         coupon.EndsAt,
                         coupon.UsageLimit
                     }
+                );
+
+                await _activityService.LogActivityAsync(
+                    "Yeni Kupon",
+                    $"{coupon.Code} kuponu oluşturuldu.",
+                    "fa-ticket-alt",
+                    "text-purple-500 bg-purple-100",
+                    $"/admin/coupons/edit/{coupon.CouponId}"
                 );
 
                 _logger.LogInformation(

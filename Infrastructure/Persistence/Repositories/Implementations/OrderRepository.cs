@@ -156,6 +156,14 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return totalSpent;
         }
 
+        public async Task<int> GetOrdersInProcessCountAsync()
+        {
+            var count = await FindAllByCondition(o => o.OrderStatus == OrderStatus.Processing, false)
+                .CountAsync();
+
+            return count;
+        }
+
         public async Task<IEnumerable<DailySalesDto>> GetDailySalesAsync(DateTime startDate, DateTime endDate)
         {
             var orders = await FindAllByCondition(
@@ -176,6 +184,31 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .ToList();
 
             return result;
+        }
+
+        public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN)
+        {
+            var orders = await FindAllByCondition(
+                o => o.PaymentStatus == PaymentStatus.Completed,
+                false)
+                .Include(o => o.Lines)
+                .ToListAsync();
+
+            var productSales = orders
+                .SelectMany(o => o.Lines)
+                .GroupBy(l => new { l.ProductId, l.ProductName })
+                .Select(g => new ProductSalesDto
+                {
+                    ProductId = g.Key.ProductId,
+                    ProductName = g.Key.ProductName,
+                    TotalQuantitySold = g.Sum(l => l.Quantity),
+                    TotalRevenue = g.Sum(l => l.Quantity * l.DiscountPrice ?? l.ActualPrice)
+                })
+                .OrderByDescending(ps => ps.TotalQuantitySold)
+                .Take(topN)
+                .ToList();
+
+            return productSales;
         }
 
         public void CreateOrder(Order order) => Create(order);

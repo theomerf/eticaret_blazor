@@ -1,0 +1,17 @@
+<NavLink href="@Href" Match="@Match"
+         class="group flex items-center px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg transition-all duration-200 hover:bg-gray-50 hover:text-secondary" 
+         ActiveClass="bg-blue-50/90 text-secondary font-semibold">
+    <i class="@($"fa-solid {Icon}") w-6 text-center text-gray-400 group-hover:text-secondary lg:group-hover:scale-110 transition-all duration-300"></i>
+    <span class="ml-2">@Text</span>
+    @if (Text == "Siparişler")
+    {
+        <span class="ml-auto bg-blue-100 text-secondary py-0.5 px-2 rounded-full text-[10px] font-bold">3</span>
+    }
+</NavLink>
+
+@code {
+    [Parameter] public string Href { get; set; } = "#";
+    [Parameter] public string Icon { get; set; } = "fa-circle";
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+}

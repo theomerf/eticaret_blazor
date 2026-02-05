@@ -50,8 +50,7 @@
     {
         @if (!string.IsNullOrEmpty(CartState.ErrorMessage))
         {
-            <div
-                class="mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl flex items-center justify-between animate-slideDown">
+            <div class="mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl flex items-center justify-between animate-slideDown">
                 <div class="flex items-center gap-3 text-amber-800">
                     <i class="fas fa-exclamation-triangle text-xl"></i>
                     <span class="font-semibold text-sm sm:text-base">@CartState.ErrorMessage</span>
@@ -71,9 +70,9 @@
                         @foreach (var line in CartState.CurrentCart.Lines)
                         {
                             <CartItem Line="@line"
-                                OnQuantityIncrease="@(async (productId) => await HandleQuantityIncrease(productId))"
-                                OnQuantityDecrease="@(async (productId) => await HandleQuantityDecrease(productId))"
-                                OnRemove="HandleRemoveItem" IsUpdating="@IsLineUpdating(line.ProductId)" />
+                                      OnQuantityIncrease="@(async (productId) => await HandleQuantityIncrease(productId))"
+                                      OnQuantityDecrease="@(async (productId) => await HandleQuantityDecrease(productId))"
+                                      OnRemove="HandleRemoveItem" IsUpdating="@IsLineUpdating(line.ProductId)" />
                         }
                     </div>
 
@@ -86,7 +85,8 @@
                             </a>
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 [&>*:nth-child(n+3)]:hidden md:[&>*:nth-child(n+3)]:block">
-                            @foreach(var product in CartState.RecommendedProducts.Take(4)) {
+                            @foreach (var product in CartState.RecommendedProducts.Take(4))
+                            {
                                 <ProductCard Model="product" IsMini="true" />
                             }
                         </div>

@@ -20,6 +20,7 @@ namespace Application.Services.Implementations
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IProductService _productService;
         private readonly ISecurityLogService _securityLogService;
+        private readonly IActivityService _activityService;
         private readonly ILogger<UserReviewManager> _logger;
         private readonly IFileService _fileService;
 
@@ -31,6 +32,7 @@ namespace Application.Services.Implementations
             IHttpContextAccessor httpContextAccessor,
             IProductService productService,
             ISecurityLogService securityLogService,
+            IActivityService activityService,
             ILogger<UserReviewManager> logger,
             IFileService fileService)
         {
@@ -41,6 +43,7 @@ namespace Application.Services.Implementations
             _httpContextAccessor = httpContextAccessor;
             _productService = productService;
             _securityLogService = securityLogService;
+            _activityService = activityService;
             _logger = logger;
             _fileService = fileService;
         }
@@ -114,6 +117,13 @@ namespace Application.Services.Implementations
 
                 _manager.UserReview.CreateUserReview(userReview);
                 await _manager.SaveAsync();
+
+                await _activityService.LogActivityAsync(
+                    "Yeni Yorum",
+                    $"{userReview.ReviewerName}, bir ürüne yorum yaptı.",
+                    "fa-star",
+                    "text-yellow-500 bg-yellow-100"
+                );
 
                 _logger.LogInformation(
                     "User review created. ReviewId: {ReviewId}, ProductId: {ProductId}, UserId: {UserId}",

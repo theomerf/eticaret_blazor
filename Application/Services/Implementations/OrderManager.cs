@@ -26,6 +26,7 @@ namespace Application.Services.Implementations
         private readonly ICouponService _couponService;
         private readonly ICampaignService _campaignService;
         private readonly ICartService _cartService;
+        private readonly IActivityService _activityService;
         private readonly ResiliencePipeline _retryPipeline;
 
         public OrderManager(
@@ -37,7 +38,8 @@ namespace Application.Services.Implementations
             IPaymentProvider paymentProvider,
             ICouponService couponService,
             ICampaignService campaignService,
-            ICartService cartService)
+            ICartService cartService,
+            IActivityService activityService)
         {
             _manager = manager;
             _mapper = mapper;
@@ -48,6 +50,7 @@ namespace Application.Services.Implementations
             _couponService = couponService;
             _campaignService = campaignService;
             _cartService = cartService;
+            _activityService = activityService;
 
             // Resilience pipeline for database operations
             _retryPipeline = new ResiliencePipelineBuilder()
@@ -306,6 +309,14 @@ namespace Application.Services.Implementations
                             await _manager.SaveAsync();
                         }
                     }
+
+                    await _activityService.LogActivityAsync(
+                        "Yeni Sipariş",
+                        $"#{order.OrderNumber} numaralı sipariş alındı. Tutar: {order.TotalAmount:C2}",
+                        "fa-shopping-cart",
+                        "text-emerald-500 bg-emerald-100",
+                        $"/admin/orders/detail/{order.OrderId}"
+                    );
 
                     _logger.LogInformation(
                         "Order created successfully. OrderId: {OrderId}, OrderNumber: {OrderNumber}, User: {UserId}, Total: {Total}",
@@ -908,6 +919,13 @@ namespace Application.Services.Implementations
             return OperationResult<OrderWithDetailsDto>.Success(orderDto, "Sipariş başarıyla iade edildi.");
         }
 
+        public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN)
+        {
+            var products = await _manager.Order.GetTopSellingProductsAsync(topN);
+
+            return products;
+        }
+
 
 
         public async Task<int> GetUserOrdersCountAsync(string userId)
@@ -918,6 +936,11 @@ namespace Application.Services.Implementations
         public async Task<decimal> GetUserTotalSpentAsync(string userId)
         {
             return await _manager.Order.GetUserTotalSpentAsync(userId);
+        }
+
+        public async Task<int> GetOrdersInProcessCountAsync()
+        {
+            return await _manager.Order.GetOrdersInProcessCountAsync();
         }
     }
 }

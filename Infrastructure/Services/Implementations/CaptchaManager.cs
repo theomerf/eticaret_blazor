@@ -2,7 +2,6 @@ using Application.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.Services.Implementations
 {
@@ -10,33 +9,22 @@ namespace Infrastructure.Services.Implementations
     {
         private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string _secretKey;
         private readonly double _minimumScore;
 
-        public CaptchaManager(IConfiguration configuration, IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+        public CaptchaManager(IConfiguration configuration, IHttpClientFactory httpClientFactory)
         {
             _configuration = configuration;
             _httpClient = httpClientFactory.CreateClient();
-            _httpContextAccessor = httpContextAccessor;
             _secretKey = _configuration["ReCaptcha:SecretKey"] ?? "";
-
-            if (string.IsNullOrEmpty(_secretKey))
-            {
-                Log.Error("CRITICAL: ReCaptcha:SecretKey is missing in configuration! Captcha validation will fail.");
-            }
-
-            if (!double.TryParse(_configuration["ReCaptcha:MinimumScore"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _minimumScore))
-            {
-                _minimumScore = 0.5;
-            }
+            _minimumScore = double.Parse(_configuration["ReCaptcha:MinimumScore"] ?? "0.5");
         }
 
         public async Task<bool> ValidateAsync(string? token)
         {
             if (string.IsNullOrWhiteSpace(token))
             {
-                Log.Error("CAPTCHA token is null or empty in ValidateAsync call.");
+                Log.Warning("CAPTCHA token is null or empty");
                 return false;
             }
 
@@ -44,13 +32,13 @@ namespace Infrastructure.Services.Implementations
             
             if (!response.Success)
             {
-                Log.Error("CAPTCHA validation failed. Errors: {Errors}", string.Join(", ", response.ErrorCodes));
+                Log.Warning("CAPTCHA validation failed. Errors: {Errors}", string.Join(", ", response.ErrorCodes));
                 return false;
             }
 
             if (response.Score < _minimumScore)
             {
-                Log.Error("CAPTCHA score too low: {Score} (Threshold: {MinScore})", response.Score, _minimumScore);
+                Log.Warning("CAPTCHA score too low: {Score}", response.Score);
                 return false;
             }
 
@@ -71,14 +59,7 @@ namespace Infrastructure.Services.Implementations
 
             try
             {
-                var ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
                 var requestUrl = $"https://www.google.com/recaptcha/api/siteverify?secret={_secretKey}&response={token}";
-                
-                if (!string.IsNullOrEmpty(ipAddress))
-                {
-                    requestUrl += $"&remoteip={ipAddress}";
-                }
-
                 var httpResponse = await _httpClient.PostAsync(requestUrl, null);
                 var jsonResponse = await httpResponse.Content.ReadAsStringAsync();
 
@@ -91,7 +72,6 @@ namespace Infrastructure.Services.Implementations
 
                 if (captchaResponse == null)
                 {
-                    Log.Error("Google ReCaptcha API returned null response.");
                     return new CaptchaResponse
                     {
                         Success = false,

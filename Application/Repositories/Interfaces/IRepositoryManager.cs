@@ -15,9 +15,11 @@ namespace Application.Repositories.Interfaces
         IOrderHistoryRepository OrderHistory { get; }
         ICouponUsageRepository CouponUsage { get; }
         IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction { get; }
+        IActivityRepository Activity { get; }
 
         void Save();
         Task SaveAsync();
         void ClearTracker();
+        Task CanConnectAsync();
     }
 }

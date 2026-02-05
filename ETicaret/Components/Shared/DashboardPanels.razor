@@ -1,0 +1,428 @@
+﻿@using Domain.Entities
+@using Application.DTOs
+<div class="space-y-8 animate-fadeIn">
+    @* Bilgi Cardları *@
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <StatCard Title="Ürünler" 
+                  Value="@(ProductsCount.HasValue ? ProductsCount.ToString() : "0")" 
+                  Icon="fa-box" 
+                  Color="blue" 
+                  WeeklyData="@(new [] { 10, 15, 8, 20, 25, 18, 30 })"
+                  Description="Haftalık ürün ekleme grafiği"
+                  ManageLink="/admin/products"
+                  CreateLink="/admin/products/create" />
+
+        <StatCard Title="Kategoriler" 
+                  Value="@(CategoriesCount.HasValue ? CategoriesCount.ToString() : "0")" 
+                  Icon="fa-tags" 
+                  Color="cyan" 
+                  WeeklyData="@(new [] { 2, 4, 1, 5, 2, 4, 6 })"
+                  Description="Kategori aktivite analizi"
+                  ManageLink="/admin/categories"
+                  CreateLink="/admin/categories/create" />
+
+        <StatCard Title="Kullanıcılar" 
+                  Value="@(UsersCount.HasValue ? UsersCount.ToString() : "0")" 
+                  Icon="fa-users" 
+                  Color="emerald" 
+                  WeeklyData="@(new [] { 12, 18, 15, 25, 30, 45, 50 })"
+                  Description="Yeni kullanıcı katılım trendi"
+                  ManageLink="/admin/users"
+                  CreateLink="/admin/users/create" />
+
+        <StatCard Title="Siparişler" 
+                  Value="@(OrdersInProcessCount.HasValue ? OrdersInProcessCount.ToString() : "0")" 
+                  Icon="fa-shopping-cart" 
+                  Color="indigo" 
+                  WeeklyData="@(new [] { 65, 58, 70, 80, 75, 90, 100 })"
+                  Description="Günlük sipariş yoğunluğu"
+                  ManageLink="/admin/orders" />
+
+        <StatCard Title="Değerlendirmeler" 
+                  Value="@(ReviewsCount.HasValue ? ReviewsCount.ToString() : "0")" 
+                  Icon="fa-star" 
+                  Color="amber" 
+                  WeeklyData="@(new [] { 40, 35, 45, 42, 50, 48, 55 })"
+                  Description="Müşteri değerlendirmeleri"
+                  ManageLink="/admin/reviews" />
+
+        <StatCard Title="Roller" 
+                  Value="@(RolesCount.HasValue ? RolesCount.ToString() : "0")" 
+                  Icon="fa-user-shield" 
+                  Color="sky" 
+                  WeeklyData="@(new [] { 1, 1, 2, 1, 3, 2, 1 })"
+                  Description="Rol güncelleme aktiviteleri"
+                  ManageLink="/admin/roles"
+                  CreateLink="/admin/roles/create" />                  
+
+        <StatCard Title="Bildirimler" 
+                  Value="23" 
+                  Icon="fa-bell" 
+                  Color="red" 
+                  WeeklyData="@(new [] { 5, 12, 8, 15, 10, 5, 2 })"
+                  Description="Sistem bildirim trafiği"
+                  ManageLink="/admin/notifications"
+                  CreateLink="/admin/notifications/create" />
+
+        <StatCard Title="İçerikler" 
+                  Value="95" 
+                  Icon="fa-file-alt" 
+                  Color="slate" 
+                  WeeklyData="@(new [] { 3, 5, 2, 8, 6, 12, 15 })"
+                  Description="İçerik üretim performansı"
+                  ManageLink="/admin/contents" />
+    </div>
+
+    @* Son Aktiviteler *@
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 my-8">
+        <div class="lg:col-span-1 flex flex-col h-full bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+            <div class="p-5 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-clock text-secondary"></i> Son Aktiviteler
+                </h5>
+                <span class="text-xs font-semibold px-2 py-1 bg-blue-100 text-secondary rounded-lg">Bugün</span>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-0 max-h-[600px] custom-scrollbar">
+                <div class="divide-y divide-gray-50">
+                    @if (RecentActivities != null && RecentActivities.Any())
+                    {
+                        @foreach (var activity in RecentActivities)
+                        {
+                            <div class="p-4 hover:bg-gray-50 transition-colors duration-200 group">
+                                <div class="flex items-start">
+                                    <div class="shrink-0 w-10 h-10 rounded-full @activity.ColorClass flex items-center justify-center mr-3 mt-1 shadow-sm group-hover:scale-110 transition-transform">
+                                        <i class="fas @activity.Icon"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-800">
+                                            @if (!string.IsNullOrEmpty(activity.Link))
+                                            {
+                                                <a href="@activity.Link" class="hover:text-secondary transition-colors">@activity.Title</a>
+                                            }
+                                            else
+                                            {
+                                                @activity.Title
+                                            }
+                                        </p>
+                                        <p class="text-xs text-gray-500 mt-0.5">@activity.Description</p>
+                                        <small class="text-[10px] text-gray-400 mt-1 block">
+                                            @{
+                                                var timeSpan = DateTime.Now - activity.CreatedAt;
+                                                string timeText = "";
+                                                if (timeSpan.TotalMinutes < 1) timeText = "Az önce";
+                                                else if (timeSpan.TotalMinutes < 60) timeText = $"{(int)timeSpan.TotalMinutes} dakika önce";
+                                                else if (timeSpan.TotalHours < 24) timeText = $"{(int)timeSpan.TotalHours} saat önce";
+                                                else timeText = $"{(int)timeSpan.TotalDays} gün önce";
+                                            }
+                                            @timeText
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                         <div class="p-8 text-center text-gray-400">
+                             <i class="fas fa-history text-3xl mb-2 opacity-50"></i>
+                             <p class="text-sm">Henüz aktivite bulunmuyor.</p>
+                         </div>
+                    }
+                </div>
+            </div>
+            <div class="p-4 mt-auto border-t border-gray-100 bg-gray-50/50 text-center">
+                <button class="text-sm text-gray-500 font-medium hover:text-secondary transition-colors">
+                    <i class="fas fa-eye mr-1"></i> Tümünü Gör
+                </button>
+            </div>
+        </div>
+
+        @* Hızlı Yönlendirmeler *@
+        <div class="lg:col-span-2 space-y-6">
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group flex flex-col items-center text-center">
+                     <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-secondary flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                         <i class="fas fa-warehouse"></i>
+                     </div>
+                     <h5 class="font-bold text-gray-800 mb-2">Envanter</h5>
+                     <p class="text-sm text-gray-500 mb-4 line-clamp-2">Stok seviyelerini kontrol et ve yönet</p>
+                     <a href="#" class="mt-auto inline-flex items-center text-sm font-bold text-secondary hover:text-cyan-500 transition-colors">
+                         Envantere Git <i class="fas fa-arrow-right ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
+                     </a>
+                 </div>
+                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group flex flex-col items-center text-center">
+                     <div class="w-16 h-16 rounded-2xl bg-blue-50 text-primary flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                         <i class="fas fa-truck"></i>
+                     </div>
+                     <h5 class="font-bold text-gray-800 mb-2">Kargo Takip</h5>
+                     <p class="text-sm text-gray-500 mb-4 line-clamp-2">Gönderi durumlarını anlık izle</p>
+                     <a href="#" class="mt-auto inline-flex items-center text-sm font-bold text-primary hover:text-blue-800 transition-colors">
+                         Kargoya Git <i class="fas fa-arrow-right ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
+                     </a>
+                 </div>
+                  <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group flex flex-col items-center text-center">
+                     <div class="w-16 h-16 rounded-2xl bg-purple-50 text-secondary flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                         <i class="fas fa-chart-pie"></i>
+                     </div>
+                     <h5 class="font-bold text-gray-800 mb-2">Raporlar</h5>
+                     <p class="text-sm text-gray-500 mb-4 line-clamp-2">Detaylı iş ve satış analizleri</p>
+                     <a href="#" class="mt-auto inline-flex items-center text-sm font-bold text-secondary hover:text-cyan-500 transition-colors">
+                         Raporlara Git <i class="fas fa-arrow-right ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
+                     </a>
+                 </div>
+             </div>
+
+            @* Uyarılar *@
+             <div class="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+                <div class="p-5 border-b border-gray-100 bg-gray-50/30">
+                    <h5 class="font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-bell text-red-500"></i> Kritik Bildirimler
+                    </h5>
+                </div>
+                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div class="flex items-center p-3 rounded-2xl border border-warning/20 bg-amber-50/50 hover:bg-amber-50 transition-colors">
+                         <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mr-3 shrink-0">
+                             <i class="fas fa-exclamation-triangle"></i>
+                         </div>
+                         <div>
+                             <h6 class="font-bold text-gray-800 text-sm">Düşük Stok</h6>
+                             <p class="text-xs text-gray-500">5 ürünün stoku tükeniyor</p>
+                         </div>
+                     </div>
+                     <div class="flex items-center p-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-colors">
+                         <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3 shrink-0">
+                             <i class="fas fa-credit-card"></i>
+                         </div>
+                         <div>
+                             <h6 class="font-bold text-gray-800 text-sm">Ödeme Başarılı</h6>
+                             <p class="text-xs text-gray-500">1,250 TL havale onaylandı</p>
+                         </div>
+                     </div>
+                      <div class="flex items-center p-3 rounded-2xl border border-blue-200 bg-blue-50/50 hover:bg-blue-50 transition-colors">
+                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 shrink-0">
+                             <i class="fas fa-user-plus"></i>
+                         </div>
+                         <div>
+                             <h6 class="font-bold text-gray-800 text-sm">Yeni Kayıt</h6>
+                             <p class="text-xs text-gray-500">3 yeni üye bekliyor</p>
+                         </div>
+                     </div>
+                      <div class="flex items-center p-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 transition-colors">
+                         <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-3 shrink-0">
+                             <i class="fas fa-chart-line"></i>
+                         </div>
+                         <div>
+                             <h6 class="font-bold text-gray-800 text-sm">Hedef Aşıldı</h6>
+                             <p class="text-xs text-gray-500">Aylık ciro hedefi +%12</p>
+                         </div>
+                     </div>
+                </div>
+                <div class="px-5 py-3 bg-gray-50/50 border-t border-gray-100 text-center">
+                     <a href="#" class="text-sm font-medium text-gray-500 hover:text-secondary transition-colors">
+                         <i class="fas fa-eye mr-1"></i> Tümünü Gör
+                     </a>
+                </div>
+             </div>
+        </div>
+    </div>
+
+    @* Sayfa İstatistikleri*@
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+             <div class="p-5 border-b border-gray-100 bg-gray-50/30">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-tachometer-alt text-secondary"></i> Performans Metrikleri
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors">
+                         <i class="fas fa-eye text-3xl text-blue-500 mb-2"></i>
+                         <h4 class="text-2xl font-bold text-gray-800">24,567</h4>
+                         <small class="text-gray-500 font-medium">Sayfa Görüntüleme</small>
+                    </div>
+                     <div class="bg-emerald-50 rounded-2xl p-4 text-center hover:bg-emerald-100 transition-colors">
+                         <i class="fas fa-mouse-pointer text-3xl text-emerald-500 mb-2"></i>
+                         <h4 class="text-2xl font-bold text-gray-800">3.2%</h4>
+                         <small class="text-gray-500 font-medium">Dönüşüm Oranı</small>
+                    </div>
+                     <div class="bg-amber-50 rounded-2xl p-4 text-center hover:bg-amber-100 transition-colors">
+                         <i class="fas fa-clock text-3xl text-amber-500 mb-2"></i>
+                         <h4 class="text-2xl font-bold text-gray-800">2m 45s</h4>
+                         <small class="text-gray-500 font-medium">Ortalama Süre</small>
+                    </div>
+                     <div class="bg-red-50 rounded-2xl p-4 text-center hover:bg-red-100 transition-colors">
+                         <i class="fas fa-undo text-3xl text-red-500 mb-2"></i>
+                         <h4 class="text-2xl font-bold text-gray-800">1.8%</h4>
+                         <small class="text-gray-500 font-medium">İade Oranı</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* En Çok Satanlar *@
+        <div class="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden flex flex-col h-full">
+             <div class="p-5 border-b border-gray-100 bg-gray-50/30">
+                <h5 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-trophy text-yellow-500"></i> En Çok Satanlar
+                </h5>
+            </div>
+            <div class="p-0 flex-1">
+                <div class="divide-y divide-gray-50">
+                    @if (TopSellingProducts != null && TopSellingProducts.Any())
+                    {
+                        var index = 0;
+                        @foreach (var product in TopSellingProducts)
+                        {
+                            var currentIndex = index + 1;
+                            string bgClass = "";
+                            string shadowClass = "";
+                            
+                            switch (currentIndex)
+                            {
+                                case 1:
+                                    bgClass = "bg-blue-600";
+                                    shadowClass = "shadow-blue-200";
+                                    break;
+                                case 2:
+                                    bgClass = "bg-cyan-500";
+                                    shadowClass = "shadow-cyan-200";
+                                    break;
+                                case 3:
+                                    bgClass = "bg-emerald-500";
+                                    shadowClass = "shadow-emerald-200";
+                                    break;
+                                case 4:
+                                    bgClass = "bg-amber-500";
+                                    shadowClass = "shadow-amber-200";
+                                    break;
+                                default:
+                                    bgClass = "bg-gray-500";
+                                    shadowClass = "shadow-gray-200";
+                                    break;
+                            }
+
+                            <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-xl @bgClass text-white flex items-center justify-center font-bold @shadowClass shadow-md">
+                                        @currentIndex
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-gray-800">@product.ProductName</p>
+                                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">Ürün ID: @product.ProductId</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-bold text-gray-800">@product.TotalRevenue.ToString("C0")</div>
+                                    <small class="text-gray-400">@product.TotalQuantitySold Satış</small>
+                                </div>
+                            </div>
+                            
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-8 text-center text-gray-400">
+                             <i class="fas fa-chart-bar text-3xl mb-2 opacity-50"></i>
+                             <p class="text-sm">Henüz satış verisi bulunmuyor.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="p-3 bg-gray-50 border-t border-gray-100 text-center mt-auto">
+                <a href="#" class="text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-secondary transition-colors">
+                    <i class="fas fa-eye mr-1"></i> Tüm Sıralamayı Gör
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @* Sistem Durumu *@
+    <div class="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden mb-8">
+         <div class="p-5 border-b border-gray-100 bg-gray-50/30">
+            <h5 class="font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-server text-gray-600"></i> Sistem Durumu
+            </h5>
+        </div>
+        <div class="p-8">
+            @if (SystemStatus != null)
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Server -->
+                    <div class="flex flex-col items-center text-center group">
+                        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-emerald-100 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <h6 class="font-bold text-gray-700">Sunucu Durumu</h6>
+                        <span class="inline-block px-2 py-1 @(SystemStatus.ServerStatus == "Aktif" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700") text-xs font-bold rounded-md my-1">
+                            @SystemStatus.ServerStatus
+                        </span>
+                        <p class="text-xs text-gray-400">Uptime: @SystemStatus.Uptime</p>
+                    </div>
+                    <!-- DB -->
+                     <div class="flex flex-col items-center text-center group">
+                        <div class="w-16 h-16 rounded-full bg-blue-100 text-primary flex items-center justify-center text-2xl mb-3 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h6 class="font-bold text-gray-700">Veritabanı</h6>
+                        <span class="inline-block px-2 py-1 @(SystemStatus.DbStatus == "Sağlıklı" || SystemStatus.DbStatus == "Mükemmel" ? "bg-blue-100 text-primary" : "bg-amber-100 text-amber-700") text-xs font-bold rounded-md my-1">
+                            @SystemStatus.DbStatus
+                        </span>
+                        <p class="text-xs text-gray-400">Yanıt: @SystemStatus.DbResponseTime</p>
+                    </div>
+                     <!-- Memory -->
+                     <div class="flex flex-col items-center text-center group">
+                        <div class="w-16 h-16 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-amber-100 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-memory"></i>
+                        </div>
+                        <h6 class="font-bold text-gray-700">Bellek</h6>
+                        <span class="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md my-1">@SystemStatus.MemoryUsageRatio</span>
+                        <p class="text-xs text-gray-400">@SystemStatus.MemoryDetails</p>
+                    </div>
+                     <!-- Disk -->
+                     <div class="flex flex-col items-center text-center group">
+                        <div class="w-16 h-16 rounded-full bg-indigo-100 text-secondary flex items-center justify-center text-2xl mb-3 shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-hdd"></i>
+                        </div>
+                        <h6 class="font-bold text-gray-700">Disk</h6>
+                        <span class="inline-block px-2 py-1 bg-indigo-100 text-secondary text-xs font-bold rounded-md my-1">@SystemStatus.DiskUsageRatio</span>
+                        <p class="text-xs text-gray-400">@SystemStatus.DiskDetails</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                 <div class="text-center text-gray-400 py-4">
+                     <i class="fas fa-spinner fa-spin mr-2"></i> Sistem verileri yükleniyor...
+                 </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? ProductsCount { get; set; }
+    [Parameter]
+    public int? CategoriesCount { get; set; }
+    [Parameter]
+    public int? UsersCount { get; set; }
+    [Parameter]
+    public int? OrdersInProcessCount { get; set; }
+    [Parameter]
+    public int? ReviewsCount { get; set; }
+    [Parameter]
+    public int? RolesCount { get; set; }
+    [Parameter]
+    public bool IsLoading { get; set; } = false;
+
+    [Parameter]
+    public IEnumerable<ActivityDto> RecentActivities { get; set; } = new List<ActivityDto>();
+    [Parameter]
+    public IEnumerable<ProductSalesDto> TopSellingProducts { get; set; } = new List<ProductSalesDto>();
+    
+    [Parameter]
+    public SystemStatusDto? SystemStatus { get; set; }
+}

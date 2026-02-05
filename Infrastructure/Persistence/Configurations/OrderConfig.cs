@@ -126,7 +126,7 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Orders_UserId");
 
             builder.HasIndex(o => new { o.UserId, o.OrderStatus, o.IsDeleted })
-                .HasFilter("\"IsDeleted\" = false")
+                .HasFilter("[IsDeleted] = 0")
                 .HasDatabaseName("IX_Orders_User_Status");
 
             builder.HasIndex(o => o.OrderedAt)
@@ -140,7 +140,7 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Orders_PaymentStatus");
 
             builder.HasIndex(o => new { o.OrderStatus, o.PaymentStatus, o.IsDeleted })
-                .HasFilter("\"IsDeleted\" = false")
+                .HasFilter("[IsDeleted] = 0")
                 .HasDatabaseName("IX_Orders_Status_Payment");
 
             builder.HasOne(o => o.User)

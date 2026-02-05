@@ -228,7 +228,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
 
             return products;
         }
-
+        
         public async Task<int> CountBySlugAsync(string slug)
         {
             return await FindByCondition(p => p.Slug == slug, false).CountAsync();

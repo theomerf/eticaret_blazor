@@ -34,11 +34,11 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Coupons_Code");
 
             builder.HasIndex(c => new { c.IsActive, c.StartsAt, c.EndsAt })
-                .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false")
+                .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0")
                 .HasDatabaseName("IX_Coupons_Active_Dates");
 
             builder.HasIndex(c => c.IsDeleted)
-                .HasFilter("\"IsDeleted\" = false")
+                .HasFilter("[IsDeleted] = 0")
                 .HasDatabaseName("IX_Coupons_IsDeleted_Filtered");
 
             builder.HasMany(c => c.Usages)

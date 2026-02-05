@@ -1,0 +1,113 @@
+<div class="group relative flex flex-col bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.15),0_10px_10px_-5px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300 hover:-translate-y-1 h-full">
+    <!-- Header: Colored Background -->
+    <div class="@Theme.HeaderBg p-6 pb-4 text-white relative overflow-hidden transition-all duration-300">
+        <!-- Decorative Blur Circles -->
+        <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none group-hover:bg-white/20 transition-colors duration-500"></div>
+        <div class="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-black/5 blur-xl pointer-events-none"></div>
+
+        <div class="flex justify-between items-start relative z-10">
+            <div class="space-y-1">
+                <span class="text-xs font-bold uppercase tracking-wider opacity-90">@Title</span>
+                <h2 class="text-3xl font-bold tracking-tight">@Value</h2>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-[inset_0_0_10px_rgba(255,255,255,0.2)] group-hover:scale-110 group-hover:bg-white/30 transition-all duration-300">
+                <i class="fas @Icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Body: White Background -->
+    <div class="flex-1 p-5 bg-white flex flex-col justify-between gap-1">
+        
+        <!-- Dynamic Mini Chart Area -->
+        <div class="h-[60px] w-full rounded-xl relative overflow-hidden mb-3 @Theme.ChartBg shadow-inner">
+             <!-- Chart Fill -->
+             <div class="absolute bottom-0 left-0 right-0 h-full opacity-40 @Theme.ChartFill transition-all duration-500" 
+                  style="clip-path: @GetChartPolygon()">
+             </div>
+             <!-- Optional: Stroke/Line Effect (Top border of fill) -->
+             <div class="absolute bottom-0 left-0 right-0 h-full opacity-60 @Theme.ChartFill mix-blend-multiply" 
+                   style="clip-path: @GetChartPolygon(offsetY: 5)">
+             </div>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3 px-1">
+             <p class="text-[11px] text-gray-400 font-medium truncate">@Description</p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="grid grid-cols-2 gap-3 mt-auto">
+            @if (!string.IsNullOrEmpty(CreateLink))
+            {
+                <a href="@ManageLink" class="flex items-center justify-center py-2 px-3 rounded-xl text-xs font-bold text-gray-600 bg-white border-2 border-gray-100 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm active:scale-95">
+                    YÖNET
+                </a>
+                <a href="@CreateLink" class="flex items-center justify-center py-2 px-3 rounded-xl text-xs font-bold text-white @Theme.HeaderBg hover:brightness-110 shadow-md hover:shadow-lg transition-all gap-1.5 active:scale-95">
+                    <i class="fas fa-plus text-[10px]"></i> EKLE
+                </a>
+            }
+            else
+            {
+                 <a href="@ManageLink" class="col-span-2 flex items-center justify-center py-2 px-3 rounded-xl text-xs font-bold text-white @Theme.HeaderBg hover:brightness-110 shadow-md hover:shadow-lg transition-all active:scale-95">
+                    <i class="@Icon text-[10px] mr-2"></i> @Title.ToUpper()İ YÖNET
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "fa-circle";
+    [Parameter] public string Color { get; set; } = "blue";
+    
+    // Weekly Data for Chart (e.g., [10, 5, 8, 12])
+    [Parameter] public int[] WeeklyData { get; set; } = new int[] { 5, 5, 5, 5 };
+
+    [Parameter] public string Description { get; set; } = "";
+    [Parameter] public string ManageLink { get; set; } = "#";
+    [Parameter] public string CreateLink { get; set; } = "";
+
+    private string GetChartPolygon(int offsetY = 0)
+    {
+        if (WeeklyData == null || WeeklyData.Length == 0) return "polygon(0% 100%, 100% 100%)";
+
+        var sb = new System.Text.StringBuilder("polygon(");
+        int max = WeeklyData.Max();
+        if (max == 0) max = 1; // Avoid divide by zero
+
+        for (int i = 0; i < WeeklyData.Length; i++)
+        {
+            float x = (float)i / (WeeklyData.Length - 1) * 100;
+            // Invert logic: High value -> Low percentage (Top), Low value -> High percentage (Bottom)
+            // Example: Value 10/10 -> 0% (Top), Value 0/10 -> 100% (Bottom)
+            // We add a padding (e.g. 20%) so it doesn't touch the very top usually
+            float percentage = 100 - ((float)WeeklyData[i] / max * 80); 
+            
+            // Add slight Y offset for the second layer effect
+            percentage += offsetY; 
+
+            sb.Append($"{x.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)}% {percentage.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)}%, ");
+        }
+
+        // Close the polygon at the bottom
+        sb.Append("100% 100%, 0% 100%)");
+        return sb.ToString();
+    }
+
+    private ThemeClasses Theme => Color switch
+    {
+        "cyan"    => new("bg-gradient-to-br from-cyan-400 to-cyan-600", "bg-cyan-50", "bg-cyan-500"),
+        "emerald" => new("bg-gradient-to-br from-emerald-400 to-emerald-600", "bg-emerald-50", "bg-emerald-500"),
+        "indigo"  => new("bg-gradient-to-br from-indigo-400 to-indigo-600", "bg-indigo-50", "bg-indigo-500"),
+        "amber"   => new("bg-gradient-to-br from-amber-400 to-amber-600", "bg-amber-50", "bg-amber-500"),
+        "red"     => new("bg-gradient-to-br from-red-400 to-red-600", "bg-red-50", "bg-red-500"),
+        "sky"     => new("bg-gradient-to-br from-sky-400 to-sky-600", "bg-sky-50", "bg-sky-500"),
+        "slate"   => new("bg-gradient-to-br from-slate-500 to-slate-700", "bg-slate-50", "bg-slate-500"),
+        _         => new("bg-gradient-to-br from-blue-400 to-blue-600", "bg-blue-50", "bg-blue-500")
+    };
+
+    record ThemeClasses(string HeaderBg, string ChartBg, string ChartFill);
+}

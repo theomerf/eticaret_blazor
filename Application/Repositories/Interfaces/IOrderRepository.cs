@@ -18,7 +18,9 @@ namespace Application.Repositories.Interfaces
         Task<int> GetUserOrdersCountAsync(string userId);
         Task<decimal> GetTotalRevenueAsync();
         Task<decimal> GetUserTotalSpentAsync(string userId);
+        Task<int> GetOrdersInProcessCountAsync();
         Task<IEnumerable<DailySalesDto>> GetDailySalesAsync(DateTime startDate, DateTime endDate);
+        Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN);
 
         void CreateOrder(Order order);
         void UpdateOrder(Order order);

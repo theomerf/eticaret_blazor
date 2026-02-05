@@ -22,6 +22,7 @@ namespace Application.Services.Implementations
         private readonly IMemoryCache _cache;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
+        private readonly IActivityService _activityService;
         private readonly ILogger<ProductManager> _logger;
         private readonly IHtmlSanitizerService _htmlSanitizer;
 
@@ -31,6 +32,7 @@ namespace Application.Services.Implementations
             IMemoryCache cache,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
+            IActivityService activityService,
             ILogger<ProductManager> logger,
             IHtmlSanitizerService htmlSanitizer)
         {
@@ -39,6 +41,7 @@ namespace Application.Services.Implementations
             _cache = cache;
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
+            _activityService = activityService;
             _logger = logger;
             _htmlSanitizer = htmlSanitizer;
         }
@@ -197,6 +200,14 @@ namespace Application.Services.Implementations
                         product.Stock,
                         product.CategoryId
                     }
+                );
+
+                await _activityService.LogActivityAsync(
+                    "Yeni Ürün",
+                    $"{product.ProductName} ürünü eklendi.",
+                    "fa-box",
+                    "text-blue-500 bg-blue-100",
+                    $"/admin/products/edit/{product.ProductId}"
                 );
 
                 _logger.LogInformation(

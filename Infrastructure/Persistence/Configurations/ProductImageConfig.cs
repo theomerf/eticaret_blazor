@@ -34,7 +34,7 @@ namespace Infrastructure.Persistence.Configurations
                    .HasDatabaseName("IX_ProductImage_ProductId");
 
             builder.HasIndex(pi => new { pi.ProductId, pi.IsPrimary })
-                .HasFilter("\"IsPrimary\" = true AND \"IsDeleted\" = false")
+                .HasFilter("[IsPrimary] = 1 AND [IsDeleted] = 0")
                 .HasDatabaseName("IX_ProductImage_ProductId_Primary_Filtered");
 
             builder.HasOne(pi => pi.Product)

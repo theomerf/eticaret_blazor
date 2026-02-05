@@ -1,42 +1,76 @@
-﻿<nav class="navbar navbar-expand-lg navbar-dark custom-navbar shadow-lg">
-	<div class="container">
-		<a href="/admin" class="navbar-brand ajax-link fw-bold text-white d-flex align-items-center">
-			<img src="images/adminpanel-logo.png" class="logo-img" />
-		</a>
-		<button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-			<span class="navbar-toggler-icon"></span>
-		</button>
-		<div class="collapse navbar-collapse justify-content-between" id="navbarNav">
-			<ul class="navbar-nav">
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" aria-current="page" href="/admin" asp-action="Index"><i class="fa-solid fa-table-columns"></i> G. Paneli</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" href="/admin/products"><i class="fa-solid fa-box"></i> Ürünler</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" href="/admin/categories"><i class="fa-solid fa-layer-group"></i> Kategoriler</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" href="/admin/orders"><i class="fa-solid fa-bag-shopping"></i> Siparişler</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" href="/admin/roles"><i class="fa-solid fa-users-gear"></i> Roller</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" href="/admin/users"><i class="fa-solid fa-users"></i> Üyeler</a>
-				</li>
-			</ul>
-			<ul class="navbar-nav">
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" href="/"><i class="fa fa-solid fa-search"></i> Site</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link text-white fw-semibold" href="/account/logout">
-						<i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
-					</a>
-				</li>
-			</ul>
+﻿@using System.Security.Claims
+@using Domain.Entities
+@using ETicaret.Models
+@using Microsoft.AspNetCore.Identity
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ICartService CartService
+@inject SignInManager<User> SignInManager
+@inject ISecurityLogService SecurityLogService
+
+<nav class="bg-primary w-full py-2.5 lg:py-5 z-[1060] border-b border-white/5 bg-primary backdrop-blur-md">
+	<div class="px-1 sm:px-2 lg:px-4 xl:px-6">
+		<div class="flex items-center justify-between w-full">
+			<NavLink href="/admin" class="flex items-center font-bold text-white no-underline flex-shrink-0">
+				<img src="/images/adminpanel-logo.png"
+					 class="w-32 sm:w-40 lg:w-64 h-auto object-contain brightness-110 saturate-120" alt="Logo" />
+			</NavLink>
+			<div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+				<NavLink href="/"
+						 class="flex-shrink-0 text-white text-sm font-medium flex items-center py-2 px-3 rounded-full bg-white/10 transition-all duration-300 hover:bg-white/20 no-underline whitespace-nowrap">
+					<i class="fa-solid fa-arrow-left mr-1"></i>
+					Siteye Dön
+				</NavLink>
+				<div class="flex items-center text-white font-semibold">
+                    <div class="rounded-full overflow-hidden transition-all duration-400 hover:scale-110 shadow-lg border-2 border-white/20 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-cyan-500 text-white font-bold text-sm">
+                        @(User.FindFirst("first_name")?.Value?.FirstOrDefault().ToString().ToUpper() ?? User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
+                    </div>
+                    <span class="hidden lg:inline text-sm ml-2">@User.FindFirst("first_name")?.Value @User.FindFirst("last_name")?.Value</span>
+                </div>
+				<button @onclick="Logout"
+						class="flex-shrink-0 text-red-400 hover:text-red-500 text-sm font-medium flex items-center py-2 px-3 rounded-full bg-white/10 transition-all duration-300 hover:bg-white/20 no-underline whitespace-nowrap">
+					<i class="fa-solid fa-right-from-bracket text-red-400 transition-transform duration-300 group-hover:scale-120 mr-2 sm:mr-3 text-center sm:text-left"></i>
+					Çıkış Yap
+				</button>
+			</div>
 		</div>
 	</div>
 </nav>
+
+@code {
+	[CascadingParameter]
+	private Task<AuthenticationState>? AuthStateTask { get; set; }
+	private HttpContext HttpContext => HttpContextAccessor.HttpContext!;
+
+	private ClaimsPrincipal User = new ClaimsPrincipal();
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (AuthStateTask != null)
+		{
+			var authState = await AuthStateTask;
+			User = authState.User;
+		}
+	}
+
+	private async Task Logout()
+	{
+		var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+		var userName = User.FindFirstValue(ClaimTypes.Name);
+
+		var currentCart = SessionCart.GetCartDto(HttpContext.Session);
+
+		if (userId != null && userName != null)
+		{
+			if (currentCart.Lines.Any())
+			{
+				await CartService.MergeCartsAsync(userId!, currentCart);
+			}
+
+			HttpContext.Response.Cookies.Delete("FavouriteProducts");
+			HttpContext.Session.Clear();
+
+			await SignInManager.SignOutAsync();
+			await SecurityLogService.LogLogoutAsync(userId, userName);
+		}
+	}
+}
