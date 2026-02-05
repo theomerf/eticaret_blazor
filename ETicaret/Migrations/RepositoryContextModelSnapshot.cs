@@ -146,7 +146,7 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("UserId", "IsDefault", "IsDeleted")
                         .HasDatabaseName("IX_Addresses_UserId_IsDefault")
-                        .HasFilter("[IsDefault] = 1 AND [IsDeleted] = 0");
+                        .HasFilter("\"IsDefault\" = true AND \"IsDeleted\" = false");
 
                     b.ToTable("Addresses");
                 });
@@ -179,10 +179,10 @@ namespace ETicaret.Migrations
                         .HasColumnType("character varying(45)");
 
                     b.Property<string>("NewValues")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("OldValues")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("timestamp with time zone");
@@ -294,18 +294,18 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_Campaigns_IsDeleted_Filtered")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("Priority")
                         .HasDatabaseName("IX_Campaigns_Priority");
 
                     b.HasIndex("Scope", "IsActive")
                         .HasDatabaseName("IX_Campaigns_Scope_Active")
-                        .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0");
+                        .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false");
 
                     b.HasIndex("IsActive", "StartsAt", "EndsAt")
                         .HasDatabaseName("IX_Campaigns_Active_Dates")
-                        .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0");
+                        .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false");
 
                     b.ToTable("Campaigns");
                 });
@@ -451,7 +451,7 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_Categories_IsDeleted_Filtered")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("ParentCategoryCategoryId");
 
@@ -464,7 +464,7 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("IsVisible", "DisplayOrder", "IsDeleted")
                         .HasDatabaseName("IX_Categories_IsVisible_Order")
-                        .HasFilter("[IsDeleted] = 0 AND [IsVisible] = 1");
+                        .HasFilter("\"IsDeleted\" = false AND \"IsVisible\" = true");
 
                     b.ToTable("Categories");
                 });
@@ -548,11 +548,11 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_Coupons_IsDeleted_Filtered")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("IsActive", "StartsAt", "EndsAt")
                         .HasDatabaseName("IX_Coupons_Active_Dates")
-                        .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0");
+                        .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false");
 
                     b.ToTable("Coupons");
                 });
@@ -673,11 +673,11 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("ScheduledFor", "IsSent")
                         .HasDatabaseName("IX_Notifications_Scheduled")
-                        .HasFilter("[ScheduledFor] IS NOT NULL AND [IsSent] = 0");
+                        .HasFilter("\"ScheduledFor\" IS NOT NULL AND \"IsSent\" = false");
 
                     b.HasIndex("UserId", "IsRead", "IsDeleted")
                         .HasDatabaseName("IX_Notifications_User_Unread")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Notifications");
                 });
@@ -883,11 +883,11 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("OrderStatus", "PaymentStatus", "IsDeleted")
                         .HasDatabaseName("IX_Orders_Status_Payment")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("UserId", "OrderStatus", "IsDeleted")
                         .HasDatabaseName("IX_Orders_User_Status")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Orders");
                 });
@@ -1184,7 +1184,7 @@ namespace ETicaret.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("LongDescription")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("MetaDescription")
                         .HasMaxLength(160)
@@ -1204,7 +1204,10 @@ namespace ETicaret.Migrations
 
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .IsRequired()
-                        .HasColumnType("tsvector");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "turkish")
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "ProductName", "Brand", "Summary", "LongDescription", "MetaTitle", "MetaDescription", "Gtin" });
 
                     b.Property<bool>("ShowCase")
                         .HasColumnType("boolean");
@@ -1241,7 +1244,11 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_Products_IsDeleted_Filtered")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.HasIndex("Slug")
                         .IsUnique()
@@ -1312,7 +1319,7 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("ProductId", "IsPrimary")
                         .HasDatabaseName("IX_ProductImage_ProductId_Primary_Filtered")
-                        .HasFilter("[IsPrimary] = 1 AND [IsDeleted] = 0");
+                        .HasFilter("\"IsPrimary\" = true AND \"IsDeleted\" = false");
 
                     b.ToTable("ProductImages");
                 });
@@ -1508,7 +1515,7 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_Accounts_IsDeleted_Filtered")
-                        .HasFilter("[IsDeleted] = 0");
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -1597,7 +1604,7 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("ProductId", "IsApproved", "IsDeleted")
                         .HasDatabaseName("IX_UserReviews_Product_Approved")
-                        .HasFilter("[IsApproved] = 1 AND [IsDeleted] = 0");
+                        .HasFilter("\"IsApproved\" = true AND \"IsDeleted\" = false");
 
                     b.ToTable("UserReviews");
                 });
