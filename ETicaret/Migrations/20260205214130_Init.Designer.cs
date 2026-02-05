@@ -13,8 +13,8 @@ using NpgsqlTypes;
 namespace ETicaret.Migrations
 {
     [DbContext(typeof(RepositoryContext))]
-    [Migration("20260205213141_Activity")]
-    partial class Activity
+    [Migration("20260205214130_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
