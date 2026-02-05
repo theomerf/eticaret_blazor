@@ -13,7 +13,7 @@ using NpgsqlTypes;
 namespace ETicaret.Migrations
 {
     [DbContext(typeof(RepositoryContext))]
-    [Migration("20260205211954_Init")]
+    [Migration("20260205212509_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -42,9 +42,7 @@ namespace ETicaret.Migrations
                         .HasDefaultValue("text-blue-500 bg-blue-100");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()

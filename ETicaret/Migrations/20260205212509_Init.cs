@@ -26,7 +26,7 @@ namespace ETicaret.Migrations
                     Icon = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false, defaultValue: "fa-circle"),
                     ColorClass = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false, defaultValue: "text-blue-500 bg-blue-100"),
                     Link = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETDATE()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {

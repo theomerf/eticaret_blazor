@@ -29,8 +29,7 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(a => a.Link)
                 .HasMaxLength(250);
 
-            builder.Property(a => a.CreatedAt)
-                .HasDefaultValueSql("GETDATE()");
+            builder.Property(a => a.CreatedAt);
         }
     }
 }
