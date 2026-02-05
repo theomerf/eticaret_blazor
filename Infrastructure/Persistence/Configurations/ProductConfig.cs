@@ -24,9 +24,6 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(p => p.MetaDescription)
                 .HasMaxLength(160);
 
-            builder.Property(p => p.LongDescription)
-                .HasColumnType("nvarchar(max)");
-
             builder.Property(p => p.Summary)
                 .HasMaxLength(1000);
 
@@ -65,7 +62,7 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Products_CategoryId");
 
             builder.HasIndex(p => p.IsDeleted)
-                .HasFilter("[IsDeleted] = 0")
+                .HasFilter("\"IsDeleted\" = false")
                 .HasDatabaseName("IX_Products_IsDeleted_Filtered");
 
             builder.HasIndex(p => new { p.CategoryId, p.IsDeleted, p.ShowCase })
@@ -91,6 +88,20 @@ namespace Infrastructure.Persistence.Configurations
                 .WithOne(pi => pi.Product)
                 .HasForeignKey(pi => pi.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasGeneratedTsVectorColumn(
+                p => p.SearchVector,
+                "turkish",
+                p => new { p.ProductName, p.Summary, p.Brand })
+            .HasIndex(p => p.SearchVector)
+            .HasMethod("GIN");
+
+            builder.HasGeneratedTsVectorColumn(
+                p => p.SearchVector,
+                "turkish",
+                p => new { p.ProductName, p.Brand, p.Summary, p.LongDescription, p.MetaTitle, p.MetaDescription, p.Gtin })
+                .HasIndex(p => p.SearchVector)
+                .HasMethod("GIN"); // Hızlı tam metin arama indeksi
 
             builder.Ignore(p => p.Discount);
         }

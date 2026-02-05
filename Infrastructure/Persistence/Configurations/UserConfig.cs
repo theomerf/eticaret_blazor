@@ -11,7 +11,7 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasQueryFilter(a => !a.IsDeleted);
 
             builder.HasIndex(a => a.IsDeleted)
-                .HasFilter("[IsDeleted] = 0")
+                .HasFilter("\"IsDeleted\" = false")
                 .HasDatabaseName("IX_Accounts_IsDeleted_Filtered");
 
             builder.Property(a => a.FirstName)

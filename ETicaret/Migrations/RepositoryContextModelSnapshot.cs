@@ -66,7 +66,7 @@ namespace ETicaret.Migrations
 
                     b.HasKey("ActivityId");
 
-                    b.ToTable("Activities");
+                    b.ToTable("Activity");
                 });
 
             modelBuilder.Entity("Domain.Entities.Address", b =>

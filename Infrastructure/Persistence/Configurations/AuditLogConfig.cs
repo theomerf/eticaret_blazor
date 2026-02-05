@@ -35,12 +35,6 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(al => al.UserAgent)
                 .HasMaxLength(500);
 
-            builder.Property(al => al.OldValues)
-                .HasColumnType("nvarchar(max)");
-
-            builder.Property(al => al.NewValues)
-                .HasColumnType("nvarchar(max)");
-
             builder.HasIndex(al => al.UserId)
                 .HasDatabaseName("IX_AuditLogs_UserId");
 

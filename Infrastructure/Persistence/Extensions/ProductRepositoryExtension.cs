@@ -1,7 +1,7 @@
 ﻿using Application.Queries.RequestParameters;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace Infrastructure.Persistence.Extensions
 {
@@ -20,11 +20,9 @@ namespace Infrastructure.Persistence.Extensions
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return products;
 
-            return products.Where(p =>
-                EF.Functions.FreeText(p.ProductName, searchTerm) ||
-                (p.Summary != null && EF.Functions.FreeText(p.Summary, searchTerm)) ||
-                (p.Brand != null && EF.Functions.FreeText(p.Brand, searchTerm))
-            );
+            return products
+                .Where(p => p.SearchVector.Matches(EF.Functions.PlainToTsQuery("turkish", searchTerm)))
+                .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.PlainToTsQuery("turkish", searchTerm)));
         }
 
         public static IQueryable<Product> FilteredByBrand(this IQueryable<Product> products, string? brand)

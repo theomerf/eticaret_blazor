@@ -33,18 +33,18 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasQueryFilter(c => !c.IsDeleted);
 
             builder.HasIndex(c => new { c.IsActive, c.StartsAt, c.EndsAt })
-                .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0")
+                .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false")
                 .HasDatabaseName("IX_Campaigns_Active_Dates");
 
             builder.HasIndex(c => c.Priority)
                 .HasDatabaseName("IX_Campaigns_Priority");
 
             builder.HasIndex(c => new { c.Scope, c.IsActive })
-                .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0")
+                .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false")
                 .HasDatabaseName("IX_Campaigns_Scope_Active");
 
             builder.HasIndex(c => c.IsDeleted)
-                .HasFilter("[IsDeleted] = 0")
+                .HasFilter("\"IsDeleted\" = false")
                 .HasDatabaseName("IX_Campaigns_IsDeleted_Filtered");
         }
     }
