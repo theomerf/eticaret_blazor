@@ -15,10 +15,10 @@ namespace ETicaret.Extensions
             foreach (var prop in properties)
             {
                 var propName = prop.Name;
-
+                // Query string genellikle camelCase gelir
                 var queryParamName = char.ToLowerInvariant(propName[0]) + propName.Substring(1);
 
-                if (query.TryGetValue(queryParamName, out var value) && !string.IsNullOrEmpty(value))
+                if (query.TryGetValue(queryParamName, out var value) && !string.IsNullOrEmpty(value) && prop.CanWrite)
                 {
                     try
                     {
@@ -66,6 +66,9 @@ namespace ETicaret.Extensions
 
             foreach (var prop in properties)
             {
+                // Sadece yazılabilir özellikleri al (HasActiveFilters, SortEnum gibi read-only özellikler hariç)
+                if (!prop.CanWrite) continue;
+
                 var value = prop.GetValue(obj);
                 if (value != null)
                 {
@@ -77,7 +80,7 @@ namespace ETicaret.Extensions
                     }
                     else
                     {
-                        if (propName == "pageSize" && (int)value == 6 || propName == "pageNumber" && (int)value == 1)
+                        if (propName == "pageSize" && (int)value == 10 || propName == "pageNumber" && (int)value == 1)
                         {
                             continue;
                         }

@@ -1,7 +1,7 @@
 ﻿using Application.Queries.RequestParameters;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
+using System.Linq;
 
 namespace Infrastructure.Persistence.Extensions
 {
@@ -45,7 +45,7 @@ namespace Infrastructure.Persistence.Extensions
             if (maxPrice == null)
                 maxPrice = int.MaxValue;
 
-            return products.Where(prd => prd.ActualPrice >= minPrice && prd.ActualPrice <= maxPrice);
+            return products.Where(prd => prd.Variants.Any(v => (v.DiscountPrice ?? v.Price) >= minPrice && (v.DiscountPrice ?? v.Price) <= maxPrice));
         }
 
         public static IQueryable<Product> FilteredByShowcase(this IQueryable<Product> products, bool? isShowCase)
@@ -61,7 +61,7 @@ namespace Infrastructure.Persistence.Extensions
             if (isDiscount == null || isDiscount == false)
                 return products;
 
-            return products.Where(prd => prd.DiscountPrice != null);
+            return products.Where(prd => prd.Variants.Any(v => v.DiscountPrice != null));
         }
 
         public static IQueryable<Product> ToPaginate(this IQueryable<Product> query, int pageNumber, int pageSize)
@@ -77,16 +77,16 @@ namespace Infrastructure.Persistence.Extensions
             {
                 ProductSort.PriceAsc => products
                     .WhereIf(request.CursorPrice.HasValue, p =>
-                        (p.DiscountPrice ?? p.ActualPrice) > request.CursorPrice ||
-                        ((p.DiscountPrice ?? p.ActualPrice) == request.CursorPrice && p.ProductId > request.CursorId))
-                    .OrderBy(p => p.DiscountPrice ?? p.ActualPrice)
+                        p.Variants.Min(v => (decimal?)(v.DiscountPrice ?? v.Price)) > request.CursorPrice ||
+                        (p.Variants.Min(v => (decimal?)(v.DiscountPrice ?? v.Price)) == request.CursorPrice && p.ProductId > request.CursorId))
+                    .OrderBy(p => p.Variants.Min(v => (decimal?)(v.DiscountPrice ?? v.Price)))
                     .ThenBy(p => p.ProductId),
 
                 ProductSort.PriceDesc => products
                     .WhereIf(request.CursorPrice.HasValue, p =>
-                        (p.DiscountPrice ?? p.ActualPrice) < request.CursorPrice ||
-                        ((p.DiscountPrice ?? p.ActualPrice) == request.CursorPrice && p.ProductId < request.CursorId))
-                    .OrderByDescending(p => p.DiscountPrice ?? p.ActualPrice)
+                        p.Variants.Min(v => (decimal?)(v.DiscountPrice ?? v.Price)) < request.CursorPrice ||
+                        (p.Variants.Min(v => (decimal?)(v.DiscountPrice ?? v.Price)) == request.CursorPrice && p.ProductId < request.CursorId))
+                    .OrderByDescending(p => p.Variants.Min(v => (decimal?)(v.DiscountPrice ?? v.Price)))
                     .ThenByDescending(p => p.ProductId),
 
                 ProductSort.TopReviews => products
@@ -113,8 +113,8 @@ namespace Infrastructure.Persistence.Extensions
         {
             return sort switch
             {
-                ProductSort.PriceAsc => products.OrderBy(prd => prd.DiscountPrice ?? prd.ActualPrice),
-                ProductSort.PriceDesc => products.OrderByDescending(prd => prd.DiscountPrice ?? prd.ActualPrice),
+                ProductSort.PriceAsc => products.OrderBy(prd => prd.Variants.Min(v => v.DiscountPrice ?? v.Price)),
+                ProductSort.PriceDesc => products.OrderByDescending(prd => prd.Variants.Min(v => v.DiscountPrice ?? v.Price)),
                 ProductSort.TopReviews => products.OrderByDescending(prd => prd.AverageRating),
                 ProductSort.MostReviews => products.OrderByDescending(prd => prd.ReviewCount),
                 _ => products.OrderBy(prd => prd.ProductId),

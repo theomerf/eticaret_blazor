@@ -1,0 +1,322 @@
+@using Application.Queries.RequestParameters
+@using ETicaret.Helpers
+@using ETicaret.Models
+@using Microsoft.JSInterop
+@using static ETicaret.Models.ProductListViewModel
+@inject IJSRuntime JSRuntime
+
+<div id="blazorMobileFilterModal" class="fixed inset-0 z-[2000] hidden lg:hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="blazorMobileFilterBackdrop"></div>
+    
+    <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] overflow-hidden transform translate-y-full transition-transform duration-300" 
+         id="blazorMobileFilterContent">
+        <div class="flex justify-center py-3">
+            <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+        </div>
+        
+        <div class="flex items-center justify-between px-5 pb-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">Filtreler</h3>
+            <button id="closeBlazorMobileFilterModal" type="button" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="overflow-y-auto max-h-[calc(85vh-100px)] p-4">
+            <CascadingValue Value="_draftParams" Name="FilterParams">
+                <CascadingValue Value="OnDraftChange" Name="OnFilterChange">
+                    
+                    <div class="mb-6">
+                        <h4 class="text-base font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fa-solid fa-layer-group text-blue-600 mr-2"></i>
+                            Kategoriler
+                        </h4>
+                        <CategoriesFilter />
+                    </div>
+
+                    <form @onsubmit:preventDefault>
+                        <!-- Ürün Ara -->
+                        <div class="mb-6">
+                            <label for="blazorMobileSearchTerm" class="block text-sm font-semibold text-gray-800 mb-2">
+                                <i class="fa-solid fa-search text-blue-600 mr-2"></i>Ürün Ara
+                            </label>
+                            <div class="relative">
+                                <input type="text"
+                                       class="filter-input w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl pr-10 focus:outline-none"
+                                       id="blazorMobileSearchTerm"
+                                       @bind="_draftParams.SearchTerm" @bind:event="oninput"
+                                       placeholder="Ürün adı veya açıklama yazın...">
+                                 @if (!string.IsNullOrEmpty(_draftParams.SearchTerm))
+                                 {
+                                    <button class="absolute top-1/2 right-3 -translate-y-1/2 border-none bg-transparent text-gray-400 hover:text-gray-600 transition-colors"
+                                            type="button" @onclick="ClearSearch">
+                                        <i class="fa-solid fa-times"></i>
+                                    </button>
+                                 }
+                            </div>
+                        </div>
+
+                        <!-- Fiyat Aralığı -->
+                        <div class="mb-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-sm font-semibold text-gray-800">
+                                    <i class="fa-solid fa-tag text-blue-600 mr-2"></i>Fiyat Aralığı
+                                </label>
+                                <div class="bg-gray-100 rounded-full px-3 py-1 text-xs border border-gray-200">
+                                    <span class="font-bold text-blue-600" id="mobileMinPriceDisplay">@(_draftParams.MinPrice ?? 0)</span>
+                                    <span class="text-gray-500 mx-1">-</span>
+                                    <span class="font-bold text-blue-600" id="mobileMaxPriceDisplay">@(_draftParams.MaxPrice ?? 100000)</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Slider Container -->
+                            <div id="mobilePriceRange" class="mb-4 h-2.5 px-2"></div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
+                                    <span class="bg-gray-100 border-r border-gray-200 px-3 py-2 text-sm text-gray-600">₺</span>
+                                    <input type="number"
+                                           id="mobileMinPrice"
+                                           class="filter-input flex-1 px-3 py-2 text-sm border-0 focus:ring-0 focus:outline-none"
+                                           placeholder="Min"
+                                           @bind="_draftParams.MinPrice" @bind:event="oninput" min="0">
+                                </div>
+                                <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
+                                    <span class="bg-gray-100 border-r border-gray-200 px-3 py-2 text-sm text-gray-600">₺</span>
+                                    <input type="number"
+                                           id="mobileMaxPrice"
+                                           class="filter-input flex-1 px-3 py-2 text-sm border-0 focus:ring-0 focus:outline-none"
+                                           placeholder="Max"
+                                           @bind="_draftParams.MaxPrice" @bind:event="oninput" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Markalar -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-semibold text-gray-800 mb-2">
+                                <i class="fa-solid fa-building text-blue-600 mr-2"></i>Markalar
+                            </label>
+                            <div class="mb-2">
+                                <input type="text"
+                                       class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
+                                       @bind="brandSearchTerm" @bind:event="oninput"
+                                       placeholder="Marka ara...">
+                            </div>
+                            <div class="max-h-[180px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                                <div class="flex items-center mb-3 hover:bg-blue-500/5 rounded-lg p-2 -m-2 transition-colors"
+                                     @onclick="() => SelectBrand(null)">
+                                    <div class="w-4 h-4 rounded-md border-2 mr-3 flex items-center justify-center transition-all @(string.IsNullOrEmpty(_draftParams.Brand) ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white")">
+                                        @if (string.IsNullOrEmpty(_draftParams.Brand))
+                                        {
+                                            <i class="fas fa-check text-white text-[10px]"></i>
+                                        }
+                                    </div>
+                                    <label class="flex justify-between items-center w-full ml-3 cursor-pointer text-sm">
+                                        <span class="font-medium text-gray-700">Tüm Markalar</span>
+                                        <span class="bg-gray-400 text-white text-xs px-2 py-0.5 rounded-full">Tümü</span>
+                                    </label>
+                                </div>
+                                @foreach (var brand in FilteredBrands)
+                                {
+                                    <div class="flex items-center mb-3 hover:bg-blue-500/5 rounded-lg p-2 -m-2 transition-colors"
+                                         @onclick="() => SelectBrand(brand.Name)">
+                                        <div class="w-4 h-4 rounded-md border-2 mr-3 flex items-center justify-center transition-all @(_draftParams.Brand == brand.Name ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white")">
+                                            @if (_draftParams.Brand == brand.Name)
+                                            {
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            }
+                                        </div>
+                                        <label class="flex justify-between items-center w-full ml-3 cursor-pointer text-sm">
+                                            <span class="text-gray-700">@brand.Name</span>
+                                            <span class="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">@brand.Count</span>
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Özel Filtreler -->
+                        <div class="mb-6 pb-16">
+                            <label class="block text-sm font-semibold text-gray-800 mb-2">
+                                <i class="fa-solid fa-star text-blue-600 mr-2"></i>Özel Filtreler
+                            </label>
+                            <div>
+                                <div class="mb-3">
+                                    <div class="custom-switch-card">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center flex-1">
+                                                <i class="fa-solid fa-fire text-red-500 mr-3 text-lg"></i>
+                                                <div>
+                                                    <div class="font-medium text-sm text-gray-800">En Çok Satanlar</div>
+                                                    <small class="text-xs text-gray-500">Popüler ürünler</small>
+                                                </div>
+                                            </div>
+                                            <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6"
+                                                   type="checkbox"
+                                                   checked="@(_draftParams.IsShowCase == true)"
+                                                   @onchange="HandleShowcase">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="custom-switch-card">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center flex-1">
+                                                <i class="fa-solid fa-percentage text-green-500 mr-3 text-lg"></i>
+                                                <div>
+                                                    <div class="font-medium text-sm text-gray-800">İndirimli Ürünler</div>
+                                                    <small class="text-xs text-gray-500">Özel fiyatlar</small>
+                                                </div>
+                                            </div>
+                                            <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6"
+                                                   type="checkbox"
+                                                   checked="@(_draftParams.IsDiscount == true)"
+                                                   @onchange="HandleDiscount">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Apply Button -->
+                        <div class="fixed bottom-0 left-0 right-0 z-2 bg-white border-t border-gray-200 px-4 py-3 pb-[env(safe-area-inset-bottom)]">
+                            <button type="button"
+                                    @onclick="ApplyFilters"
+                                    disabled="@(!IsDirty)"
+                                    class="w-full bg-primary text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-[0_8px_25px_rgba(102,126,234,0.3)] hover:bg-primary-dark active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-check"></i>
+                                Filtreleri Uygula
+                            </button>
+                        </div>
+                    </form>
+                </CascadingValue>
+            </CascadingValue>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter(Name = "FilterParams")]
+    public ProductFilterParametersAdmin? FilterParams { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private ProductFilterParametersAdmin _draftParams = new();
+    private ProductFilterParametersAdmin _originalParams = new();
+
+    private string brandSearchTerm = "";
+
+    private List<BrandCount> allBrands = new()
+    {
+        new() { Name = "Apple", Count = 45 },
+        new() { Name = "Samsung", Count = 38 },
+        new() { Name = "Sony", Count = 29 },
+        new() { Name = "Huawei", Count = 22 },
+        new() { Name = "Lenovo", Count = 18 },
+        new() { Name = "Dell", Count = 12 },
+        new() { Name = "Vestel", Count = 10 }
+    };
+
+    private List<BrandCount> FilteredBrands =>
+        string.IsNullOrWhiteSpace(brandSearchTerm)
+            ? allBrands
+            : allBrands.Where(b => b.Name.Contains(brandSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private bool IsDirty => !_draftParams.Equals(_originalParams);
+
+    protected override void OnParametersSet()
+    {
+        if (FilterParams != null)
+        {
+            _draftParams = FilterParams.Clone();
+            _originalParams = FilterParams.Clone();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Wait for products-mobile.js and price-slider.js scripts
+                for (int i = 0; i < 20; i++) 
+                {
+                    var isLoaded = await JSRuntime.InvokeAsync<bool>("eval", 
+                        "typeof initBlazorMobileFilters !== 'undefined' && typeof initPriceSliders !== 'undefined'");
+                    
+                    if (isLoaded) break;
+                    await Task.Delay(100);
+                }
+
+                await JSRuntime.InvokeVoidAsync("initBlazorMobileFilters");
+                await JSRuntime.InvokeVoidAsync("initPriceSliders", _draftParams.MinPrice, _draftParams.MaxPrice);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing ProductsFilterMobile JS: {ex.Message}");
+            }
+        }
+    }
+
+    private void OnDraftChange()
+    {
+        StateHasChanged();
+    }
+
+    private void SelectBrand(string? brand)
+    {
+        _draftParams.Brand = brand;
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        _draftParams.SearchTerm = null;
+        StateHasChanged();
+    }
+
+    private void HandleShowcase(ChangeEventArgs e)
+    {
+        _draftParams.IsShowCase = (bool?)e.Value;
+        StateHasChanged();
+    }
+
+    private void HandleDiscount(ChangeEventArgs e)
+    {
+        _draftParams.IsDiscount = (bool?)e.Value;
+        StateHasChanged();
+    }
+
+    private async Task ApplyFilters()
+    {
+        if (FilterParams != null)
+        {
+            FilterParams.SearchTerm = _draftParams.SearchTerm;
+            FilterParams.MinPrice = _draftParams.MinPrice;
+            FilterParams.MaxPrice = _draftParams.MaxPrice;
+            FilterParams.Brand = _draftParams.Brand;
+            FilterParams.IsShowCase = _draftParams.IsShowCase;
+            FilterParams.IsDiscount = _draftParams.IsDiscount;
+            FilterParams.PageNumber = 1;
+        }
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("closeBlazorMobileFilter");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error closing filter modal: {ex.Message}");
+        }
+        
+        await OnClose.InvokeAsync();
+    }
+
+    public class BrandCount
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+}

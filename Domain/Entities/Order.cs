@@ -255,7 +255,6 @@ namespace Domain.Entities
             PaymentProvider = provider;
             PaidAt = DateTime.UtcNow;
             
-            // Set payment details
             CardType = cardType;
             CardAssociation = cardAssociation;
             CardFamily = cardFamily;

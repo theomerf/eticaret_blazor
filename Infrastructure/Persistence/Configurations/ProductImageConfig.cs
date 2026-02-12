@@ -30,16 +30,16 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.HasQueryFilter(pi => !pi.IsDeleted);
 
-            builder.HasIndex(pi => pi.ProductId)
-                   .HasDatabaseName("IX_ProductImage_ProductId");
+            builder.HasIndex(pi => pi.ProductVariantId)
+                   .HasDatabaseName("IX_ProductImage_ProductVariantId");
 
-            builder.HasIndex(pi => new { pi.ProductId, pi.IsPrimary })
+            builder.HasIndex(pi => new { pi.ProductVariantId, pi.IsPrimary })
                 .HasFilter("\"IsPrimary\" = true AND \"IsDeleted\" = false")
-                .HasDatabaseName("IX_ProductImage_ProductId_Primary_Filtered");
+                .HasDatabaseName("IX_ProductImage_ProductVariantId_Primary_Filtered");
 
-            builder.HasOne(pi => pi.Product)
-                   .WithMany(p => p.Images)
-                   .HasForeignKey(pi => pi.ProductId)
+            builder.HasOne(pi => pi.ProductVariant)
+                   .WithMany(pv => pv.Images)
+                   .HasForeignKey(pi => pi.ProductVariantId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }

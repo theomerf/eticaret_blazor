@@ -10,7 +10,16 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<Campaign?> GetCampaignByIdAsync(int campaignId, bool trackChanges)
+        public async Task<IEnumerable<Campaign>> GetAllAsync(bool trackChanges)
+        {
+            var campaigns = await FindAll(trackChanges)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            return campaigns;
+        }
+
+        public async Task<Campaign?> GetByIdAsync(int campaignId, bool trackChanges)
         {
             var campaign = await FindByCondition(c => c.CampaignId == campaignId, trackChanges)
                 .FirstOrDefaultAsync();
@@ -18,7 +27,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return campaign;
         }
 
-        public async Task<IEnumerable<Campaign>> GetActiveCampaignsAsync(bool trackChanges)
+        public async Task<IEnumerable<Campaign>> GetActiveAsync(bool trackChanges)
         {
             var campaigns = await FindAllByCondition(
                 c => c.IsActive && c.StartsAt <= DateTime.UtcNow && c.EndsAt >= DateTime.UtcNow,
@@ -29,7 +38,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return campaigns;
         }
 
-        public async Task<IEnumerable<Campaign>> GetActiveCampaignsByPriorityAsync(bool trackChanges)
+        public async Task<IEnumerable<Campaign>> GetActiveByPriorityAsync(bool trackChanges)
         {
             var campaigns = await FindAllByCondition(
                 c => c.IsActive && c.StartsAt <= DateTime.UtcNow && c.EndsAt >= DateTime.UtcNow,
@@ -41,16 +50,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return campaigns;
         }
 
-        public async Task<IEnumerable<Campaign>> GetAllCampaignsAsync(bool trackChanges)
-        {
-            var campaigns = await FindAll(trackChanges)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
-
-            return campaigns;
-        }
-
-        public async Task<(IEnumerable<Campaign> campaigns, int count)> GetCampaignsPagedAsync(int pageNumber, int pageSize, bool trackChanges)
+        public async Task<(IEnumerable<Campaign> campaigns, int count)> GetPagedAsync(int pageNumber, int pageSize, bool trackChanges)
         {
             var query = FindAll(trackChanges);
 
@@ -65,10 +65,10 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return (campaigns, count);
         }
 
-        public void CreateCampaign(Campaign campaign) => Create(campaign);
+        public void Create(Campaign campaign) => CreateEntity(campaign);
 
-        public void UpdateCampaign(Campaign campaign) => Update(campaign);
+        public void Update(Campaign campaign) => UpdateEntity(campaign);
 
-        public void DeleteCampaign(Campaign campaign) => Remove(campaign);
+        public void Delete(Campaign campaign) => RemoveEntity(campaign);
     }
 }

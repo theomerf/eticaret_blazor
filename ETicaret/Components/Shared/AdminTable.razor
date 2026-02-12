@@ -1,0 +1,171 @@
+@typeparam TItem
+@using ETicaret.Models
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    @if (ToolbarContent != null)
+    {
+        <div class="px-4 py-3 border-b border-gray-200">
+            @ToolbarContent
+        </div>
+    }
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                @HeaderTemplate
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @if (Items != null && Items.Any())
+                {
+                    foreach (var item in Items)
+                    {
+                        <tr class="hover:bg-gray-50 transition-colors duration-200">
+                            @RowTemplate(item)
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="100%" class="px-6 py-10 text-center text-gray-500">
+                            <div class="flex flex-col items-center justify-center">
+                                <i class="fas fa-inbox text-4xl mb-3 text-gray-300"></i>
+                                <span class="text-lg font-medium">Kayıt bulunamadı</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Pagination != null && Pagination.TotalItems > 0)
+    {
+        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+            <!-- Mobile Pagination info -->
+            @if (Pagination.TotalPages > 1)
+            {
+                <div class="flex flex-1 justify-between sm:hidden">
+                    <button @onclick="() => OnPageChangeInternal(Pagination.CurrentPage - 1)" 
+                            disabled="@(Pagination.CurrentPage == 1)"
+                            class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Önceki
+                    </button>
+                    <div class="text-sm text-gray-700 flex items-center">
+                        @Pagination.CurrentPage / @Pagination.TotalPages
+                    </div>
+                    <button @onclick="() => OnPageChangeInternal(Pagination.CurrentPage + 1)"
+                            disabled="@(Pagination.CurrentPage == Pagination.TotalPages)"
+                            class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Sonraki
+                    </button>
+                </div>
+            }
+            
+            <!-- Desktop Pagination -->
+            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">
+                        Toplam <span class="font-medium text-gray-900">@Pagination.TotalItems</span> kayıttan
+                        <span class="font-medium text-gray-900">@((Pagination.CurrentPage - 1) * Pagination.ItemsPerPage + 1)</span> -
+                        <span class="font-medium text-gray-900">@Math.Min(Pagination.CurrentPage * Pagination.ItemsPerPage, Pagination.TotalItems)</span> arası gösteriliyor
+                    </p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500">Sayfa başına:</span>
+                        <select value="@PageSize" @onchange="OnPageSizeChangeInternal" class="form-select block w-20 py-1 px-2 text-sm border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="40">40</option>
+                        </select>
+                    </div>
+                    <div>
+                    @if (Pagination.TotalPages > 1)
+                    {
+                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                            <button @onclick="() => OnPageChangeInternal(Pagination.CurrentPage - 1)"
+                                    disabled="@(Pagination.CurrentPage == 1)"
+                                    class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span class="sr-only">Önceki</span>
+                                <i class="fas fa-chevron-left h-5 w-5 flex items-center justify-center"></i>
+                            </button>
+                            
+                            @for (int i = 1; i <= Pagination.TotalPages; i++)
+                            {
+                                if (i == 1 || i == Pagination.TotalPages || (i >= Pagination.CurrentPage - 2 && i <= Pagination.CurrentPage + 2))
+                                {
+                                    int pageNum = i;
+                                    <button @onclick="() => OnPageChangeInternal(pageNum)"
+                                            class="@(Pagination.CurrentPage == i ? "relative z-10 inline-flex items-center bg-button px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" : "relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0")">
+                                        @i
+                                    </button>
+                                }
+                                else if (i == 2 || i == Pagination.TotalPages - 1)
+                                {
+                                    <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                                        ...
+                                    </span>
+                                }
+                            }
+
+                            <button @onclick="() => OnPageChangeInternal(Pagination.CurrentPage + 1)"
+                                    disabled="@(Pagination.CurrentPage == Pagination.TotalPages)"
+                                    class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span class="sr-only">Sonraki</span>
+                                <i class="fas fa-chevron-right h-5 w-5 flex items-center justify-center"></i>
+                            </button>
+                        </nav>
+                    }
+                </div>
+                    </div>
+                </div>
+            </div>
+
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>();
+
+    [Parameter, EditorRequired]
+    public RenderFragment HeaderTemplate { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> RowTemplate { get; set; } = default!;
+
+    [Parameter]
+    public Pagination? Pagination { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnPageChange { get; set; }
+
+    [Parameter]
+    public int PageSize { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnPageSizeChange { get; set; }
+
+    [Parameter]
+    public RenderFragment? ToolbarContent { get; set; }
+
+    private async Task OnPageSizeChangeInternal(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newSize))
+        {
+            await OnPageSizeChange.InvokeAsync(newSize);
+        }
+    }
+
+    private async Task OnPageChangeInternal(int newPage)
+    {
+        if (Pagination == null) return;
+
+        if (newPage < 1 || newPage > Pagination.TotalPages || newPage == Pagination.CurrentPage)
+            return;
+            
+        await OnPageChange.InvokeAsync(newPage);
+    }
+}

@@ -11,7 +11,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
 
         }
 
-        public async Task<IEnumerable<Category>> GetAllCategoriesAsync(bool trackChanges)
+        public async Task<IEnumerable<Category>> GetAllAsync(bool trackChanges)
         {
             var categories = await FindAll(trackChanges)
                 .ToListAsync();
@@ -19,18 +19,18 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return categories;  
         }
 
-        public async Task<int> GetCategoriesCountAsync() => await CountAsync(false);
+        public async Task<int> CountAsync(CancellationToken ct = default) => await CountAsync(false, ct);
 
-        public async Task<Category?> GetOneCategoryAsync(int id, bool trackChanges)
+        public async Task<Category?> GetByIdAsync(int categoryId, bool trackChanges)
         {
-            var category = await FindByCondition(p => p.CategoryId.Equals(id), trackChanges)
+            var category = await FindByCondition(p => p.CategoryId.Equals(categoryId), trackChanges)
                 .Include(c => c.ParentCategory)
                 .FirstOrDefaultAsync();
 
             return category;
         }
 
-        public async Task<IEnumerable<Category>> GetParentCategoriesAsync(bool trackChanges)
+        public async Task<IEnumerable<Category>> GetParentsAsync(bool trackChanges)
         {
             var categories = await FindAll(trackChanges)
                 .Where(c => c.ParentId == null)
@@ -39,10 +39,10 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return categories;
         }
 
-        public async Task<IEnumerable<Category>> GetChildsOfOneCategoryAsync(int parentId, bool trackChanges)
+        public async Task<IEnumerable<Category>> GetChildrenByIdAsync(int parentCategoryId, bool trackChanges)
         {
             var categories = await FindAll(trackChanges)
-                .Where(c => c.ParentId == parentId)
+                .Where(c => c.ParentId == parentCategoryId)
                 .ToListAsync();
 
             return categories;
@@ -53,19 +53,19 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return await FindByCondition(c => c.Slug == slug, false).CountAsync();
         }
 
-        public void CreateCategory(Category category)
+        public void Create(Category category)
         {
-            Create(category);
+            CreateEntity(category);
         }
 
-        public void DeleteOneCategory(Category category)
+        public void Delete(Category category)
         {
-            Remove(category);
+            RemoveEntity(category);
         }
 
-        public void UpdateOneCategory(Category category)
+        public void Update(Category category)
         {
-            Update(category);
+            UpdateEntity(category);
         }
     }
 }

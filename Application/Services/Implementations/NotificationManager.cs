@@ -33,9 +33,9 @@ namespace Application.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<IEnumerable<NotificationDto>> GetAllNotificationsOfOneUserAsync(string userId)
+        public async Task<IEnumerable<NotificationDto>> GetByUserIdAsync(string userId)
         {
-            var notifications = await _manager.Notification.GetAllNotificationsOfOneUserAsync(userId, false);
+            var notifications = await _manager.Notification.GetAllAsync(userId, false);
             var notificationsDto = _mapper.Map<IEnumerable<NotificationDto>>(notifications);
 
             return notificationsDto;
@@ -43,7 +43,7 @@ namespace Application.Services.Implementations
 
         private async Task<Notification> GetOneNotificationForServiceAsync(int notificationId, bool trackChanges)
         {
-            var notification = await _manager.Notification.GetOneNotificationAsync(notificationId, trackChanges);
+            var notification = await _manager.Notification.GetByIdAsync(notificationId, trackChanges);
             if (notification == null)
             {
                 throw new NotificationNotFoundException(notificationId);
@@ -52,7 +52,7 @@ namespace Application.Services.Implementations
             return notification;
         }
 
-        public async Task<OperationResult<NotificationDto>> MarkNotificationAsReadAsync(int notificationId)
+        public async Task<OperationResult<NotificationDto>> MarkAsReadAsync(int notificationId)
         {
             var notification = await GetOneNotificationForServiceAsync(notificationId, true);
 
@@ -78,10 +78,10 @@ namespace Application.Services.Implementations
             return OperationResult<NotificationDto>.Success("Bildirim başarıyla okundu olarak işaretlendi.");
         }
 
-        public async Task<OperationResult<NotificationDto>> RemoveAllNotificationsAsync()
+        public async Task<OperationResult<NotificationDto>> RemoveAllAsync()
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-            var notifications = await _manager.Notification.GetAllNotificationsOfOneUserAsync(userId, false);
+            var notifications = await _manager.Notification.GetAllAsync(userId, false);
 
             if (notifications == null || !notifications.Any())
             {
@@ -94,7 +94,7 @@ namespace Application.Services.Implementations
                 notification.SoftDelete(userId);
             }
 
-            _manager.Notification.UpdateNotifications(notifications);
+            _manager.Notification.UpdateMultiple(notifications);
 
             await _manager.SaveAsync();
 
@@ -105,10 +105,10 @@ namespace Application.Services.Implementations
             return OperationResult<NotificationDto>.Success("Tüm bildirimler başarıyla silindi.");
         }
 
-        public async Task<OperationResult<NotificationDto>> MarkAllNotificationsAsReadAsync()
+        public async Task<OperationResult<NotificationDto>> MarkAllAsReadAsync()
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-            var notifications = await _manager.Notification.GetAllNotificationsOfOneUserAsync(userId, false);
+            var notifications = await _manager.Notification.GetAllAsync(userId, false);
 
             if (notifications == null || !notifications.Any())
             {
@@ -121,7 +121,7 @@ namespace Application.Services.Implementations
                 notification.MarkAsRead();
             }
 
-            _manager.Notification.UpdateNotifications(notifications);
+            _manager.Notification.UpdateMultiple(notifications);
 
             await _manager.SaveAsync();
 
@@ -132,7 +132,7 @@ namespace Application.Services.Implementations
             return OperationResult<NotificationDto>.Success("Tüm bildirimler başarıyla okundu olarak işaretlendi.");
         }
 
-        public async Task<OperationResult<NotificationDto>> CreateNotificationAsync(NotificationDtoForCreation notificationDto)
+        public async Task<OperationResult<NotificationDto>> CreateAsync(NotificationDtoForCreation notificationDto)
         {
             try
             {
@@ -143,7 +143,7 @@ namespace Application.Services.Implementations
                 notification.IsSystemGenerated = true;
                 notification.IsSent = true;
 
-                _manager.Notification.CreateNotification(notification);
+                _manager.Notification.Create(notification);
 
                 await _manager.SaveAsync();
 
@@ -189,7 +189,7 @@ namespace Application.Services.Implementations
 
                 foreach (var notification in notifications)
                 {
-                    _manager.Notification.CreateNotification(notification);
+                    _manager.Notification.Create(notification);
                 }
 
                 await _manager.SaveAsync();
@@ -207,7 +207,7 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<NotificationDto>> RemoveNotificationAsync(int notificationId)
+        public async Task<OperationResult<NotificationDto>> RemoveAsync(int notificationId)
         {
             var notification = await GetOneNotificationForServiceAsync(notificationId, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";

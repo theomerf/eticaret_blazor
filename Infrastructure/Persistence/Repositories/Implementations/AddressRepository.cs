@@ -10,7 +10,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<IEnumerable<Address>> GetAllAddressesAsync(bool trackChanges)
+        public async Task<IEnumerable<Address>> GetAllAsync(bool trackChanges)
         {
             var addresses = await FindAll(trackChanges)
                 .ToListAsync();
@@ -18,7 +18,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return addresses;
         }
 
-        public async Task<Address?> GetOneAddressAsync(int addressId, bool trackChanges)
+        public async Task<Address?> GetByIdAsync(int addressId, bool trackChanges)
         {
             var address = await FindByCondition(a => a.AddressId == addressId, trackChanges)
                 .FirstOrDefaultAsync();
@@ -26,7 +26,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return address; 
         }
 
-        public async Task<IEnumerable<Address>> GetAllUserAddressesOfOneUserAsync(string userId, bool trackChanges)
+        public async Task<IEnumerable<Address>> GetByUserIdAsync(string userId, bool trackChanges)
         {
             var addresses = await FindAll(trackChanges)
                 .Where(a => a.UserId == userId)
@@ -35,19 +35,19 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return addresses;
         }
 
-        public void CreateAddress(Address address)
+        public void Create(Address address)
         {
-            Create(address);
+            CreateEntity(address);
         }
 
-        public void UpdateAddress(Address address)
+        public void Update(Address address)
         {
-            Update(address);
+            UpdateEntity(address);
         }
 
-        public void DeleteAddress(Address address)
+        public void Delete(Address address)
         {
-            Remove(address);
+            RemoveEntity(address);
         }
     }
 }

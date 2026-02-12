@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Serilog;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Application.DTOs;
 
 namespace Infrastructure.Services.Implementations
 {
@@ -58,11 +59,11 @@ namespace Infrastructure.Services.Implementations
             return true;
         }
 
-        public async Task<CaptchaResponse> VerifyAsync(string? token)
+        public async Task<CaptchaResponseDto> VerifyAsync(string? token)
         {
             if (string.IsNullOrWhiteSpace(token))
             {
-                return new CaptchaResponse
+                return new CaptchaResponseDto
                 {
                     Success = false,
                     ErrorCodes = new[] { "missing-input-response" }
@@ -92,14 +93,14 @@ namespace Infrastructure.Services.Implementations
                 if (captchaResponse == null)
                 {
                     Log.Error("Google ReCaptcha API returned null response.");
-                    return new CaptchaResponse
+                    return new CaptchaResponseDto
                     {
                         Success = false,
                         ErrorCodes = new[] { "invalid-response" }
                     };
                 }
 
-                return new CaptchaResponse
+                return new CaptchaResponseDto
                 {
                     Success = captchaResponse.Success,
                     Score = captchaResponse.Score,
@@ -112,7 +113,7 @@ namespace Infrastructure.Services.Implementations
             catch (Exception ex)
             {
                 Log.Error(ex, "Error verifying CAPTCHA");
-                return new CaptchaResponse
+                return new CaptchaResponseDto
                 {
                     Success = false,
                     ErrorCodes = new[] { "exception-occurred" }

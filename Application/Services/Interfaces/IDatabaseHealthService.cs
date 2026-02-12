@@ -2,6 +2,6 @@
 {
     public interface IDatabaseHealthService
     {
-        Task<long?> CheckAsync();
+        Task<long?> CheckAsync(CancellationToken ct = default);
     }
 }

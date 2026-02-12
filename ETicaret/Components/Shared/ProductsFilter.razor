@@ -5,225 +5,303 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="filter-sidebar sticky-top" style="top: 20px;">
-    <div class="card shadow-lg border-0 filter-main-card">
-        <div class="card-header bg-gradient-primary text-white border-0 p-4">
-            <h5 class="card-title mb-0 d-flex align-items-center">
-                <i class="fas fa-filter me-2"></i>
+<div class="lg:sticky lg:top-5 lg:max-h-[calc(100vh-40px)] lg:h-auto lg:flex lg:flex-col lg:self-start z-20">
+    <div class="filter-main-card lg:flex lg:flex-col lg:max-h-[calc(100vh-40px)] lg:overflow-hidden bg-white rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-gray-100">
+        <div class="bg-primary text-white border-0 p-4 sm:p-5 rounded-t-2xl sm:rounded-t-[20px] flex-shrink-0">
+            <h5 class="m-0 flex items-center text-base sm:text-lg font-semibold">
+                <i class="fas fa-filter mr-2 sm:mr-3"></i>
                 Ürün Filtreleri
             </h5>
         </div>
 
-        <div class="accordion accordion-flush" id="filterAccordion">
-            <!-- Kategoriler Bölümü -->
-            <div class="accordion-item border-0">
-                <h2 class="accordion-header" id="headingCategories">
-                    <button class="accordion-button fw-semibold py-3" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#collapseCategories" aria-expanded="true" aria-controls="collapseCategories">
-                        <i class="fas fa-layer-group text-primary me-3"></i>
-                        <span>Kategoriler</span>
-                        <span class="badge bg-primary ms-auto me-2">12</span>
-                    </button>
-                </h2>
-                <div id="collapseCategories" class="accordion-collapse collapse show"
-                     aria-labelledby="headingCategories" data-bs-parent="#filterAccordion">
-                    <div class="accordion-body cat-acord">
-                        <CategoriesFilter />
+        <div id="filterAccordion" class="lg:flex-1 lg:overflow-y-auto lg:scrollbar-thin lg:scrollbar-thumb-gray-300 lg:scrollbar-track-gray-100">
+            <CascadingValue Value="_draftParams" Name="FilterParams">
+                <CascadingValue Value="OnDraftChange" Name="OnFilterChange">
+                    
+                    <!-- Kategoriler Bölümü -->
+                    <div class="border-0">
+                        <h2 id="headingCategories">
+                            <button class="custom-accordion-button @(collapseCategories ? "collapsed" : "")" type="button"
+                                    style="@(collapseCategories ? "background-color: white;" : "background-color: #eff6ff;")"
+                                    @onclick="ToggleCategories">
+                                <span class="flex items-center flex-1">
+                                    <i class="fas fa-layer-group text-blue-600 mr-2 sm:mr-3 text-sm sm:text-base"></i>
+                                    <span class="text-sm sm:text-base">Kategoriler</span>
+                                </span>
+                                <i class="fas fa-chevron-down @(collapseCategories ? "" : "rotate-180") transition-transform duration-300 text-xs sm:text-sm"></i>
+                            </button>
+                        </h2>
+                        <div id="collapseCategories" class="@(collapseCategories ? "hidden" : "block") transition-all duration-300">
+                            <div class="p-1">
+                                <CategoriesFilter />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Ürün Filtreleri Bölümü -->
-            <div class="accordion-item border-0">
-                <h2 class="accordion-header" id="headingProductFilterParams">
-                    <button class="accordion-button fw-semibold py-3" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#collapseProductFilterParams" aria-expanded="true" aria-controls="collapseProductFilterParams">
-                        <i class="fas fa-sliders-h text-primary me-3"></i>
-                        <span>Ürün Filtreleri</span>
-                    </button>
-                </h2>
-                <div id="collapseProductFilterParams" class="accordion-collapse collapse show"
-                     aria-labelledby="headingProductFilterParams" data-bs-parent="#filterAccordion">
-                    <div class="accordion-body px-4 pb-4">
-                        <form id="filterForm">
-                            @if (FilterParams.CategoryId != null)
-                            {
-                                <input type="hidden" name="CategoryId" id="mainCat" value="@FilterParams.CategoryId" />
-                            }
-
-                            <!-- Ürün Ara -->
-                            <div class="filter-section mb-4">
-                                <label for="searchTerm" class="form-label fw-semibold text-dark mb-3">
-                                    <i class="fas fa-search text-primary me-2"></i>Ürün Ara
-                                </label>
-                                <div class="search-container position-relative">
-                                    <input type="text" class="form-control form-control-lg border-2 pe-5 filter-input"
-                                           id="searchTerm" @bind="FilterParams.SearchTerm"
-                                           @bind:event="oninput" @bind:after="HandleProductSearch"
-                                           placeholder="Ürün adı veya açıklama yazın...">
-                                    <button @onclick="ClearSearch" class="btn search-clear-btn position-absolute top-50 end-0 translate-middle-y me-2"
-                                            type="button" id="clearSearch" style="display: @(string.IsNullOrEmpty(FilterParams.SearchTerm) ? "none" : "block")">
-                                        <i class="fas fa-times text-muted"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Fiyat Aralığı -->
-                            <div class="filter-section mb-4">
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <label class="form-label fw-semibold text-dark mb-0">
-                                        <i class="fas fa-tag text-primary me-2"></i>Fiyat Aralığı
-                                    </label>
-                                    <div class="price-display bg-light rounded-pill px-3 py-1">
-                                        <span id="minPriceDisplay" class="fw-bold text-primary">0</span>
-                                        <span class="text-muted mx-1">-</span>
-                                        <span id="maxPriceDisplay" class="fw-bold text-primary">100000</span>
-                                    </div>
-                                </div>
-                                <div id="priceRange" class="mb-3"></div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-light border-end-0">₺</span>
-                                            <input type="number" class="form-control border-start-0 filter-input" id="minPrice" name="MinPrice"
-                                                   placeholder="Min" @bind="FilterParams.MinPrice" @bind:event="oninput" @bind:after="HandlePrice" min="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-light border-end-0">₺</span>
-                                            <input type="number" class="form-control border-start-0 filter-input" id="maxPrice" name="MaxPrice"
-                                                   placeholder="Max" @bind="FilterParams.MaxPrice" @bind:event="oninput" @bind:after="HandlePrice" min="0">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Markalar -->
-                            <div class="filter-section mb-4">
-                                <label class="form-label fw-semibold text-dark mb-3">
-                                    <i class="fas fa-building text-primary me-2"></i>Markalar
-                                </label>
-                                <div class="brand-search mb-3">
-                                    <input type="text" class="form-control form-control-sm" id="brandSearch"
-                                           placeholder="Marka ara...">
-                                </div>
-                                <div class="brand-list custom-scrollbar" style="max-height: 200px; overflow-y: auto;">
-                                    <div class="form-check brand-item mb-3">
-                                        <input class="form-check-input filter-input" type="radio" name="Brand" id="brandAll"
-                                               checked="@(string.IsNullOrEmpty(FilterParams.Brand))"
-                                               @onclick="@(() => SelectBrand(null))">
-                                        <label class="form-check-label d-flex justify-content-between align-items-center w-100" for="brandAll">
-                                            <span class="fw-medium">Tüm Markalar</span>
-                                            <span class="badge bg-secondary rounded-pill">Tümü</span>
+                    <!-- Ürün Filtreleri Bölümü -->
+                    <div class="border-0">
+                        <h2 id="headingProductFilters">
+                            <button class="custom-accordion-button @(collapseProductFilters ? "collapsed" : "")" type="button"
+                                    style="@(collapseProductFilters ? "background-color: white;" : "background-color: #eff6ff;")"
+                                    @onclick="ToggleProductFilters">
+                                <span class="flex items-center flex-1">
+                                    <i class="fas fa-sliders-h text-blue-600 mr-2 sm:mr-3 text-sm sm:text-base"></i>
+                                    <span class="text-sm sm:text-base">Ürün Filtreleri</span>
+                                </span>
+                                <i class="fas fa-chevron-down @(collapseProductFilters ? "" : "rotate-180") transition-transform duration-300 text-xs sm:text-sm"></i>
+                            </button>
+                        </h2>
+                        <div id="collapseProductFilters" class="@(collapseProductFilters ? "hidden" : "block") transition-all duration-300">
+                            <div class="p-3 sm:p-4">
+                                <form id="filterForm" @onsubmit:preventDefault>
+                                    <!-- Ürün Ara (Anlık çalışır, draft değil) -->
+                                    <div class="filter-section mb-6">
+                                        <label for="searchTerm" class="block text-sm sm:text-base font-semibold text-gray-800 mb-2 sm:mb-3">
+                                            <i class="fas fa-search text-blue-600 mr-2"></i>Ürün Ara
                                         </label>
+                                        <div class="relative">
+                                            <!-- Doğrudan _draftParams'a bind ediyoruz ama değişikliği anlık uyguluyoruz -->
+                                            <input type="text" class="filter-input w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-2xl sm:rounded-[15px] pr-10 sm:pr-12 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                                   id="searchTerm" @bind="_draftParams.SearchTerm" @bind:event="oninput" @bind:after="HandleProductSearch"
+                                                   placeholder="Ürün adı veya açıklama yazın...">
+                                            @if (!string.IsNullOrEmpty(_draftParams.SearchTerm))
+                                            {
+                                                <button class="absolute top-1/2 right-0 -translate-y-1/2 mr-2 sm:mr-3 border-none bg-transparent z-10 text-gray-400 hover:text-gray-600 transition-colors"
+                                                        type="button" @onclick="ClearSearch">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            }
+                                        </div>
                                     </div>
-                                    @{
-                                        var brands = new[] {
-                                                                        new { Name = "Apple", Count = 45 },
-                                                                        new { Name = "Samsung", Count = 38 },
-                                                                        new { Name = "Sony", Count = 29 },
-                                                                        new { Name = "Huawei", Count = 22 },
-                                                                        new { Name = "Lenovo", Count = 18 },
-                                                                        new { Name = "Dell", Count = 12 },
-                                                                        new { Name = "Vestel", Count = 10 }
-                                                                        };
-                                        foreach (var brand in brands)
-                                        {
-                                            <div class="form-check brand-item mb-3" data-brand="@brand.Name.ToLower()">
-                                                <input class="form-check-input filter-input" type="radio" name="Brand" id="brand@(brand.Name)"
-                                                       checked="@(FilterParams.Brand == brand.Name)"
-                                                       @onclick="@(() => SelectBrand(brand.Name))">
-                                                <label class="form-check-label d-flex justify-content-between align-items-center w-100" for="brand@(brand.Name)">
-                                                    <span>@brand.Name</span>
-                                                    <span class="badge bg-light text-dark rounded-pill">@brand.Count</span>
+
+                                    <!-- Fiyat Aralığı -->
+                                    <div class="filter-section mb-6">
+                                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 sm:mb-3 gap-2">
+                                            <label class="block text-sm sm:text-base font-semibold text-gray-800 m-0">
+                                                <i class="fas fa-tag text-blue-600 mr-2"></i>Fiyat Aralığı
+                                            </label>
+                                            <div class="bg-gray-100 rounded-full px-3 py-1 text-xs sm:text-sm border border-gray-200">
+                                                <span class="font-bold text-blue-600">@(_draftParams.MinPrice ?? 0)</span>
+                                                <span class="text-gray-500 mx-1">-</span>
+                                                <span class="font-bold text-blue-600">@(_draftParams.MaxPrice ?? 100000)</span>
+                                            </div>
+                                        </div>
+                                        <div id="priceRange" class="mb-3 sm:mb-4 h-2.5 px-2"></div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
+                                                <span class="bg-gray-100 border-r border-gray-200 px-2 sm:px-3 py-2 text-sm sm:text-base text-gray-600">₺</span>
+                                                <input type="number" class="filter-input flex-1 px-2 sm:px-3 py-2 text-sm sm:text-base border-0 focus:ring-0 focus:outline-none" 
+                                                       id="minPrice" placeholder="Min" 
+                                                       @bind="_draftParams.MinPrice" @bind:event="oninput" @bind:after="OnDraftChange" min="0">
+                                            </div>
+                                            <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
+                                                <span class="bg-gray-100 border-r border-gray-200 px-2 sm:px-3 py-2 text-sm sm:text-base text-gray-600">₺</span>
+                                                <input type="number" class="filter-input flex-1 px-2 sm:px-3 py-2 text-sm sm:text-base border-0 focus:ring-0 focus:outline-none" 
+                                                       id="maxPrice" placeholder="Max" 
+                                                       @bind="_draftParams.MaxPrice" @bind:event="oninput" @bind:after="OnDraftChange" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Markalar -->
+                                    <div class="filter-section mb-6">
+                                        <label class="block text-sm sm:text-base font-semibold text-gray-800 mb-2 sm:mb-3">
+                                            <i class="fas fa-building text-blue-600 mr-2"></i>Markalar
+                                        </label>
+                                        <div class="mb-2 sm:mb-3">
+                                            <input type="text" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all" 
+                                                   @bind="brandSearchTerm" @bind:event="oninput"
+                                                   placeholder="Marka ara...">
+                                        </div>
+                                        <div class="max-h-[180px] sm:max-h-[200px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-gray-400">
+                                            <div class="flex items-center mb-2 sm:mb-3 hover:bg-blue-500/5 rounded-lg p-1 sm:p-2 pl-1 transition-colors cursor-pointer"
+                                                 @onclick="() => SelectBrand(null)">
+                                                <input class="filter-input w-4 h-4 rounded-md border-2 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer pointer-events-none" 
+                                                       type="radio" name="Brand" checked="@(string.IsNullOrEmpty(_draftParams.Brand))">
+                                                <label class="flex justify-between items-center w-full ml-2 sm:ml-3 cursor-pointer text-sm sm:text-base">
+                                                    <span class="font-medium text-gray-700">Tüm Markalar</span>
+                                                    <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full border border-gray-200">Tümü</span>
                                                 </label>
                                             </div>
-                                        }
-                                    }
-                                </div>
-                            </div>
+                                            @foreach (var brand in FilteredBrands)
+                                            {
+                                                <div class="flex items-center mb-2 sm:mb-3 hover:bg-blue-500/5 rounded-lg p-1 sm:p-2 pl-1 transition-colors cursor-pointer"
+                                                     @onclick="() => SelectBrand(brand.Name)">
+                                                    
+                                                     <input class="filter-input w-4 h-4 rounded-md border-2 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer pointer-events-none" 
+                                                       type="radio" name="Brand" checked="@(_draftParams.Brand == brand.Name)">
 
-                            <!-- Özel Filtreler -->
-                            <div class="filter-section mb-4">
-                                <label class="form-label fw-semibold text-dark mb-3">
-                                    <i class="fas fa-star text-primary me-2"></i>Özel Filtreler
-                                </label>
-                                <div class="special-filters">
-                                    <div class="form-check form-switch mb-3 p-0">
-                                        <div class="custom-switch-card d-flex align-items-center justify-content-between p-3 rounded-3 border">
-                                            <div class="d-flex align-items-center">
-                                                <i class="fas fa-fire text-danger me-3"></i>
-                                                <div>
-                                                    <div class="fw-medium">En Çok Satanlar</div>
-                                                    <small class="text-muted">Popüler ürünler</small>
+                                                    <label class="flex justify-between items-center w-full ml-2 sm:ml-3 cursor-pointer text-sm sm:text-base">
+                                                        <span class="text-gray-700">@brand.Name</span>
+                                                        <span class="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">@brand.Count</span>
+                                                    </label>
                                                 </div>
-                                            </div>
-                                            <input class="form-check-input ms-0 filter-input" type="checkbox" id="bestSellers" name="IsShowCase" value="true"
-                                                   checked="@(FilterParams.IsShowCase)" @onchange="HandleShowcase">
+                                            }
                                         </div>
                                     </div>
-                                    <div class="form-check form-switch mb-3 p-0">
-                                        <div class="custom-switch-card d-flex align-items-center justify-content-between p-3 rounded-3 border">
-                                            <div class="d-flex align-items-center">
-                                                <i class="fas fa-percentage text-success me-3"></i>
-                                                <div>
-                                                    <div class="fw-medium">İndirimli Ürünler</div>
-                                                    <small class="text-muted">Özel fiyatlar</small>
+
+                                    <!-- Özel Filtreler -->
+                                    <div class="filter-section">
+                                        <label class="block text-sm sm:text-base font-semibold text-gray-800 mb-2 sm:mb-3">
+                                            <i class="fas fa-star text-blue-600 mr-2"></i>Özel Filtreler
+                                        </label>
+                                        <div>
+                                            <div class="mb-2 sm:mb-3 p-0">
+                                                <div class="custom-switch-card">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center flex-1">
+                                                            <i class="fas fa-fire text-red-500 mr-2 sm:mr-3 text-base sm:text-lg"></i>
+                                                            <div>
+                                                                <div class="font-medium text-sm sm:text-base text-gray-800">En Çok Satanlar</div>
+                                                                <small class="text-xs text-gray-500">Popüler ürünler</small>
+                                                            </div>
+                                                        </div>
+                                                        <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6" 
+                                                               type="checkbox" checked="@(_draftParams.IsShowCase == true)" @onchange="HandleShowcase">
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <input class="form-check-input ms-0 filter-input" type="checkbox" id="discountedItems" name="IsDiscount" value="true"
-                                                   checked="@(FilterParams.IsDiscount)" @onchange="HandleDiscount">
+                                            <div class="mb-2 sm:mb-3 p-0">
+                                                 <div class="custom-switch-card">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center flex-1">
+                                                            <i class="fas fa-percentage text-green-500 mr-2 sm:mr-3 text-base sm:text-lg"></i>
+                                                            <div>
+                                                                <div class="font-medium text-sm sm:text-base text-gray-800">İndirimli Ürünler</div>
+                                                                <small class="text-xs text-gray-500">Özel fiyatlar</small>
+                                                            </div>
+                                                        </div>
+                                                        <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6" 
+                                                               type="checkbox" checked="@(_draftParams.IsDiscount == true)" @onchange="HandleDiscount">
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </form>
                             </div>
-                        </form>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </CascadingValue>
+            </CascadingValue>
+
+        </div>
+        
+        <!-- Filtreleri Uygula Butonu - Desktop -->
+        <div class="hidden lg:block p-4 border-t border-gray-200 bg-white rounded-b-2xl flex-shrink-0">
+            <button type="button" 
+                    @onclick="ApplyFilters"
+                    disabled="@(!IsDirty)"
+                    class="w-full bg-primary hover:bg-primary-dark text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-[0_8px_25px_rgba(102,126,234,0.3)] hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(102,126,234,0.4)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-check"></i>
+                Filtreleri Uygula
+            </button>
         </div>
     </div>
 </div>
 
 <div id="loadingOverlay"
-     style="
-        display: @(ShowLoadingOverlay ? "flex" : "none");
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.3);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-     ">
-    <div class="bg-white rounded p-4 text-center">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Yükleniyor...</span>
-        </div>
-        <div class="mt-2">Filtreler uygulanıyor...</div>
+     class="fixed inset-0 bg-black/30 z-[9999] flex justify-center items-center backdrop-blur-sm transition-opacity duration-300 @(ShowLoadingOverlay ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")">
+    <div class="bg-white rounded-2xl p-6 text-center shadow-2xl transform transition-transform duration-300 @(ShowLoadingOverlay ? "scale-100" : "scale-95")">
+        <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <div class="text-gray-800 font-semibold">Filtreler uygulanıyor...</div>
     </div>
 </div>
 
 @code {
     [CascadingParameter(Name = "FilterParams")]
-    public ProductRequestParameters FilterParams { get; set; } = new();
+    public ProductRequestParametersAdmin FilterParams { get; set; } = new();
+
     [CascadingParameter(Name = "OnFilterChange")]
-    public Func<Task> OnFilterChange { get; set; } = async () => { };
+    public Func<Task> ParentOnFilterChange { get; set; } = async () => { };
+
     [CascadingParameter(Name = "ShowLoadingOverlay")]
     public bool ShowLoadingOverlay { get; set; }
 
+    private ProductRequestParametersAdmin _draftParams = new();
+    
+    private Func<Task> OnDraftChange => () => { StateHasChanged(); return Task.CompletedTask; };
+
+    private bool collapseCategories = false;
+    private bool collapseProductFilters = false;
+    private string? brandSearchTerm;
+
+    private void ToggleCategories() => collapseCategories = !collapseCategories;
+    private void ToggleProductFilters() => collapseProductFilters = !collapseProductFilters;
+
+    protected override void OnParametersSet()
+    {
+        SyncDraft();
+    }
+    
+    private void SyncDraft()
+    {
+       if (!AreParamsEqual(_draftParams, FilterParams))
+       {
+           CopyParams(FilterParams, _draftParams);
+       }
+    }
+
+    private void CopyParams(ProductRequestParametersAdmin source, ProductRequestParametersAdmin dest)
+    {
+        dest.SearchTerm = source.SearchTerm;
+        dest.MinPrice = source.MinPrice;
+        dest.MaxPrice = source.MaxPrice;
+        dest.CategoryId = source.CategoryId;
+        dest.Brand = source.Brand;
+        dest.IsShowCase = source.IsShowCase;
+        dest.IsDiscount = source.IsDiscount;
+        dest.SortBy = source.SortBy;
+        dest.PageNumber = source.PageNumber;
+        dest.PageSize = source.PageSize;
+    }
+
+    private bool AreParamsEqual(ProductRequestParametersAdmin p1, ProductRequestParametersAdmin p2)
+    {
+        if (p1 == null || p2 == null) return false;
+        
+        return p1.SearchTerm == p2.SearchTerm &&
+               p1.MinPrice == p2.MinPrice &&
+               p1.MaxPrice == p2.MaxPrice &&
+               p1.CategoryId == p2.CategoryId &&
+               p1.Brand == p2.Brand &&
+               p1.IsShowCase == p2.IsShowCase &&
+               p1.IsDiscount == p2.IsDiscount;
+    }
+
+    private bool IsDirty => !AreParamsEqual(_draftParams, FilterParams);
+
+    private async Task ApplyFilters()
+    {
+        CopyParams(_draftParams, FilterParams);
+        FilterParams.PageNumber = 1; 
+        await ParentOnFilterChange.Invoke();
+    }
+
+    private List<BrandInfo> allBrands = new()
+    {
+        new BrandInfo { Name = "Apple", Count = 45 },
+        new BrandInfo { Name = "Samsung", Count = 38 },
+        new BrandInfo { Name = "Sony", Count = 29 },
+        new BrandInfo { Name = "Huawei", Count = 22 },
+        new BrandInfo { Name = "Lenovo", Count = 18 },
+        new BrandInfo { Name = "Sony", Count = 15 },
+        new BrandInfo { Name = "Dell", Count = 12 },
+        new BrandInfo { Name = "Vestel", Count = 10 }
+    };
+
+    private IEnumerable<BrandInfo> FilteredBrands => string.IsNullOrEmpty(brandSearchTerm) 
+        ? allBrands 
+        : allBrands.Where(b => b.Name.Contains(brandSearchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private class BrandInfo
+    {
+        public string Name { get; set; } = "";
+        public int Count { get; set; }
+    }
+
     private DotNetObjectReference<ProductsFilter>? dotNetHelper;
     private Debouncer Debouncer = new Debouncer(500);
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            dotNetHelper = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("window.setProductFilterReference", dotNetHelper);
-            await JSRuntime.InvokeVoidAsync("initializePriceSlider");
-        }
-    }
 
     public void Dispose()
     {
@@ -236,73 +314,77 @@
         {
             _ = InvokeAsync(async () =>
             {
-                await OnFilterChange.Invoke();
+                FilterParams.SearchTerm = _draftParams.SearchTerm;
+                FilterParams.PageNumber = 1;
+                await ParentOnFilterChange.Invoke();
             });
         });
     }
 
     private async Task ClearSearch()
     {
+        _draftParams.SearchTerm = string.Empty;
         FilterParams.SearchTerm = string.Empty;
-        await OnFilterChange.Invoke();
+        FilterParams.PageNumber = 1;
+        await ParentOnFilterChange.Invoke();
+        StateHasChanged(); 
     }
 
-    private async Task SelectBrand(string? brandName)
+    private void SelectBrand(string? brandName)
     {
-        FilterParams.Brand = brandName;
-        await OnFilterChange.Invoke();
-    }
-
-    private async Task HandleDiscount(ChangeEventArgs e)
-    {
-        if (e.Value is bool isChecked)
-        {
-            FilterParams.IsDiscount = isChecked == true ? true : null;
-            await OnFilterChange.Invoke();
-        }
-    }
-
-    private async Task HandleShowcase(ChangeEventArgs e)
-    {
-        if (e.Value is bool isChecked)
-        {
-            FilterParams.IsShowCase = isChecked == true ? true : null;
-            await OnFilterChange.Invoke();
-        }
-    }
-
-    private void HandlePrice()
-    {
-        Debouncer.Debounce(() =>
-        {
-            _ = InvokeAsync(async () =>
-            {
-                await OnFilterChange.Invoke();
-            });
-        });
-    }
-
-    [JSInvokable]
-    public void UpdatePriceFromSlider(int? minPrice, int? maxPrice)
-    {
-        FilterParams.MinPrice = minPrice == 0 ? null : minPrice;
-        FilterParams.MaxPrice = maxPrice == 100000 ? null : maxPrice;
-        HandlePrice();
+        _draftParams.Brand = brandName;
         StateHasChanged();
     }
 
-    public bool HasFiltered()
+    private void HandleDiscount(ChangeEventArgs e)
     {
-        if (!string.IsNullOrEmpty(FilterParams.SearchTerm) ||
-            !(FilterParams.MinPrice == null) ||
-            !(FilterParams.MaxPrice == null) ||
-            !string.IsNullOrEmpty(FilterParams.Brand) ||
-            !(FilterParams.IsShowCase == null) ||
-            !(FilterParams.IsDiscount == null) ||
-            !(FilterParams.CategoryId == null))
+        if (e.Value is bool isChecked)
         {
-            return true;
+            _draftParams.IsDiscount = isChecked == true ? true : null;
+            StateHasChanged();
         }
-        return false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                dotNetHelper = DotNetObjectReference.Create(this);
+                
+                for (int i = 0; i < 20; i++)
+                {
+                    var isLoaded = await JSRuntime.InvokeAsync<bool>("eval", "typeof setProductFilterReference !== 'undefined'");
+                    if (isLoaded) break;
+                    await Task.Delay(100);
+                }
+
+                await JSRuntime.InvokeVoidAsync("setProductFilterReference", dotNetHelper);
+                await JSRuntime.InvokeVoidAsync("initPriceSliders", _draftParams.MinPrice, _draftParams.MaxPrice);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing ProductsFilter JS: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task UpdatePriceFromSlider(int? min, int? max)
+    {
+        _draftParams.MinPrice = min;
+        _draftParams.MaxPrice = max;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private void HandleShowcase(ChangeEventArgs e)
+    {
+        if (e.Value is bool isChecked)
+        {
+            _draftParams.IsShowCase = isChecked == true ? true : null;
+            StateHasChanged();
+        }
     }
 }

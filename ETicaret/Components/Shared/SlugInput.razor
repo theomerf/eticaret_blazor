@@ -1,0 +1,130 @@
+@inject IJSRuntime JSRuntime
+
+<div class="space-y-2">
+    <div class="flex items-center justify-between mb-2">
+        <label class="block text-sm font-semibold text-gray-700">
+            <i class="fas fa-link mr-2"></i>URL Slug
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" @bind="overrideEnabled" class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500" />
+            <span class="text-sm text-gray-600">Manuel Düzenle</span>
+        </label>
+    </div>
+
+    <div class="relative flex items-center">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <i class="fas fa-globe text-gray-400"></i>
+        </span>
+        <input
+            type="text"
+            value="@displayValue"
+            @oninput="HandleInput"
+            readonly="@(!overrideEnabled)"
+            placeholder="@Placeholder"
+            class="w-full pl-10 pr-20 py-3 border-2 border-gray-300 rounded-xl font-mono text-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 @(overrideEnabled ? "bg-white text-gray-900" : "bg-gray-50 text-gray-600 cursor-not-allowed")" />
+        @if (!string.IsNullOrEmpty(displayValue))
+        {
+            <button type="button" @onclick="CopyToClipboard" class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm transition-all duration-300 hover:bg-blue-500 hover:text-white" title="Kopyala">
+                <i class="fas fa-copy"></i>
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(displayValue))
+    {
+        <div class="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
+            <i class="fas fa-eye text-gray-400 text-xs mr-1"></i>
+            <span class="text-xs text-gray-500">Önizleme:</span>
+            <span class="text-xs font-mono text-blue-600">example.com/products/@displayValue</span>
+        </div>
+    }
+
+    @if (overrideEnabled)
+    {
+        <p class="text-xs text-gray-500 flex items-center gap-1">
+            <i class="fas fa-info-circle mr-1"></i>
+            Slug URL'de kullanılır. Küçük harf, sayı ve tire (-) içerebilir.
+        </p>
+    }
+    else
+    {
+        <p class="text-xs text-gray-500 flex items-center gap-1">
+            <i class="fas fa-magic mr-1"></i>
+            Slug otomatik olarak ürün adından oluşturulacak.
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string? SourceName { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "ornek-urun-adı";
+
+    private bool overrideEnabled = false;
+    private string? displayValue = null;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(Value))
+        {
+            overrideEnabled = true;
+            displayValue = Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(SourceName))
+        {
+            var newSlug = GenerateSlug(SourceName);
+            if (displayValue != newSlug)
+            {
+                displayValue = newSlug;
+                // Propagate auto-generated slug to parent model so it gets saved
+                if (Value != newSlug && ValueChanged.HasDelegate)
+                {
+                    _ = ValueChanged.InvokeAsync(newSlug);
+                }
+            }
+        }
+    }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        if (!overrideEnabled) return;
+
+        var input = e.Value?.ToString() ?? string.Empty;
+        displayValue = GenerateSlug(input);
+        await ValueChanged.InvokeAsync(displayValue);
+    }
+
+    private string GenerateSlug(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        // Simple client-side slug generation (server will use SlugHelper for final version)
+        return text
+            .ToLowerInvariant()
+            .Replace("ç", "c").Replace("ğ", "g").Replace("ı", "i")
+            .Replace("ö", "o").Replace("ş", "s").Replace("ü", "u")
+            .Replace("İ", "i")
+            .Trim()
+            .Replace(" ", "-")
+            .Replace("--", "-")
+            .Substring(0, Math.Min(text.Length, 100));
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(displayValue))
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", displayValue);
+                // TODO: Show success toast
+            }
+            catch
+            {
+                // Fallback for older browsers
+            }
+        }
+    }
+}

@@ -52,7 +52,7 @@ namespace ETicaret.Services
             var result = await _authService.AddToFavouritesAsync(productId);
             if (result.IsSuccess && result.Data != null)
             {
-                FavouriteIds = result.Data.FavouriteProductsId.ToList();
+                FavouriteIds = result.Data.FavouriteProductVariantsId.ToList();
                 await UpdateCookieAsync();
                 OnChange?.Invoke();
             }
@@ -63,7 +63,7 @@ namespace ETicaret.Services
             var result = await _authService.RemoveFromFavouritesAsync(productId);
             if (result.IsSuccess && result.Data != null)
             {
-                FavouriteIds = result.Data.FavouriteProductsId.ToList();
+                FavouriteIds = result.Data.FavouriteProductVariantsId.ToList();
                 await UpdateCookieAsync();
                 OnChange?.Invoke();
             }

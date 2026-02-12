@@ -14,7 +14,7 @@ namespace Application.Services.Implementations
             _databaseHealthService = databaseHealthService;
         }
 
-        public async Task<SystemStatusDto> GetSystemStatusAsync()
+        public async Task<SystemStatusDto> GetSystemStatusAsync(CancellationToken ct = default)
         {
             var status = new SystemStatusDto();
 
@@ -46,7 +46,7 @@ namespace Application.Services.Implementations
             // Veritabanı durumu
             try
             {
-                var elapsed = await _databaseHealthService.CheckAsync();
+                var elapsed = await _databaseHealthService.CheckAsync(ct);
 
                 if (elapsed is null)
                 {

@@ -30,8 +30,7 @@ namespace Infrastructure.Persistence.Configurations
                 .IsDescending()
                 .HasDatabaseName("IX_CouponUsages_UsedAt_Desc");
 
-            // Query filter to match parent Coupon's soft delete filter
-            builder.HasQueryFilter(cu => !cu.Coupon.IsDeleted);
+            builder.HasQueryFilter(cu => !cu.Coupon!.IsDeleted);
 
             builder.HasOne(cu => cu.User)
                 .WithMany()

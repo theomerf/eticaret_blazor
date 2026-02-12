@@ -28,11 +28,11 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 : _context.Set<T>().AsNoTracking().Count();
         }
 
-        public async Task<int> CountAsync(bool trackChanges)
+        public async Task<int> CountAsync(bool trackChanges, CancellationToken ct = default)
         {
             return trackChanges
-                ? await _context.Set<T>().CountAsync()
-                : await _context.Set<T>().AsNoTracking().CountAsync();
+                ? await _context.Set<T>().CountAsync(ct)
+                : await _context.Set<T>().AsNoTracking().CountAsync(ct);
         }
 
         public IQueryable<T> FindByCondition(Expression<Func<T, bool>> expression, bool trackChanges)
@@ -49,17 +49,17 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 : _context.Set<T>().Where(expression).AsNoTracking();
         }
 
-        public void Create(T entity)
+        public void CreateEntity(T entity)
         {
             _context.Set<T>().Add(entity);
         }
 
-        public void Update(T entity)
+        public void UpdateEntity(T entity)
         {
             _context.Set<T>().Update(entity);
         }
 
-        public void Remove(T entity)
+        public void RemoveEntity(T entity)
         {
             _context.Set<T>().Remove(entity);
         }

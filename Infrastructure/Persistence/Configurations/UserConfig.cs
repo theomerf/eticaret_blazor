@@ -10,10 +10,6 @@ namespace Infrastructure.Persistence.Configurations
         {
             builder.HasQueryFilter(a => !a.IsDeleted);
 
-            builder.HasIndex(a => a.IsDeleted)
-                .HasFilter("\"IsDeleted\" = false")
-                .HasDatabaseName("IX_Accounts_IsDeleted_Filtered");
-
             builder.Property(a => a.FirstName)
                    .IsRequired()
                    .HasMaxLength(100);
@@ -32,6 +28,10 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(a => a.Email)
                    .IsRequired()
                    .HasMaxLength(256);
+
+            builder.HasIndex(a => a.IsDeleted)
+                .HasFilter("\"IsDeleted\" = false")
+                .HasDatabaseName("IX_Accounts_IsDeleted_Filtered");
 
             builder.HasMany(u => u.UserReviews)
                    .WithOne(ur => ur.User)

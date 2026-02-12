@@ -35,7 +35,7 @@ namespace ETicaret.Controllers.Api
             if (userId != null)
             {
                 var user = await _authService.GetOneUsersFavouritesAsync(userName!);
-                favouritesCount = user.FavouriteProductsId.Count();
+                favouritesCount = user.FavouriteProductVariantsId.Count();
             }
 
             return Ok(new { count = favouritesCount });
@@ -46,16 +46,16 @@ namespace ETicaret.Controllers.Api
         public async Task<IActionResult> GetNotificationsCount()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var notifications = await _notificationService.GetAllNotificationsOfOneUserAsync(userId!);
+            var notifications = await _notificationService.GetByUserIdAsync(userId!);
             var unreadNotifications = notifications.Where(n => n.IsRead == false);
 
             return Ok(new { count = unreadNotifications.Count() });
         }
 
-        private void UpdateFavoritesCookie(ICollection<int> favoriteIds)
+        private void UpdateFavoritesCookie(ICollection<int> favouriteIds)
         {
-            var cookieValue = favoriteIds.Any()
-                ? string.Join("|", favoriteIds)
+            var cookieValue = favouriteIds.Any()
+                ? string.Join("|", favouriteIds)
                 : string.Empty;
 
             var cookieOptions = new CookieOptions
@@ -79,20 +79,20 @@ namespace ETicaret.Controllers.Api
         }
 
         [Authorize]
-        [HttpPost("favourites/add/{productId:int}")]
-        public async Task<IActionResult> AddToFavourites(int productId)
+        [HttpPost("favourites/add/{productVariantId:int}")]
+        public async Task<IActionResult> AddToFavourites(int productVariantId)
         {
-            if (productId <= 0)
+            if (productVariantId <= 0)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Geçersiz ürün ID.",
+                    message = "Geçersiz ürün varyant ID.",
                     type = "danger"
                 });
             }
 
-            var result = await _authService.AddToFavouritesAsync(productId);
+            var result = await _authService.AddToFavouritesAsync(productVariantId);
 
             if (!result.IsSuccess)
             {
@@ -104,32 +104,32 @@ namespace ETicaret.Controllers.Api
                 });
             }
 
-            UpdateFavoritesCookie(result.Data!.FavouriteProductsId);
+            UpdateFavoritesCookie(result.Data!.FavouriteProductVariantsId);
 
             return Ok(new
             {
                 success = true,
                 message = result.Message,
                 type = result.Type,
-                count = result.Data.FavouriteProductsId.Count
+                count = result.Data.FavouriteProductVariantsId.Count
             });
         }
 
         [Authorize]
-        [HttpPost("favourites/remove/{productId:int}")]
-        public async Task<IActionResult> RemoveFromFavourites(int productId)
+        [HttpPost("favourites/remove/{productVariantId:int}")]
+        public async Task<IActionResult> RemoveFromFavourites(int productVariantId)
         {
-            if (productId <= 0)
+            if (productVariantId <= 0)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Geçersiz ürün ID.",
+                    message = "Geçersiz ürün varyant ID.",
                     type = "danger"
                 });
             }
 
-            var result = await _authService.RemoveFromFavouritesAsync(productId);
+            var result = await _authService.RemoveFromFavouritesAsync(productVariantId);
 
             if (!result.IsSuccess)
             {
@@ -141,14 +141,14 @@ namespace ETicaret.Controllers.Api
                 });
             }
 
-            UpdateFavoritesCookie(result.Data!.FavouriteProductsId);
+            UpdateFavoritesCookie(result.Data!.FavouriteProductVariantsId);
 
             return Ok(new
             {
                 success = true,
                 message = result.Message,
                 type = result.Type,
-                count = result.Data.FavouriteProductsId.Count
+                count = result.Data.FavouriteProductVariantsId.Count
             });
         }
 
@@ -156,7 +156,7 @@ namespace ETicaret.Controllers.Api
         [HttpPut("notifications/mark-all-read")]
         public async Task<IActionResult> MarkAllNotificationsAsRead()
         {
-            var result = await _notificationService.MarkAllNotificationsAsReadAsync();
+            var result = await _notificationService.MarkAllAsReadAsync();
 
             if (!result.IsSuccess)
             {
@@ -180,7 +180,7 @@ namespace ETicaret.Controllers.Api
         [HttpDelete("notifications/remove-all")]
         public async Task<IActionResult> RemoveAllNotifications()
         {
-            var result = await _notificationService.RemoveAllNotificationsAsync();
+            var result = await _notificationService.RemoveAllAsync();
 
             if (!result.IsSuccess)
             {
@@ -204,7 +204,7 @@ namespace ETicaret.Controllers.Api
         [HttpDelete("notifications/remove/{notificationId:int}")]
         public async Task<IActionResult> RemoveNotification([FromRoute] int notificationId)
         {
-            var result = await _notificationService.RemoveNotificationAsync(notificationId);
+            var result = await _notificationService.RemoveAsync(notificationId);
 
             if (!result.IsSuccess)
             {
@@ -228,7 +228,7 @@ namespace ETicaret.Controllers.Api
         [HttpPut("notifications/mark-read/{notificationId:int}")]
         public async Task<IActionResult> MarkNotificationAsRead([FromRoute] int notificationId)
         {
-            var result = await _notificationService.MarkNotificationAsReadAsync(notificationId);
+            var result = await _notificationService.MarkAsReadAsync(notificationId);
 
             if (!result.IsSuccess)
             {
@@ -262,7 +262,7 @@ namespace ETicaret.Controllers.Api
                 {
                     reviewDto.ReviewPictureUrl = uploadResult.Data;
 
-                    var result = await _userReviewService.CreateUserReviewAsync(reviewDto);
+                    var result = await _userReviewService.CreateAsync(reviewDto);
 
                     if (!result.IsSuccess)
                     {
@@ -293,7 +293,7 @@ namespace ETicaret.Controllers.Api
             }
             else
             {
-                var result = await _userReviewService.CreateUserReviewAsync(reviewDto);
+                var result = await _userReviewService.CreateAsync(reviewDto);
 
                 if (!result.IsSuccess)
                 {

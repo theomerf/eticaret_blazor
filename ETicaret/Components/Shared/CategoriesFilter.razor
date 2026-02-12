@@ -1,69 +1,104 @@
 ﻿@using Application.Queries.RequestParameters
 @using ETicaret.Models
+@using Application.DTOs
 @inject IJSRuntime JSRuntime
 @inject ICategoryService CategoryService
 
-<div class="modern-category-filter">
-    <div class="main-categories-section">
-        <div class="section-title">
-            <h3>Ana Kategoriler</h3>
+<div>
+    <div class="p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-3 sm:mb-5 pb-2 border-b-2 border-slate-200">
+            <h3 class="text-sm sm:text-base font-semibold text-slate-800 m-0 flex items-center gap-2">
+                Ana Kategoriler
+            </h3>
         </div>
-        <div class="main-categories-grid">
-            <div class="main-category-card @(FilterParams.CategoryId == null ? "active" : "")"
-                 @onclick="() => SelectMainCategory(null)">
-                <a class="category-link">
-                    <div class="category-icon">
-                        <i class="fas fa-th-large"></i>
+        <div class="grid grid-cols-3 gap-2 sm:gap-3">
+            <!-- Tüm Kategoriler -->
+            <button type="button"
+                    class="main-category-card @(FilterParams.CategoryId == null ? "active cursor-not-allowed" : "")"
+                    @onclick="() => SelectMainCategory(null)"
+                    disabled="@(FilterParams.CategoryId == null)">
+                <div data-tooltip="Tüm Kategoriler"
+                     class="tooltip flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
+                    <div class="w-8 h-8 bg-gradient-to-br from-slate-50 to-slate-200 rounded-2xl sm:rounded-[20px] flex items-center justify-center relative overflow-hidden transition-all duration-300 mb-1 sm:mb-2 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
+                         <i class="fas fa-th-large text-lg sm:text-xl text-indigo-500 relative z-[1] transition-all duration-300 group-hover:text-white group-hover:scale-110"></i>
                     </div>
-                    <span class="category-name">Tüm Ürünler</span>
-                </a>
-            </div>
+                    <span class="text-xs font-semibold tracking-tight leading-tight block w-full truncate">Tüm Ürünler</span>
+                </div>
+            </button>
+
             @foreach (var parentCategory in model.Where(c => c.ParentId == null))
             {
-                var isParentActive = (FilterParams.CategoryId == parentCategory.CategoryId) || FilterParams.CategoryId == (model.FirstOrDefault(c => c.CategoryId == FilterParams.CategoryId)?.CategoryId);
-                <div class="main-category-card @(isParentActive ? "active" : "")"
-                     @onclick="() => SelectMainCategory(parentCategory.CategoryId)">
-                    <a class="category-link">
-                        <div class="category-icon">
-                            <i class="@GetCategoryIcon(parentCategory.CategoryName)"></i>
+                var isMainCategorySelected = FilterParams.CategoryId == parentCategory.CategoryId;
+                var hasSelectedSubcategory = model.Any(c => c.ParentId == parentCategory.CategoryId && FilterParams.CategoryId == c.CategoryId);
+                var isActive = isMainCategorySelected || hasSelectedSubcategory;
+
+                <button type="button"
+                        class="main-category-card @(isActive ? "active cursor-not-allowed" : "")"
+                        @onclick="() => SelectMainCategory(parentCategory.CategoryId)"
+                        disabled="@(isActive ? "disabled" : null)">
+                    <div data-tooltip="@parentCategory.CategoryName"
+                         class="tooltip flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
+                        <div class="w-8 h-8 bg-gradient-to-br from-slate-50 to-slate-200 rounded-2xl sm:rounded-[20px] flex items-center justify-center relative overflow-hidden transition-all duration-300 mb-1 sm:mb-2 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
+                            <i class="@GetCategoryIcon(parentCategory.CategoryName) text-lg sm:text-xl text-indigo-500 relative z-[1] transition-all duration-300 group-hover:text-white group-hover:scale-110"></i>
                         </div>
-                        <span class="category-name">@parentCategory.CategoryName</span>
-                    </a>
-                </div>
+                        <span class="text-xs font-semibold tracking-tight leading-tight block w-full truncate">@parentCategory.CategoryName</span>
+                    </div>
+                </button>
             }
         </div>
     </div>
 
-    <div class="sub-categories-section" style="display: @(FilterParams.CategoryId != null ? "block" : "none")">
-        <div class="section-title">
-            <h3 id="subcategory-title">Alt Kategoriler</h3>
-            <span id="selected-main-category" class="selected-category-badge">
-                Tüm Kategoriler
-            </span>
-        </div>
-        <div class="sub-categories-grid" id="subcategories-container">
-            @foreach (var childCategory in model.Where(m => m.ParentId == FilterParams.CategoryId))
-            {
-                var isChildActive = FilterParams.CategoryId == childCategory.CategoryId;
-                <div class="sub-category-card @(isChildActive ? "active" : "")"
-                     @onclick="() => SelectSubCategory(childCategory.CategoryId, childCategory.CategoryId)">
-                    <a class="category-link">
-                        <div class="category-icon">
-                            <i class="@GetSubCategoryIcon(childCategory.CategoryName)"></i>
-                        </div>
-                        <div class="category-info">
-                            <span class="category-name">@childCategory.CategoryName</span>
-                        </div>
-                    </a>
+    <!-- Alt Kategoriler Bölümü -->
+    @if (FilterParams.CategoryId != null)
+    {
+         var selectedParentId = model.FirstOrDefault(c => c.CategoryId == FilterParams.CategoryId)?.ParentId 
+                             ?? FilterParams.CategoryId;
+         
+         var subCategories = model.Where(c => c.ParentId == selectedParentId).ToList();
+
+        @if (subCategories.Any())
+        {
+            <div class="border-t border-slate-100 bg-slate-50 p-4 sm:p-6 animate-slideDown">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 pb-3 border-b-2 border-slate-200 gap-3">
+                    <h3 class="text-sm sm:text-base font-semibold text-slate-800 m-0 flex items-center gap-2">
+                        Alt Kategoriler
+                    </h3>
+                    <span class="bg-primary text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl sm:rounded-[20px] text-xs sm:text-sm font-semibold shadow-[0_4px_12px_rgba(102,126,234,0.3)]">
+                       @(model.FirstOrDefault(c => c.CategoryId == selectedParentId)?.CategoryName ?? "Seçili Kategori")
+                    </span>
                 </div>
-            }
-        </div>
-    </div>
+                <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                    @foreach (var childCategory in subCategories)
+                    {
+                        var isChildActive = FilterParams.CategoryId == childCategory.CategoryId;
+
+                        <button type="button"
+                                class="sub-category-card @(isChildActive ? "active cursor-not-allowed" : "")"
+                                @onclick="() => SelectSubCategory(childCategory.CategoryId)"
+                                disabled="@(isChildActive ? "disabled" : null)">
+                            <div data-tooltip="@childCategory.CategoryName"
+                                 class="tooltip category-link flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
+                                <div class="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
+                                    <i class="@GetSubCategoryIcon(childCategory.CategoryName) text-lg sm:text-xl text-indigo-500 relative z-[1] transition-all duration-300 group-hover:text-white"></i>
+                                </div>
+                                <div class="flex flex-col items-center gap-0.5 sm:gap-1 min-w-0 w-full">
+                                    <span class="block w-full text-xs font-semibold tracking-tight leading-tight mt-1 sm:mt-2 truncate text-center">
+                                        @childCategory.CategoryName
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    }
 </div>
 
 @code {
     [CascadingParameter(Name = "FilterParams")]
-    public ProductRequestParameters FilterParams { get; set; } = new();
+    public ProductRequestParametersAdmin FilterParams { get; set; } = new();
+
     [CascadingParameter(Name = "OnFilterChange")]
     public Func<Task> OnFilterChange { get; set; } = async () => { };
 
@@ -71,26 +106,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        model = await CategoryService.GetAllCategoriesAsync(false);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await JSRuntime.InvokeVoidAsync("initializePriceSlider");
-        }
+        model = await CategoryService.GetAllAsync(false);
     }
 
     private async Task SelectMainCategory(int? mainCategoryId)
     {
         FilterParams.CategoryId = mainCategoryId;
+        // Search term ve diğer filtreleri sıfırlamak ister miyiz? Admin panelinde belki istemeyiz.
+        // Genelde sadece PageNumber resetlenir.
+        FilterParams.PageNumber = 1;
         await OnFilterChange.Invoke();
     }
 
-    private async Task SelectSubCategory(int mainCategoryId, int subCategoryId)
+    private async Task SelectSubCategory(int subCategoryId)
     {
-        FilterParams.CategoryId = mainCategoryId;
+        FilterParams.CategoryId = subCategoryId;
+        FilterParams.PageNumber = 1;
         await OnFilterChange.Invoke();
     }
 
@@ -108,6 +139,7 @@
         else if (categoryName.Contains("Kitap") || categoryName.Contains("Sport")) return "fas fa-book";
         else return "fas fa-cube";
     }
+
     private string GetSubCategoryIcon(string subCategoryName)
     {
         if (subCategoryName.Contains("iPhone") || subCategoryName.Contains("Apple")) return "fab fa-apple";

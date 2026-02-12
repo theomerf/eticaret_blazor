@@ -3,4 +3,49 @@
     ViewData["UseBlazor"] = true;
 }
 
-<component type="typeof(ETicaret.Components.Pages.Cart)" render-mode="Server" />
+@section Scripts {
+    <link rel="stylesheet" href="~/css/blazor-loader.css" />
+    <script src="~/js/blazor-loader.js" asp-append-version="true"></script>
+}
+
+<div id="pre-blazor-loading">
+    <h2 class="page-title">Alışveriş Sepetim</h2>
+    
+    <div class="flex flex-col lg:flex-row gap-8 animate-pulse">
+        <div class="lg:w-8/12 space-y-6">
+            <div class="cart-glass-card">
+                @for (int i = 0; i < 3; i++)
+                {
+                    <div class="p-6 border-b border-gray-100 last:border-0 flex items-center gap-6">
+                        <div class="w-24 h-24 sm:w-28 sm:h-28 skeleton-box flex-shrink-0 rounded-2xl"></div>
+                        <div class="flex-grow space-y-3">
+                            <div class="h-6 w-3/4 skeleton-box rounded"></div>
+                            <div class="h-4 w-1/2 skeleton-box rounded"></div>
+                            <div class="flex gap-2">
+                                <div class="h-6 w-16 skeleton-box rounded-full"></div>
+                                <div class="h-6 w-20 skeleton-box rounded-full"></div>
+                            </div>
+                        </div>
+                        <div class="w-32 h-10 skeleton-box rounded-[30px] hidden sm:block"></div>
+                        <div class="w-24 h-8 skeleton-box hidden sm:block rounded"></div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="lg:w-4/12">
+            <div class="cart-glass-card">
+                <div class="h-12 w-full skeleton-box rounded-t-xl"></div>
+                <div class="p-6 space-y-4">
+                    <div class="h-5 w-full skeleton-box rounded"></div>
+                    <div class="h-5 w-4/5 skeleton-box rounded"></div>
+                    <div class="h-10 w-full skeleton-box mt-6 rounded"></div>
+                    <div class="h-14 w-full skeleton-box mt-4 rounded-xl"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="blazor-container">
+    <component type="typeof(ETicaret.Components.Pages.Cart)" render-mode="Server" />
+</div>

@@ -5,12 +5,12 @@ namespace Application.Services.Interfaces
 {
     public interface IAddressService
     {
-        Task<IEnumerable<AddressDto>> GetAllAddressesAsync();
-        Task<AddressDto> GetOneAddressAsync(int addressId);
-        Task<IEnumerable<AddressDto>> GetAllAddressesOfOneUserAsync(string userId);
-        Task<OperationResult<AddressDto>> CreateAddressAsync(AddressDtoForCreation addressDto);
-        Task<OperationResult<AddressDto>> MakeAddressDefaultAsync(int addressId);
-        Task<OperationResult<AddressDto>> UpdateAddressAsync(AddressDtoForUpdate addressDto);
-        Task<OperationResult<AddressDto>> DeleteAddressAsync(int addressId);
+        Task<IEnumerable<AddressDto>> GetAllAsync();
+        Task<AddressDto> GetByIdAsync(int addressId);
+        Task<IEnumerable<AddressDto>> GetByUserIdAsync(string userId);
+        Task<OperationResult<AddressDto>> CreateAsync(AddressDtoForCreation addressDto);
+        Task<OperationResult<AddressDto>> MakeDefaultAsync(int addressId);
+        Task<OperationResult<AddressDto>> UpdateAsync(AddressDtoForUpdate addressDto);
+        Task<OperationResult<AddressDto>> DeleteAsync(int addressId);
     }
 }

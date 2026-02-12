@@ -63,6 +63,6 @@ namespace Application.DTOs
 
         [Required(ErrorMessage = "Sepet boş olamaz.")]
         [MinLength(1, ErrorMessage = "Sepet en az bir ürün içermelidir.")]
-        public ICollection<CartLineDto> CartLines { get; set; } = new List<CartLineDto>();
+        public List<CartLineDto> CartLines { get; set; } = new List<CartLineDto>();
     }
 }

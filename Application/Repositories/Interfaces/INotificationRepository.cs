@@ -4,13 +4,13 @@ namespace Application.Repositories.Interfaces
 {
     public interface INotificationRepository : IRepositoryBase<Notification>
     {
-        Task<IEnumerable<Notification>> GetAllNotificationsOfOneUserAsync(string userId, bool trackChanges);
-        Task<Notification?> GetOneNotificationAsync(int notificationId, bool trackChanges);
-        void RemoveNotifications(IEnumerable<Notification> notifications);
-        void UpdateNotifications(IEnumerable<Notification> notifications);
-        void CreateNotification(Notification notification);
-        void RemoveNotification(Notification notification);
-        void UpdateNotification(Notification notification);
+        Task<IEnumerable<Notification>> GetAllAsync(string userId, bool trackChanges);
+        Task<Notification?> GetByIdAsync(int notificationId, bool trackChanges);
+        void RemoveMultiple(IEnumerable<Notification> notifications);
+        void UpdateMultiple(IEnumerable<Notification> notifications);
+        void Create(Notification notification);
+        void Remove(Notification notification);
+        void Update(Notification notification);
 
     }
 }

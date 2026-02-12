@@ -36,7 +36,7 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
 
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             // Serilog'a da yaz
@@ -63,7 +63,7 @@ namespace Application.Services.Implementations
                 IsSuccess = true,
                 Timestamp = DateTime.UtcNow
             };
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             Log.Information("User {UserName} logged out", userName);
@@ -82,7 +82,7 @@ namespace Application.Services.Implementations
                 FailureReason = failureReason,
                 Timestamp = DateTime.UtcNow
             };
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             Log.Warning("Failed login attempt for {Email} from {IpAddress}", email, ipAddress);
@@ -100,7 +100,7 @@ namespace Application.Services.Implementations
                 FailureReason = $"Unauthorized access attempt to {requestPath}",
                 Timestamp = DateTime.UtcNow
             };
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             Log.Warning("Unauthorized access attempt by user {UserId} to {Path}", userId, requestPath);
@@ -108,11 +108,11 @@ namespace Application.Services.Implementations
         public async Task<bool> IsIpBlockedAsync(string ipAddress)
         {
             var since = DateTime.UtcNow.Subtract(BlockDuration);
-            var failedCount = await _manager.SecurityLog.GetFailedLoginCountAsync(ipAddress, since);
+            var failedCount = await _manager.SecurityLog.CountOfFailedLoginsAsync(ipAddress, since);
 
             return failedCount >= MaxFailedAttemptsBeforeBlock;
         }
-        public async Task<IEnumerable<SecurityLog>> GetUserSecurityLogsAsync(string userId, int pageNumber = 1, int pageSize = 50)
+        public async Task<IEnumerable<SecurityLog>> GetByUserIdAsync(string userId, int pageNumber = 1, int pageSize = 50)
         {
             var logs = await _manager.SecurityLog.GetByUserIdAsync(userId, pageNumber, pageSize);
 
@@ -135,7 +135,7 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
             
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             Log.Warning("Suspicious payment activity detected. Order: {OrderNumber}, Amount: {Amount}, Reason: {Reason}, IP: {IpAddress}",
@@ -156,7 +156,7 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
             
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             Log.Warning("Multiple card payment attempts detected. IP: {IpAddress}, Attempts: {AttemptCount}, TimeWindow: {TimeWindow}",
@@ -178,7 +178,7 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
             
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             Log.Warning("Rate limit violation detected. Endpoint: {Endpoint}, IP: {IpAddress}, RequestCount: {RequestCount}",
@@ -201,17 +201,17 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
             
-            _manager.SecurityLog.Add(securityLog);
+            _manager.SecurityLog.Create(securityLog);
             await _manager.SaveAsync();
 
             Log.Warning("Payment anomaly detected. Order: {OrderNumber}, Type: {AnomalyType}, Details: {Details}",
                 orderNumber, anomalyType, details);
         }
 
-        public async Task<int> GetPaymentAttemptsFromIpAsync(string ipAddress, TimeSpan timeWindow)
+        public async Task<int> CountOfPaymentAttemptsFromIpAsync(string ipAddress, TimeSpan timeWindow)
         {
             var since = DateTime.UtcNow.Subtract(timeWindow);
-            var count = await _manager.SecurityLog.GetPaymentAttemptsCountAsync(ipAddress, since);
+            var count = await _manager.SecurityLog.CountOfPaymentAttemptsAsync(ipAddress, since);
             return count;
         }
     }

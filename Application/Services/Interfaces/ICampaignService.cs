@@ -5,16 +5,16 @@ namespace Application.Services.Interfaces
 {
     public interface ICampaignService
     {
-        Task<IEnumerable<CampaignDto>> GetAllCampaignsAsync();
-        Task<CampaignDto> GetCampaignByIdAsync(int campaignId);
-        Task<IEnumerable<CampaignDto>> GetActiveCampaignsAsync();
-        Task<IEnumerable<Campaign>> GetApplicableCampaignsAsync(decimal orderAmount);
+        Task<IEnumerable<CampaignDto>> GetAllAsync();
+        Task<CampaignDto> GetByIdAsync(int campaignId);
+        Task<IEnumerable<CampaignDto>> GetActiveAsync();
+        Task<IEnumerable<Campaign>> GetApplicableAsync(decimal orderAmount);
 
-        Task<OperationResult<int>> CreateCampaignAsync(CampaignDtoForCreation campaignDto);
-        Task<OperationResult<CampaignDto>> UpdateCampaignAsync(CampaignDtoForUpdate campaignDto);
-        Task<OperationResult<CampaignDto>> DeleteCampaignAsync(int campaignId);
+        Task<OperationResult<int>> CreateAsync(CampaignDtoForCreation campaignDto);
+        Task<OperationResult<CampaignDto>> UpdateAsync(CampaignDtoForUpdate campaignDto);
+        Task<OperationResult<CampaignDto>> DeleteAsync(int campaignId);
 
-        Task<OperationResult<CampaignDto>> ActivateCampaignAsync(int campaignId);
-        Task<OperationResult<CampaignDto>> DeactivateCampaignAsync(int campaignId);
+        Task<OperationResult<CampaignDto>> ActivateAsync(int campaignId);
+        Task<OperationResult<CampaignDto>> DeactivateAsync(int campaignId);
     }
 }

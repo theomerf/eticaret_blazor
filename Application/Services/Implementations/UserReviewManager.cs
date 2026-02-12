@@ -48,19 +48,19 @@ namespace Application.Services.Implementations
             _fileService = fileService;
         }
 
-        public async Task<IEnumerable<UserReviewDto>> GetAllUserReviewsAsync()
+        public async Task<IEnumerable<UserReviewDto>> GetAllAsync()
         {
-            var reviews = await _manager.UserReview.GetAllUserReviewsAsync(false);
+            var reviews = await _manager.UserReview.GetAllAsync(false);
             var reviewsDto = _mapper.Map<IEnumerable<UserReviewDto>>(reviews);
 
             return reviewsDto;
         }
 
-        public async Task<int> GetCountAsync() => await _manager.UserReview.CountAsync(false);
+        public async Task<int> CountAsync(CancellationToken ct = default) => await _manager.UserReview.CountAsync(false, ct);
 
         public async Task<UserReview> GetOneUserReviewForServiceAsync(int id, bool trackChanges)
         {
-            var userReview = await _manager.UserReview.GetOneUserReviewAsync(id, trackChanges);
+            var userReview = await _manager.UserReview.GetByIdAsync(id, trackChanges);
             if (userReview == null)
             {
                 throw new UserReviewNotFoundException(id);
@@ -69,39 +69,39 @@ namespace Application.Services.Implementations
             return userReview;
         }
 
-        public async Task<UserReviewDto> GetOneUserReviewAsync(int id)
+        public async Task<UserReviewDto> GetByIdAsync(int userReviewId)
         {
-            var userReview = await GetOneUserReviewForServiceAsync(id, false);
+            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, false);
             var userReviewDto = _mapper.Map<UserReviewDto>(userReview);
 
             return userReviewDto;
         }
 
-        public async Task<IEnumerable<UserReviewDto>> GetAllUserReviewsOfOneProductAsync(int id)
+        public async Task<IEnumerable<UserReviewDto>> GetByProductIdAsync(int productId)
         {
-            var reviews = await _manager.UserReview.GetAllUserReviewsOfOneProductAsync(id, false);
+            var reviews = await _manager.UserReview.GetByProductIdAsync(productId, false);
             var reviewsDto = _mapper.Map<IEnumerable<UserReviewDto>>(reviews);
 
             return reviewsDto;
         }
 
-        public async Task<IEnumerable<UserReviewDto>> GetAllUserReviewsOfOneProductAdminAsync(int id)
+        public async Task<IEnumerable<UserReviewDto>> GetByProductIdAdminAsync(int productId)
         {
-            var reviews = await _manager.UserReview.GetAllUserReviewsOfOneProductAdminAsync(id, false);
+            var reviews = await _manager.UserReview.GetByProductIdAdminAsync(productId, false);
             var reviewsDto = _mapper.Map<IEnumerable<UserReviewDto>>(reviews);
 
             return reviewsDto;
         }
 
-        public async Task<IEnumerable<UserReviewDto>> GetAllUserReviewsOfOneUserAsync(string id)
+        public async Task<IEnumerable<UserReviewDto>> GetByUserIdAsync(string userId)
         {
-            var reviews = await _manager.UserReview.GetAllUserReviewsOfOneUserAsync(id, false);
+            var reviews = await _manager.UserReview.GetByUserIdAsync(userId, false);
             var reviewsDto = _mapper.Map<IEnumerable<UserReviewDto>>(reviews);
 
             return reviewsDto;
         }
 
-        public async Task<OperationResult<UserReviewDto>> CreateUserReviewAsync(UserReviewDtoForCreation userReviewDto)
+        public async Task<OperationResult<UserReviewDto>> CreateAsync(UserReviewDtoForCreation userReviewDto)
         {
             try
             {
@@ -115,10 +115,10 @@ namespace Application.Services.Implementations
 
                 userReview.ValidateForCreation();
 
-                _manager.UserReview.CreateUserReview(userReview);
+                _manager.UserReview.Create(userReview);
                 await _manager.SaveAsync();
 
-                await _activityService.LogActivityAsync(
+                await _activityService.LogAsync(
                     "Yeni Yorum",
                     $"{userReview.ReviewerName}, bir ürüne yorum yaptı.",
                     "fa-star",
@@ -138,7 +138,7 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<UserReviewDto>> ApproveUserReviewAsync(int id)
+        public async Task<OperationResult<UserReviewDto>> ApproveAsync(int id)
         {
             _manager.ClearTracker();
             var userReview = await GetOneUserReviewForServiceAsync(id, true);
@@ -146,7 +146,7 @@ namespace Application.Services.Implementations
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-            var product = await _productService.GetOneProductAsync(userReview.ProductId);
+            var product = await _productService.GetByIdAsync(userReview.ProductId);
 
             userReview.Approve();
 
@@ -154,7 +154,7 @@ namespace Application.Services.Implementations
             product.ReviewCount += 1;
 
             var productEntity = _mapper.Map<Product>(product);
-            _manager.Product.Update(productEntity);
+            _manager.Product.UpdateEntity(productEntity);
 
             await _manager.SaveAsync();
 
@@ -173,7 +173,7 @@ namespace Application.Services.Implementations
             return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla onaylandı.");
         }
 
-        public async Task<OperationResult<UserReviewDto>> UpdateUserReviewFeaturedStatusAsync(int id)
+        public async Task<OperationResult<UserReviewDto>> UpdateFeaturedStatusAsync(int id)
         {
             _manager.ClearTracker();
             var userReview = await GetOneUserReviewForServiceAsync(id, true);
@@ -200,7 +200,7 @@ namespace Application.Services.Implementations
                 userReview.IsFeatured ? "Değerlendirme başarıyla öne çıkarıldı." : "Değerlendirmenin öne çıkarılması başarıyla iptal edildi.");
         }
 
-        public async Task<OperationResult<UserReviewDto>> UpdateUserReviewAsync(UserReviewDtoForUpdate userReviewDto)
+        public async Task<OperationResult<UserReviewDto>> UpdateAsync(UserReviewDtoForUpdate userReviewDto)
         {
             try
             {
@@ -222,7 +222,7 @@ namespace Application.Services.Implementations
                     !string.IsNullOrWhiteSpace(userReviewDto.ReviewPictureUrl) &&
                     userReviewDto.ReviewPictureUrl != userReview.ReviewPictureUrl;
 
-                var product = await _productService.GetOneProductAsync(userReview.ProductId);
+                var product = await _productService.GetByIdAsync(userReview.ProductId);
 
                 var oldRatingToRemove = userReview.UpdateReview();
 
@@ -245,7 +245,7 @@ namespace Application.Services.Implementations
                 }
 
                 var productEntity = _mapper.Map<Product>(product);
-                _manager.Product.Update(productEntity);
+                _manager.Product.UpdateEntity(productEntity);
 
                 await _manager.SaveAsync();
 
@@ -267,10 +267,10 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<UserReviewDto>> DeleteUserReviewAsync(int id)
+        public async Task<OperationResult<UserReviewDto>> DeleteAsync(int userReviewId)
         {
             _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(id, true);
+            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var imagePath = userReview.ReviewPictureUrl;
 
@@ -283,7 +283,7 @@ namespace Application.Services.Implementations
                 throw new UnauthorizedAccessException("Bunun için yetkiniz yok.");
             }
 
-            var product = await _productService.GetOneProductAsync(userReview.ProductId);
+            var product = await _productService.GetByIdAsync(userReview.ProductId);
 
             userReview.SoftDelete(userId);
 
@@ -299,7 +299,7 @@ namespace Application.Services.Implementations
             }
 
             var productEntity = _mapper.Map<Product>(product);
-            _manager.Product.Update(productEntity);
+            _manager.Product.UpdateEntity(productEntity);
 
             await _manager.SaveAsync();
 
@@ -310,20 +310,20 @@ namespace Application.Services.Implementations
 
             _logger.LogInformation(
                 "User review soft deleted. ReviewId: {ReviewId}, UserId: {UserId}",
-                id, userId);
+                userReviewId, userId);
 
             return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
         }
 
-        public async Task<OperationResult<UserReviewDto>> DeleteUserReviewForAdminAsync(int id)
+        public async Task<OperationResult<UserReviewDto>> DeleteAdminAsync(int userReviewId)
         {
             _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(id, true);
+            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
             var imagePath = userReview.ReviewPictureUrl;
 
-            var product = await _productService.GetOneProductAsync(userReview.ProductId);
+            var product = await _productService.GetByIdAsync(userReview.ProductId);
 
             userReview.SoftDelete(userId);
 
@@ -339,7 +339,7 @@ namespace Application.Services.Implementations
             }
 
             var productEntity = _mapper.Map<Product>(product);
-            _manager.Product.Update(productEntity);
+            _manager.Product.UpdateEntity(productEntity);
 
             await _manager.SaveAsync();
 
@@ -348,7 +348,7 @@ namespace Application.Services.Implementations
                 userName: userName,
                 action: "Delete",
                 entityName: "UserReview",
-                entityId: id.ToString()
+                entityId: userReviewId.ToString()
             );
 
             if (!string.IsNullOrWhiteSpace(imagePath))
@@ -358,7 +358,7 @@ namespace Application.Services.Implementations
 
             _logger.LogInformation(
                 "User review deleted by admin. ReviewId: {ReviewId}, AdminId: {AdminId}",
-                id, userId);
+                userReviewId, userId);
 
             return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
         }

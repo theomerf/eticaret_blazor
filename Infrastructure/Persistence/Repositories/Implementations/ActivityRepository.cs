@@ -10,17 +10,19 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public void CreateActivity(Activity activity)
+        public async Task<IEnumerable<Activity>> GetRecentAsync(int count, bool trackChanges, CancellationToken ct = default)
         {
-            Create(activity);
-        }
-
-        public async Task<IEnumerable<Activity>> GetRecentActivitiesAsync(int count, bool trackChanges)
-        {
-            return await FindAll(trackChanges)
+            var activities = await FindAll(trackChanges)
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(count)
-                .ToListAsync();
+                .ToListAsync(ct);
+
+            return activities;
+        }
+
+        public void Create(Activity activity)
+        {
+            CreateEntity(activity);
         }
     }
 }

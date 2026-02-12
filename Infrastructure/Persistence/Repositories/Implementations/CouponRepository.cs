@@ -10,8 +10,16 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        // Query Methods
-        public async Task<Coupon?> GetCouponByIdAsync(int couponId, bool trackChanges)
+        public async Task<IEnumerable<Coupon>> GetAllAsync(bool trackChanges)
+        {
+            var allCoupons = await FindAll(trackChanges)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            return allCoupons;
+        }
+
+        public async Task<Coupon?> GetByIdAsync(int couponId, bool trackChanges)
         {
             var coupon = await FindByCondition(c => c.CouponId == couponId, trackChanges)
                 .FirstOrDefaultAsync();
@@ -19,7 +27,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return coupon;
         }
 
-        public async Task<Coupon?> GetCouponByCodeAsync(string code, bool trackChanges)
+        public async Task<Coupon?> GetByCodeAsync(string code, bool trackChanges)
         {
             var coupon = await FindByCondition(c => c.Code == code.ToUpper(), trackChanges)
                 .FirstOrDefaultAsync();
@@ -27,7 +35,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return coupon;
         }
 
-        public async Task<Coupon?> GetCouponWithUsagesAsync(int couponId, bool trackChanges)
+        public async Task<Coupon?> GetWithUsagesAsync(int couponId, bool trackChanges)
         {
             var couponWithUsages = await FindByCondition(c => c.CouponId == couponId, trackChanges)
                 .Include(c => c.Usages)
@@ -36,7 +44,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return couponWithUsages;
         }
 
-        public async Task<IEnumerable<Coupon>> GetActiveCouponsAsync(bool trackChanges)
+        public async Task<IEnumerable<Coupon>> GetActiveAsync(bool trackChanges)
         {
             var activeCoupons = await FindAllByCondition(
                 c => c.IsActive && c.StartsAt <= DateTime.UtcNow && c.EndsAt >= DateTime.UtcNow,
@@ -47,16 +55,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return activeCoupons;
         }
 
-        public async Task<IEnumerable<Coupon>> GetAllCouponsAsync(bool trackChanges)
-        {
-            var allCoupons = await FindAll(trackChanges)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
-
-            return allCoupons;
-        }
-
-        public async Task<(IEnumerable<Coupon> coupons, int count)> GetCouponsPagedAsync(int pageNumber, int pageSize, bool trackChanges)
+        public async Task<(IEnumerable<Coupon> coupons, int count)> GetPagedAsync(int pageNumber, int pageSize, bool trackChanges)
         {
             var query = FindAll(trackChanges);
 
@@ -92,10 +91,10 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return usageCount;
         }
 
-        public void CreateCoupon(Coupon coupon) => Create(coupon);
+        public void Create(Coupon coupon) => CreateEntity(coupon);
 
-        public void UpdateCoupon(Coupon coupon) => Update(coupon);
+        public void Update(Coupon coupon) => UpdateEntity(coupon);
 
-        public void DeleteCoupon(Coupon coupon) => Remove(coupon);
+        public void Delete(Coupon coupon) => RemoveEntity(coupon);
     }
 }

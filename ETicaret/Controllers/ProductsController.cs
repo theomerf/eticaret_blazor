@@ -22,9 +22,9 @@ namespace ETicaret.Controllers
 
         public async Task<IActionResult> Index([FromQuery] ProductRequestParameters p)
         {
-            var result = await _productService.GetAllProductsAsync(p);
+            var result = await _productService.GetAllAsync(p);
             var favIds = CookieHelper.GetFavouriteProductIds(Request);
-            ViewBag.FavouriteIds = favIds;
+            ViewBag.FavouriteIds = favIds ?? new List<int>();
 
             var filterParams = new ProductFilterParameters
             {
@@ -53,7 +53,7 @@ namespace ETicaret.Controllers
         [HttpGet("products/list")]
         public async Task<IActionResult> ProductsListPartial([FromQuery] ProductRequestParameters p)
         {
-            var result = await _productService.GetAllProductsAsync(p);
+            var result = await _productService.GetAllAsync(p);
 
             var filterParams = new ProductFilterParameters
             {
@@ -93,7 +93,7 @@ namespace ETicaret.Controllers
             {
                 p.PageSize = p.PageSize + 1; // hasMore kontrol� i�in
 
-                var result = await _productService.GetAllProductsAsync(p);
+                var result = await _productService.GetAllAsync(p);
 
                 hasMore = result.products.Count() > (p.PageSize - 1);
                 products = result.products.Take(p.PageSize - 1).ToList();
@@ -108,7 +108,7 @@ namespace ETicaret.Controllers
             {
                 p.PageSize = p.PageSize + 1; // hasMore kontrol� i�in
 
-                var result = await _productService.GetAllProductsAsync(p);
+                var result = await _productService.GetAllAsync(p);
 
                 hasMore = result.products.Count() > (p.PageSize - 1);
                 products = result.products.Take(p.PageSize - 1).ToList();
@@ -119,7 +119,7 @@ namespace ETicaret.Controllers
             }
 
             p.PageSize = p.PageSize + 1;
-            var firstPageResult = await _productService.GetAllProductsAsync(p);
+            var firstPageResult = await _productService.GetAllAsync(p);
 
             hasMore = firstPageResult.products.Count() > (p.PageSize - 1);
             products = firstPageResult.products.Take(p.PageSize - 1).ToList();
@@ -132,11 +132,11 @@ namespace ETicaret.Controllers
         [HttpGet("products/{slug}")]
         public async Task<IActionResult> Get([FromRoute(Name = "slug")] string slug)
         {
-            var product = await _productService.GetOneProductBySlugAsync(slug);
-            var recommendedProducts = await _productService.GetRecommendedProductsAsync();
+            var product = await _productService.GetBySlugAsync(slug);
+            var recommendedProducts = await _productService.GetRecommendationsAsync();
 
             var favIds = CookieHelper.GetFavouriteProductIds(Request);
-            ViewBag.FavouriteIds = favIds;
+            ViewBag.FavouriteIds = favIds ?? new List<int>();
 
             var model = new ProductDetailViewModel
             {

@@ -46,7 +46,6 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.HasQueryFilter(ol => !ol.IsDeleted);
 
-            // Indexes
             builder.HasIndex(t => t.OrderLineId)
                 .IsUnique()
                 .HasDatabaseName("IX_OrderLinePaymentTransactions_OrderLineId");
@@ -60,7 +59,6 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasIndex(t => new { t.OrderLineId, t.IsRefunded })
                 .HasDatabaseName("IX_OrderLinePaymentTransactions_OrderLine_Refund");
 
-            // Relationships
             builder.HasOne(t => t.OrderLine)
                 .WithMany()
                 .HasForeignKey(t => t.OrderLineId)

@@ -10,7 +10,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<IEnumerable<UserReview>> GetAllUserReviewsAsync(bool trackChanges) 
+        public async Task<IEnumerable<UserReview>> GetAllAsync(bool trackChanges) 
         {
             var reviews = await FindAll(trackChanges)
                 .ToListAsync();
@@ -18,37 +18,37 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return reviews;
         } 
 
-        public async Task<int> GetUserReviewsCountAsync(bool trackChanges) => await CountAsync(trackChanges);
+        public async Task<int> CountAsync(CancellationToken ct = default) => await CountAsync(false, ct);
 
-        public async Task<UserReview?> GetOneUserReviewAsync(int id, bool trackChanges)
+        public async Task<UserReview?> GetByIdAsync(int userReviewId, bool trackChanges)
         {
-            var review = await FindByCondition(p => p.UserReviewId.Equals(id), trackChanges).SingleOrDefaultAsync();
+            var review = await FindByCondition(p => p.UserReviewId.Equals(userReviewId), trackChanges).SingleOrDefaultAsync();
 
             return review;
         }
 
-        public async Task<IEnumerable<UserReview>> GetAllUserReviewsOfOneProductAdminAsync(int id, bool trackChanges)
+        public async Task<IEnumerable<UserReview>> GetByProductIdAdminAsync(int productId, bool trackChanges)
         {
             var reviews = await FindAll(trackChanges)
-                .Where(p => p.ProductId.Equals(id))
+                .Where(p => p.ProductId.Equals(productId))
                 .ToListAsync();
 
             return reviews;
         }
 
-        public async Task<IEnumerable<UserReview>> GetAllUserReviewsOfOneProductAsync(int id, bool trackChanges)
+        public async Task<IEnumerable<UserReview>> GetByProductIdAsync(int productId, bool trackChanges)
         {
             var reviews = await FindAll(trackChanges)
-                .Where(p => p.ProductId.Equals(id) && p.IsApproved)
+                .Where(p => p.ProductId.Equals(productId) && p.IsApproved)
                 .ToListAsync();
 
             return reviews;
         }
 
-        public async Task<IEnumerable<UserReview>> GetAllUserReviewsOfOneUserAsync(string id, bool trackChanges)
+        public async Task<IEnumerable<UserReview>> GetByUserIdAsync(string userId, bool trackChanges)
         {
             var reviews = await FindAll(trackChanges)
-                .Where(u => u.UserId.Equals(id))
+                .Where(u => u.UserId.Equals(userId))
                 .Select(u => new UserReview
                 {
                     UserReviewId = u.UserReviewId,
@@ -75,19 +75,19 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return reviews;
         }
 
-        public void CreateUserReview(UserReview userReview)
+        public void Create(UserReview userReview)
         {
-            Create(userReview);
+            CreateEntity(userReview);
         }
 
-        public void UpdateOneUserReview(UserReview userReview)
+        public void Update(UserReview userReview)
         {
-            Update(userReview);
+            UpdateEntity(userReview);
         }
 
-        public void DeleteOneUserReview(UserReview userReview)
+        public void Delete(UserReview userReview)
         {
-            Remove(userReview);
+            RemoveEntity(userReview);
         }
     }
 }

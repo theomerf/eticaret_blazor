@@ -11,7 +11,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<Order?> GetOrderByIdAsync(int orderId, bool trackChanges)
+        public async Task<Order?> GetByIdAsync(int orderId, bool trackChanges)
         {
             var order = await FindByCondition(o => o.OrderId == orderId, trackChanges)
                 .Include(o => o.Lines)
@@ -20,7 +20,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return order;
         }
 
-        public async Task<Order?> GetOrderByNumberAsync(string orderNumber, bool trackChanges)
+        public async Task<Order?> GetByNumberAsync(string orderNumber, bool trackChanges)
         {
             var order = await FindByCondition(o => o.OrderNumber == orderNumber, trackChanges)
                 .Include(o => o.Lines)
@@ -29,7 +29,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return order;
         }
 
-        public async Task<Order?> GetOrderWithDetailsAsync(int orderId, bool trackChanges)
+        public async Task<Order?> GetWithDetailsAsync(int orderId, bool trackChanges)
         {
             var order = await FindByCondition(o => o.OrderId == orderId, trackChanges)
                 .Include(o => o.Lines)
@@ -41,7 +41,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return order;
         }
 
-        public async Task<IEnumerable<Order>> GetUserOrdersAsync(string userId, bool trackChanges)
+        public async Task<IEnumerable<Order>> GetByUserIdAsync(string userId, bool trackChanges)
         {
             var orders = await FindAllByCondition(
                 o => o.UserId == userId && o.OrderStatus != OrderStatus.Failed, 
@@ -68,7 +68,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return orders;
         }
 
-        public async Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status, bool trackChanges)
+        public async Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status, bool trackChanges)
         {
             var orders = await FindAllByCondition(o => o.OrderStatus == status, trackChanges)
                 .Include(o => o.Lines)
@@ -78,7 +78,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return orders;
         }
 
-        public async Task<IEnumerable<Order>> GetOrdersByPaymentStatusAsync(PaymentStatus status, bool trackChanges)
+        public async Task<IEnumerable<Order>> GetByPaymentStatusAsync(PaymentStatus status, bool trackChanges)
         {
             var orders = await FindAllByCondition(o => o.PaymentStatus == status, trackChanges)
                 .Include(o => o.Lines)
@@ -88,7 +88,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return orders;
         }
 
-        public async Task<(IEnumerable<Order> orders, int count)> GetOrdersPagedAsync(int pageNumber, int pageSize, bool trackChanges)
+        public async Task<(IEnumerable<Order> orders, int count)> GetPagedAsync(int pageNumber, int pageSize, bool trackChanges)
         {
             var query = FindAll(trackChanges)
                 .Include(o => o.Lines);
@@ -104,7 +104,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return (orders, count);
         }
 
-        public async Task<IEnumerable<Order>> GetPendingPaymentOrdersAsync(bool trackChanges)
+        public async Task<IEnumerable<Order>> GetPaymentPendingAsync(bool trackChanges)
         {
             var orders = await FindAllByCondition(
                 o => o.PaymentStatus == PaymentStatus.Pending && 
@@ -117,19 +117,27 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return orders;
         }
 
-        public async Task<int> GetOrdersCountAsync()
+        public async Task<int> CountAsync()
         {
             var count = await CountAsync(false);
 
             return count;
         }
 
-        public async Task<int> GetUserOrdersCountAsync(string userId)
+        public async Task<int> CountByUserIdAsync(string userId)
         {
             var count = await FindAllByCondition(
                 o => o.UserId == userId && o.OrderStatus != OrderStatus.Failed, 
                 false)
                 .CountAsync();
+
+            return count;
+        }
+
+        public async Task<int> CountOfInProcessAsync(CancellationToken ct = default)
+        {
+            var count = await FindAllByCondition(o => o.OrderStatus == OrderStatus.Processing, false)
+                .CountAsync(ct);
 
             return count;
         }
@@ -156,14 +164,6 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return totalSpent;
         }
 
-        public async Task<int> GetOrdersInProcessCountAsync()
-        {
-            var count = await FindAllByCondition(o => o.OrderStatus == OrderStatus.Processing, false)
-                .CountAsync();
-
-            return count;
-        }
-
         public async Task<IEnumerable<DailySalesDto>> GetDailySalesAsync(DateTime startDate, DateTime endDate)
         {
             var orders = await FindAllByCondition(
@@ -186,13 +186,13 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return result;
         }
 
-        public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN)
+        public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default)
         {
             var orders = await FindAllByCondition(
                 o => o.PaymentStatus == PaymentStatus.Completed,
                 false)
                 .Include(o => o.Lines)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             var productSales = orders
                 .SelectMany(o => o.Lines)
@@ -202,7 +202,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                     ProductId = g.Key.ProductId,
                     ProductName = g.Key.ProductName,
                     TotalQuantitySold = g.Sum(l => l.Quantity),
-                    TotalRevenue = g.Sum(l => l.Quantity * l.DiscountPrice ?? l.ActualPrice)
+                    TotalRevenue = g.Sum(l => l.Quantity * l.DiscountPrice ?? l.Price)
                 })
                 .OrderByDescending(ps => ps.TotalQuantitySold)
                 .Take(topN)
@@ -211,10 +211,10 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return productSales;
         }
 
-        public void CreateOrder(Order order) => Create(order);
+        public void Create(Order order) => CreateEntity(order);
 
-        public void UpdateOrder(Order order) => Update(order);
+        public void Update(Order order) => UpdateEntity(order);
 
-        public void DeleteOrder(Order order) => Remove(order);
+        public void Delete(Order order) => RemoveEntity(order);
     }
 }

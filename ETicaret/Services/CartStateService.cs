@@ -16,11 +16,12 @@ namespace ETicaret.Services
         event Action? OnChange;
 
         Task LoadCartAsync(bool validate = true);
-        Task SetQuantityAsync(int productId, int newQuantity);
-        Task AddOrUpdateItemAsync(int productId, int quantity);
-        Task RemoveItemAsync(int productId);
+        Task SetQuantityAsync(int productId, int variantId, int newQuantity);
+        Task AddOrUpdateItemAsync(int productId, int variantId, int quantity);
+        Task RemoveItemAsync(int productId, int variantId);
+        Task ClearCartAsync();
         Task ValidateCartAsync();
-        
+
         IEnumerable<ProductDto> RecommendedProducts { get; }
         Task LoadRecommendedProductsAsync();
     }
@@ -84,9 +85,12 @@ namespace ETicaret.Services
                                 ProductId = l.ProductId,
                                 ProductName = l.ProductName,
                                 ImageUrl = l.ImageUrl,
-                                ActualPrice = l.ActualPrice,
+                                ActualPrice = l.Price,
                                 DiscountPrice = l.DiscountPrice,
-                                Quantity = l.Quantity
+                                Quantity = l.Quantity,
+                                ProductVariantId = l.ProductVariantId,
+                                SelectedColor = l.SelectedColor,
+                                SelectedSize = l.SelectedSize
                             }).ToList()
                         };
 
@@ -125,7 +129,7 @@ namespace ETicaret.Services
             }
             else
             {
-                CurrentCart = await _cartService.GetCartAsync(userId, validate);
+                CurrentCart = await _cartService.GetByUserIdAsync(userId, validate);
 
                 await SyncSessionCartAsync();
             }
@@ -134,11 +138,11 @@ namespace ETicaret.Services
             NotifyStateChanged();
         }
 
-        public async Task SetQuantityAsync(int productId, int newQuantity)
+        public async Task SetQuantityAsync(int productId, int variantId, int newQuantity)
         {
             var userId = GetCurrentUserId();
 
-            var line = CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId);
+            var line = CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == variantId);
             if (line == null) return;
 
             var oldQuantity = line.Quantity;
@@ -168,11 +172,11 @@ namespace ETicaret.Services
                 {
                     if (newQuantity == 0)
                     {
-                        sessionCart.RemoveItem(productId);
+                        sessionCart.RemoveItem(productId, variantId);
                     }
                     else
                     {
-                        sessionCart.SetQuantity(productId, newQuantity);
+                        sessionCart.SetQuantity(productId, variantId, newQuantity);
                     }
 
                     session.SetJson("cart", sessionCart);
@@ -201,16 +205,19 @@ namespace ETicaret.Services
                             ProductId = l.ProductId,
                             ProductName = l.ProductName,
                             ImageUrl = l.ImageUrl,
-                            ActualPrice = l.ActualPrice,
+                            ActualPrice = l.Price,
                             DiscountPrice = l.DiscountPrice,
-                            Quantity = l.Quantity
+                            Quantity = l.Quantity,
+                            ProductVariantId = l.ProductVariantId,
+                            SelectedColor = l.SelectedColor,
+                            SelectedSize = l.SelectedSize
                         }).ToList()
                     };
                 }
             }
             else
             {
-                var result = await _cartService.SetQuantityAsync(userId, productId, newQuantity);
+                var result = await _cartService.SetQuantityAsync(userId, productId, variantId, newQuantity);
 
                 if (!result.IsSuccess)
                 {
@@ -228,7 +235,7 @@ namespace ETicaret.Services
                 }
                 else
                 {
-                    CurrentCart = await _cartService.GetCartAsync(userId);
+                    CurrentCart = await _cartService.GetByUserIdAsync(userId);
 
                     await SyncSessionCartAsync();
                 }
@@ -237,7 +244,7 @@ namespace ETicaret.Services
             NotifyStateChanged();
         }
 
-        public async Task AddOrUpdateItemAsync(int productId, int quantity)
+        public async Task AddOrUpdateItemAsync(int productId, int variantId, int quantity)
         {
             var userId = GetCurrentUserId();
 
@@ -256,73 +263,110 @@ namespace ETicaret.Services
                 var sessionCart = session.GetJson<SessionCart>("cart") ?? new SessionCart();
                 sessionCart.Session = session;
 
-                var product = await _productService.GetOneProductAsync(productId);
-
+                var product = await _productService.GetByIdAsync(productId);
+                
                 if (product == null)
                 {
                     SetError("Ürün bulunamadı");
+                    return;
                 }
-                else
+
+                // Find variant in DTO list
+                var variantDto = product!.Variants?.FirstOrDefault(v => v.ProductVariantId == variantId);
+
+                if (variantDto == null)
                 {
-                    var productEntity = new Product
-                    {
-                        ProductId = product.ProductId,
-                        ProductName = product.ProductName,
-                        /*Images = product.Images, */
-                        ActualPrice = product.ActualPrice,
-                        DiscountPrice = product.DiscountPrice
-                    };
-
-                    var result = sessionCart.AddOrUpdateItem(productEntity, quantity);
-
-                    if (result.IsSuccess)
-                    {
-                        session.SetJson("cart", sessionCart);
-
-                        if (session.IsAvailable)
-                        {
-                            await session.CommitAsync();
-                        }
-                        else
-                        {
-                            _logger.LogWarning("Ürün eklenirken session mevcut değil");
-                        }
-
-                        if (_sessionCart is SessionCart sc)
-                        {
-                            sc.Lines.Clear();
-                            sc.Lines.AddRange(sessionCart.Lines);
-                            sc.UserId = sessionCart.UserId;
-                            sc.Session = session;
-                        }
-
-                        CurrentCart = new CartDto
-                        {
-                            UserId = "",
-                            Lines = sessionCart.Lines.Select(l => new CartLineDto
-                            {
-                                ProductId = l.ProductId,
-                                ProductName = l.ProductName,
-                                ImageUrl = l.ImageUrl,
-                                ActualPrice = l.ActualPrice,
-                                DiscountPrice = l.DiscountPrice,
-                                Quantity = l.Quantity
-                            }).ToList()
-                        };
-                    }
-                    else
-                    {
-                        SetError(result.Message);
-                    }
+                    SetError("Varyant bulunamadı");
+                    return;
                 }
-            }
-            else
-            {
-                var result = await _cartService.AddOrUpdateItemAsync(userId, productId, quantity);
+
+                // Map DTO to Entity manually since we don't have automapper here and types mismatch
+                ProductVariant? variantEntity = null;
+                if (variantDto != null)
+                {
+                    variantEntity = new ProductVariant
+                    {
+                        ProductVariantId = variantDto.ProductVariantId,
+                        ProductId = product!.ProductId,
+                        Price = variantDto.Price,
+                        DiscountPrice = variantDto.DiscountPrice,
+                        Stock = variantDto.Stock,
+                        Color = variantDto.Color,
+                        Size = variantDto.Size
+                        // IsActive etc if needed
+                    };
+                }
+
+                var productEntity = new Product
+                {
+                        ProductId = product!.ProductId,
+                    ProductName = product.ProductName
+                    /*Images = product.Images, */
+                    // MinPrice/MaxPrice are computed read-only, do not assign
+                };
+
+                // For simple products (no variants), we might have variantId=null. 
+                // But in new system, every product must have at least one variant.
+                // If variantEntity is still null here, it means something is wrong with product data or request.
+                if (variantEntity == null)
+                {
+                    SetError("Ürün varyant verisi eksik");
+                    return; 
+                }
+
+                var result = sessionCart.AddOrUpdateItem(productEntity, variantEntity, quantity);
 
                 if (result.IsSuccess)
                 {
-                    CurrentCart = await _cartService.GetCartAsync(userId);
+                    session.SetJson("cart", sessionCart);
+
+                    if (session.IsAvailable)
+                    {
+                        await session.CommitAsync();
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Ürün eklenirken session mevcut değil");
+                    }
+
+                    if (_sessionCart is SessionCart sc)
+                    {
+                        sc.Lines.Clear();
+                        sc.Lines.AddRange(sessionCart.Lines);
+                        sc.UserId = sessionCart.UserId;
+                        sc.Session = session;
+                    }
+
+                    CurrentCart = new CartDto
+                    {
+                        UserId = "",
+                        Lines = sessionCart.Lines.Select(l => new CartLineDto
+                        {
+                            ProductId = l.ProductId,
+                            ProductName = l.ProductName,
+                            ImageUrl = l.ImageUrl,
+                            ActualPrice = l.Price,
+                            DiscountPrice = l.DiscountPrice,
+                            Quantity = l.Quantity,
+                            ProductVariantId = l.ProductVariantId,
+                            SelectedColor = l.SelectedColor,
+                            SelectedSize = l.SelectedSize
+                        }).ToList()
+                    };
+                }
+                else
+                {
+                    SetError(result.Message);
+                }
+
+            }
+            else
+            {
+                var result = await _cartService.AddOrUpdateItemAsync(userId, productId, variantId, quantity);
+
+                if (result.IsSuccess)
+                {
+                    CurrentCart = await _cartService.GetByUserIdAsync(userId);
 
                     await SyncSessionCartAsync();
                 }
@@ -336,11 +380,11 @@ namespace ETicaret.Services
             NotifyStateChanged();
         }
 
-        public async Task RemoveItemAsync(int productId)
+        public async Task RemoveItemAsync(int productId, int variantId)
         {
             var userId = GetCurrentUserId();
 
-            var line = CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId);
+            var line = CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == variantId);
             if (line == null) return;
 
             CurrentCart.Lines.Remove(line);
@@ -354,7 +398,7 @@ namespace ETicaret.Services
                 var sessionCart = session.GetJson<SessionCart>("cart") ?? new SessionCart();
                 sessionCart.Session = session;
 
-                var result = sessionCart.RemoveItem(productId);
+                var result = sessionCart.RemoveItem(productId, variantId);
 
                 if (result.IsSuccess)
                 {
@@ -385,9 +429,12 @@ namespace ETicaret.Services
                             ProductId = l.ProductId,
                             ProductName = l.ProductName,
                             ImageUrl = l.ImageUrl,
-                            ActualPrice = l.ActualPrice,
+                            ActualPrice = l.Price,
                             DiscountPrice = l.DiscountPrice,
-                            Quantity = l.Quantity
+                            Quantity = l.Quantity,
+                            ProductVariantId = l.ProductVariantId,
+                            SelectedColor = l.SelectedColor,
+                            SelectedSize = l.SelectedSize
                         }).ToList()
                     };
                 }
@@ -399,11 +446,11 @@ namespace ETicaret.Services
             }
             else
             {
-                var result = await _cartService.RemoveItemAsync(userId, productId);
+                var result = await _cartService.RemoveItemAsync(userId, productId, variantId);
 
                 if (result.IsSuccess)
                 {
-                    CurrentCart = await _cartService.GetCartAsync(userId);
+                    CurrentCart = await _cartService.GetByUserIdAsync(userId);
                     await SyncSessionCartAsync();
                 }
                 else
@@ -416,9 +463,54 @@ namespace ETicaret.Services
             NotifyStateChanged();
         }
 
+        public async Task ClearCartAsync()
+        {
+            var userId = GetCurrentUserId();
+
+            CurrentCart.Lines.Clear();
+            NotifyStateChanged();
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                var session = _httpContextAccessor.HttpContext?.Session;
+                if (session == null) return;
+
+                var sessionCart = session.GetJson<SessionCart>("cart") ?? new SessionCart();
+                sessionCart.Session = session;
+                
+                sessionCart.Lines.Clear();
+                session.SetJson("cart", sessionCart);
+
+                if (session.IsAvailable)
+                {
+                    await session.CommitAsync();
+                }
+
+                if (_sessionCart is SessionCart sc)
+                {
+                    sc.Lines.Clear();
+                    sc.UserId = sessionCart.UserId;
+                    sc.Session = session;
+                }
+            }
+            else
+            {
+                var result = await _cartService.ClearAsync(userId); // Use ClearAsync method from _cartService
+
+                if (!result.IsSuccess)
+                {
+                    SetError(result.Message);
+                    // Revert state if failed
+                    CurrentCart = await _cartService.GetByUserIdAsync(userId);
+                    await SyncSessionCartAsync();
+                    NotifyStateChanged();
+                }
+            }
+        }
+
         public async Task LoadRecommendedProductsAsync()
         {
-            RecommendedProducts = await _productService.GetRecommendedProductsAsync();
+            RecommendedProducts = await _productService.GetRecommendationsAsync();
             NotifyStateChanged();
         }
 
@@ -427,11 +519,11 @@ namespace ETicaret.Services
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId)) return;
 
-            var hasChanges = await _cartService.ValidateCartAsync(userId);
+            var hasChanges = await _cartService.ValidateAsync(userId);
 
             if (hasChanges)
             {
-                CurrentCart = await _cartService.GetCartAsync(userId);
+                CurrentCart = await _cartService.GetByUserIdAsync(userId);
                 await SyncSessionCartAsync();
 
                 SetError("Sepetinizde değişiklikler yapıldı (stok/fiyat)");
@@ -454,9 +546,12 @@ namespace ETicaret.Services
                     ProductId = lineDto.ProductId,
                     ProductName = lineDto.ProductName,
                     ImageUrl = lineDto.ImageUrl,
-                    ActualPrice = lineDto.ActualPrice,
+                    Price = lineDto.ActualPrice,
                     DiscountPrice = lineDto.DiscountPrice,
                     Quantity = lineDto.Quantity,
+                    ProductVariantId = lineDto.ProductVariantId,
+                    SelectedColor = lineDto.SelectedColor,
+                    SelectedSize = lineDto.SelectedSize,
                     Cart = _sessionCart
                 });
             }

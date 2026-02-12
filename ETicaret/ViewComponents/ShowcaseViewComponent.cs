@@ -15,7 +15,7 @@ namespace ETicaret.ViewComponents
 
         public async Task<IViewComponentResult> InvokeAsync()
         {
-            var products = await _productService.GetShowcaseProductsAsync();
+            var products = await _productService.GetShowcaseListAsync();
             var favIds = CookieHelper.GetFavouriteProductIds(Request);
             ViewBag.FavouriteIds = CookieHelper.GetFavouriteProductIds(Request);
 

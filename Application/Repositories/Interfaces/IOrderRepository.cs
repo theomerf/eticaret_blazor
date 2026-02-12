@@ -5,25 +5,25 @@ namespace Application.Repositories.Interfaces
 {
     public interface IOrderRepository
     {
-        Task<Order?> GetOrderByIdAsync(int orderId, bool trackChanges);
-        Task<Order?> GetOrderByNumberAsync(string orderNumber, bool trackChanges);
-        Task<Order?> GetOrderWithDetailsAsync(int orderId, bool trackChanges);
-        Task<IEnumerable<Order>> GetUserOrdersAsync(string userId, bool trackChanges);
-        Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status, bool trackChanges);
-        Task<IEnumerable<Order>> GetOrdersByPaymentStatusAsync(PaymentStatus status, bool trackChanges);
-        Task<(IEnumerable<Order> orders, int count)> GetOrdersPagedAsync(int pageNumber, int pageSize, bool trackChanges);
-        Task<IEnumerable<Order>> GetPendingPaymentOrdersAsync(bool trackChanges);
+        Task<Order?> GetByIdAsync(int orderId, bool trackChanges);
+        Task<Order?> GetByNumberAsync(string orderNumber, bool trackChanges);
+        Task<Order?> GetWithDetailsAsync(int orderId, bool trackChanges);
+        Task<IEnumerable<Order>> GetByUserIdAsync(string userId, bool trackChanges);
+        Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status, bool trackChanges);
+        Task<IEnumerable<Order>> GetByPaymentStatusAsync(PaymentStatus status, bool trackChanges);
+        Task<(IEnumerable<Order> orders, int count)> GetPagedAsync(int pageNumber, int pageSize, bool trackChanges);
+        Task<IEnumerable<Order>> GetPaymentPendingAsync(bool trackChanges);
 
-        Task<int> GetOrdersCountAsync();
-        Task<int> GetUserOrdersCountAsync(string userId);
+        Task<int> CountAsync();
+        Task<int> CountByUserIdAsync(string userId);
+        Task<int> CountOfInProcessAsync(CancellationToken ct = default);
         Task<decimal> GetTotalRevenueAsync();
         Task<decimal> GetUserTotalSpentAsync(string userId);
-        Task<int> GetOrdersInProcessCountAsync();
         Task<IEnumerable<DailySalesDto>> GetDailySalesAsync(DateTime startDate, DateTime endDate);
-        Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN);
+        Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default);
 
-        void CreateOrder(Order order);
-        void UpdateOrder(Order order);
-        void DeleteOrder(Order order);
+        void Create(Order order);
+        void Update(Order order);
+        void Delete(Order order);
     }
 }

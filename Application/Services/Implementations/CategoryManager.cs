@@ -40,7 +40,7 @@ namespace Application.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync(bool trackChanges)
+        public async Task<IEnumerable<CategoryDto>> GetAllAsync(bool trackChanges)
         {
             string cacheKey = "allCategories";
 
@@ -49,7 +49,7 @@ namespace Application.Services.Implementations
                 return cachedCategories ?? new List<CategoryDto>();
             }
 
-            var categories = await _manager.Category.GetAllCategoriesAsync(trackChanges);
+            var categories = await _manager.Category.GetAllAsync(trackChanges);
             var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(categories).ToList();
 
             _cache.Set(cacheKey, categoriesDto,
@@ -63,7 +63,7 @@ namespace Application.Services.Implementations
             return categoriesDto;
         }
 
-        public async Task<int> GetCategoriesCountAsync()
+        public async Task<int> CountAsync(CancellationToken ct = default)
         {
             string cacheKey = "categoriesCount";
 
@@ -72,7 +72,7 @@ namespace Application.Services.Implementations
                 return cachedCount;
             }
 
-            var count = await _manager.Category.GetCategoriesCountAsync();
+            var count = await _manager.Category.CountAsync();
 
             _cache.Set(cacheKey, count,
                 new MemoryCacheEntryOptions
@@ -87,14 +87,14 @@ namespace Application.Services.Implementations
 
         private async Task<Category> GetOneCategoryForServiceAsync(int id, bool trackChanges)
         {
-            var category = await _manager.Category.GetOneCategoryAsync(id, trackChanges);
+            var category = await _manager.Category.GetByIdAsync(id, trackChanges);
             if (category == null)
                 throw new CategoryNotFoundException(id);
 
             return category;
         }
 
-        public async Task<CategoryWithDetailsDto> GetOneCategoryAsync(int id)
+        public async Task<CategoryWithDetailsDto> GetByIdAsync(int id)
         {
             var category = await GetOneCategoryForServiceAsync(id, false);
             var categoryDto = _mapper.Map<CategoryWithDetailsDto>(category);
@@ -102,23 +102,23 @@ namespace Application.Services.Implementations
             return categoryDto;
         }
 
-        public async Task<IEnumerable<CategoryDto>> GetParentCategoriesAsync()
+        public async Task<IEnumerable<CategoryDto>> GetParentsAsync()
         {
-            var categories = await _manager.Category.GetParentCategoriesAsync(false);
+            var categories = await _manager.Category.GetParentsAsync(false);
             var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(categories);
 
             return categoriesDto;
         }
 
-        public async Task<IEnumerable<Category>> GetChildsOfOneCategoryAsync(int parentId)
+        public async Task<IEnumerable<Category>> GetChildrenByIdAsync(int parentId)
         {
-            var categories = await _manager.Category.GetChildsOfOneCategoryAsync(parentId, false);
+            var categories = await _manager.Category.GetChildrenByIdAsync(parentId, false);
             var categoriesDto = _mapper.Map<IEnumerable<Category>>(categories);
 
             return categoriesDto;
         }
 
-        public async Task<OperationResult<CategoryWithDetailsDto>> CreateCategoryAsync(CategoryDtoForCreation categoryDto)
+        public async Task<OperationResult<CategoryWithDetailsDto>> CreateAsync(CategoryDtoForCreation categoryDto)
         {
             try
             {
@@ -148,7 +148,7 @@ namespace Application.Services.Implementations
 
                 if (category.ParentId.HasValue)
                 {
-                    var allCategories = await _manager.Category.GetAllCategoriesAsync(false);
+                    var allCategories = await _manager.Category.GetAllAsync(false);
                     if (category.HasCircularReference(category.ParentId.Value, allCategories))
                     {
                         throw new CategoryValidationException("Döngüsel referans tespit edildi. Kategori hiyerarşisi geçersiz.");
@@ -158,7 +158,7 @@ namespace Application.Services.Implementations
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-                _manager.Category.CreateCategory(category);
+                _manager.Category.Create(category);
                 category.CreatedByUserId = userId;
                 category.UpdatedByUserId = userId;
 
@@ -179,7 +179,7 @@ namespace Application.Services.Implementations
                     }
                 );
 
-                await _activityService.LogActivityAsync(
+                await _activityService.LogAsync(
                     "Yeni Kategori",
                     $"{category.CategoryName} kategorisi oluşturuldu.",
                     "fa-folder-plus",
@@ -200,7 +200,7 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<CategoryWithDetailsDto>> UpdateCategoryAsync(CategoryDtoForUpdate categoryDto)
+        public async Task<OperationResult<CategoryWithDetailsDto>> UpdateAsync(CategoryDtoForUpdate categoryDto)
         {
             try
             {
@@ -243,7 +243,7 @@ namespace Application.Services.Implementations
 
                 if (category.ParentId.HasValue)
                 {
-                    var allCategories = await _manager.Category.GetAllCategoriesAsync(false);
+                    var allCategories = await _manager.Category.GetAllAsync(false);
                     if (category.HasCircularReference(category.ParentId.Value, allCategories))
                     {
                         throw new CategoryValidationException("Döngüsel referans tespit edildi. Kategori hiyerarşisi geçersiz.");
@@ -284,11 +284,11 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<CategoryWithDetailsDto>> DeleteCategoryAsync(int id)
+        public async Task<OperationResult<CategoryWithDetailsDto>> DeleteAsync(int id)
         {
             var category = await GetOneCategoryForServiceAsync(id, true);
 
-            var childCategories = await _manager.Category.GetChildsOfOneCategoryAsync(id, false);
+            var childCategories = await _manager.Category.GetChildrenByIdAsync(id, false);
             if (childCategories.Any())
             {
                 _logger.LogWarning("Cannot delete category with children. CategoryId: {CategoryId}, ChildCount: {Count}",
@@ -317,6 +317,12 @@ namespace Application.Services.Implementations
                 id, userId);
 
             return OperationResult<CategoryWithDetailsDto>.Success("Kategori başarıyla silindi.");
+        }
+
+        public async Task<IEnumerable<CategoryVariantAttributeDto>> GetAttributesAsync(int categoryId)
+        {
+            var attributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(categoryId, false);
+            return _mapper.Map<IEnumerable<CategoryVariantAttributeDto>>(attributes);
         }
     }
 }

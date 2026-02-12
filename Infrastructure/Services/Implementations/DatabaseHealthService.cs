@@ -13,11 +13,11 @@ namespace Infrastructure.Services.Implementations
             _db = db;
         }
 
-        public async Task<long?> CheckAsync()
+        public async Task<long?> CheckAsync(CancellationToken ct = default)
         {
             var sw = Stopwatch.StartNew();
 
-            var canConnect = await _db.Database.CanConnectAsync();
+            var canConnect = await _db.Database.CanConnectAsync(ct);
             sw.Stop();
 
             return canConnect ? sw.ElapsedMilliseconds : null;

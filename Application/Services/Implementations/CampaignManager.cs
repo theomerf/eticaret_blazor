@@ -43,17 +43,17 @@ namespace Application.Services.Implementations
         private string GetCurrentUserName() =>
             _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-        public async Task<IEnumerable<CampaignDto>> GetAllCampaignsAsync()
+        public async Task<IEnumerable<CampaignDto>> GetAllAsync()
         {
-            var campaigns = await _manager.Campaign.GetAllCampaignsAsync(false);
+            var campaigns = await _manager.Campaign.GetAllAsync(false);
             var campaignsDto = _mapper.Map<IEnumerable<CampaignDto>>(campaigns);
 
             return campaignsDto;
         }
 
-        public async Task<CampaignDto> GetCampaignByIdAsync(int campaignId)
+        public async Task<CampaignDto> GetByIdAsync(int campaignId)
         {
-            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, false);
+            var campaign = await _manager.Campaign.GetByIdAsync(campaignId, false);
             if (campaign == null)
             {
                 throw new CampaignNotFoundException(campaignId);
@@ -64,17 +64,17 @@ namespace Application.Services.Implementations
             return campaignDto;
         }
 
-        public async Task<IEnumerable<CampaignDto>> GetActiveCampaignsAsync()
+        public async Task<IEnumerable<CampaignDto>> GetActiveAsync()
         {
-            var campaigns = await _manager.Campaign.GetActiveCampaignsAsync(false);
+            var campaigns = await _manager.Campaign.GetActiveAsync(false);
             var campaignsDto = _mapper.Map<IEnumerable<CampaignDto>>(campaigns);
 
             return campaignsDto;
         }
 
-        public async Task<IEnumerable<Campaign>> GetApplicableCampaignsAsync(decimal orderAmount)
+        public async Task<IEnumerable<Campaign>> GetApplicableAsync(decimal orderAmount)
         {
-            var activeCampaigns = await _manager.Campaign.GetActiveCampaignsByPriorityAsync(false);
+            var activeCampaigns = await _manager.Campaign.GetActiveByPriorityAsync(false);
 
             var applicableCampaigns = activeCampaigns
                 .Where(c => c.IsActiveNow() && (!c.MinOrderAmount.HasValue || orderAmount >= c.MinOrderAmount.Value))
@@ -83,7 +83,7 @@ namespace Application.Services.Implementations
             return applicableCampaigns;
         }
 
-        public async Task<OperationResult<int>> CreateCampaignAsync(CampaignDtoForCreation campaignDto)
+        public async Task<OperationResult<int>> CreateAsync(CampaignDtoForCreation campaignDto)
         {
             try
             {
@@ -97,7 +97,7 @@ namespace Application.Services.Implementations
                 campaign.CreatedByUserId = userId;
                 campaign.UpdatedByUserId = userId;
 
-                _manager.Campaign.CreateCampaign(campaign);
+                _manager.Campaign.Create(campaign);
                 await _manager.SaveAsync();
 
                 await _auditLogService.LogAsync(
@@ -119,7 +119,7 @@ namespace Application.Services.Implementations
                     }
                 );
 
-                await _activityService.LogActivityAsync(
+                await _activityService.LogAsync(
                     "Yeni Kampanya",
                     $"{campaign.Name} kampanyası oluşturuldu.",
                     "fa-bullhorn",
@@ -140,12 +140,12 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<CampaignDto>> UpdateCampaignAsync(CampaignDtoForUpdate campaignDto)
+        public async Task<OperationResult<CampaignDto>> UpdateAsync(CampaignDtoForUpdate campaignDto)
         {
             try
             {
                 _manager.ClearTracker();
-                var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignDto.CampaignId, true);
+                var campaign = await _manager.Campaign.GetByIdAsync(campaignDto.CampaignId, true);
                 if (campaign == null)
                 {
                     return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);
@@ -211,9 +211,9 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<CampaignDto>> DeleteCampaignAsync(int campaignId)
+        public async Task<OperationResult<CampaignDto>> DeleteAsync(int campaignId)
         {
-            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, true);
+            var campaign = await _manager.Campaign.GetByIdAsync(campaignId, true);
             if (campaign == null)
             {
                 return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);
@@ -240,10 +240,10 @@ namespace Application.Services.Implementations
             return OperationResult<CampaignDto>.Success("Kampanya başarıyla silindi.");
         }
 
-        public async Task<OperationResult<CampaignDto>> ActivateCampaignAsync(int campaignId)
+        public async Task<OperationResult<CampaignDto>> ActivateAsync(int campaignId)
         {
             _manager.ClearTracker();
-            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, true);
+            var campaign = await _manager.Campaign.GetByIdAsync(campaignId, true);
             if (campaign == null)
             {
                 return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);
@@ -275,10 +275,10 @@ namespace Application.Services.Implementations
             return OperationResult<CampaignDto>.Success(campaignDto, "Kampanya aktif edildi.");
         }
 
-        public async Task<OperationResult<CampaignDto>> DeactivateCampaignAsync(int campaignId)
+        public async Task<OperationResult<CampaignDto>> DeactivateAsync(int campaignId)
         {
             _manager.ClearTracker();
-            var campaign = await _manager.Campaign.GetCampaignByIdAsync(campaignId, true);
+            var campaign = await _manager.Campaign.GetByIdAsync(campaignId, true);
             if (campaign == null)
             {
                 return OperationResult<CampaignDto>.Failure("Kampanya bulunamadı.", ResultType.NotFound);

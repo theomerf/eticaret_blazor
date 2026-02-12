@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Application.Services.Implementations
 {
@@ -34,7 +35,8 @@ namespace Application.Services.Implementations
             IAuditLogService auditLogService,
             IActivityService activityService,
             ILogger<ProductManager> logger,
-            IHtmlSanitizerService htmlSanitizer)
+            IHtmlSanitizerService htmlSanitizer,
+            IFileService fileService)
         {
             _manager = manager;
             _mapper = mapper;
@@ -46,23 +48,23 @@ namespace Application.Services.Implementations
             _htmlSanitizer = htmlSanitizer;
         }
 
-        public async Task<(IEnumerable<ProductDto> products, int count)> GetAllProductsAsync(ProductRequestParameters p)
+        public async Task<(IEnumerable<ProductDto> products, int count)> GetAllAsync(ProductRequestParameters p)
         {
-            var result = await _manager.Product.GetAllProductsAsync(p, false);
+            var result = await _manager.Product.GetAllAsync(p, false);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(result.products);
 
             return (productsDto, result.count);
         }
 
-        public async Task<(IEnumerable<ProductDto> products, int count)> GetAllProductsAdminAsync(ProductRequestParametersAdmin p)
+        public async Task<(IEnumerable<ProductDto> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, CancellationToken ct = default)
         {
-            var result = await _manager.Product.GetAllProductsAdminAsync(p, false);
+            var result = await _manager.Product.GetAllAdminAsync(p, false, ct);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(result.products);
 
             return (productsDto, result.count);
         }
 
-        public async Task<int> GetProductsCountAsync()
+        public async Task<int> CountAsync(CancellationToken ct = default)
         {
             string cacheKey = "productsCount";
 
@@ -71,7 +73,7 @@ namespace Application.Services.Implementations
                 return cachedCount;
             }
 
-            var count = await _manager.Product.GetProductsCountAsync();
+            var count = await _manager.Product.CountAsync(ct);
 
             _cache.Set(cacheKey, count,
                 new MemoryCacheEntryOptions
@@ -83,111 +85,203 @@ namespace Application.Services.Implementations
             return count;
         }
 
-        private async Task<Product> GetOneProductForServiceAsync(int id, bool trackChanges)
+        private async Task<Product> GetByIdForServiceAsync(int productId, bool trackChanges)
         {
-            var product = await _manager.Product.GetOneProductAsync(id, trackChanges);
+            var product = await _manager.Product.GetByIdAsync(productId, trackChanges);
             if (product == null)
-                throw new ProductNotFoundException(id);
+                throw new ProductNotFoundException(productId);
 
             return product;
         }
 
-        public async Task<ProductWithDetailsDto> GetOneProductAsync(int id)
+        public async Task<ProductWithDetailsDto> GetByIdAsync(int productId)
         {
-            var product = await GetOneProductForServiceAsync(id, false);
+            var product = await GetByIdForServiceAsync(productId, false);
             var productDto = _mapper.Map<ProductWithDetailsDto>(product);
 
             return productDto;
         }
-
-        public async Task<ProductWithDetailsDto> GetOneProductBySlugAsync(string slug)
+        private async Task<ProductVariant> GetVariantByIdForServiceAsync(int variantId, bool trackChanges)
         {
-            var product = await _manager.Product.GetOneProductBySlugAsync(slug, false);
-            if (product == null)
-                throw new ProductNotFoundExceptionForSlug(slug);
-            var productDto = _mapper.Map<ProductWithDetailsDto>(product);
+            var variant = await _manager.ProductVariant.GetByIdAsync(variantId, trackChanges);
+            if (variant == null)
+                throw new ProductVariantNotFoundException(variantId);
 
-            return productDto;
+            return variant;
         }
 
-        public async Task<IEnumerable<ProductDto>> GetRecommendedProductsAsync()
+        public async Task<ProductVariantDto> GetVariantByIdAsync(int variantId)
         {
-            var products = await _manager.Product.GetRecommendedProductsAsync(false);
+            var variant = await GetVariantByIdForServiceAsync(variantId, false);
+            var variantDto = _mapper.Map<ProductVariantDto>(variant);
+
+            return variantDto;
+        }
+
+        public async Task<ProductWithDetailsDto> GetBySlugAsync(string slug)
+        {
+            var product = await _manager.Product.GetBySlugAsync(slug, false);
+            if (product == null) throw new ProductNotFoundExceptionForSlug(slug);
+
+            FilterVariantSelectors(product);
+            await LoadDefaultVariantDetails(product);
+
+            return product;
+        }
+
+        private void FilterVariantSelectors(ProductWithDetailsDto product)
+        {
+            if (product.VariantSelectors?.Count == 0 || product.Variants.Count <= 1)
+            {
+                product.VariantSelectors = new List<ProductVariantSelectorDto>();
+                return;
+            }
+
+            var commonKeys = product.Variants
+                .SelectMany(v => v.VariantSpecifications
+                    .Select(v => v.Key)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                )
+                .GroupBy(k => k, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() == product.Variants.Count)
+                .Select(g => g.Key)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var hasColorVariant = product.Variants.Any(v => !string.IsNullOrWhiteSpace(v.Color));
+            var hasSizeVariant = product.Variants.Any(v => !string.IsNullOrWhiteSpace(v.Size));
+
+            if (hasColorVariant && !commonKeys.Contains("Renk"))
+            {
+                commonKeys.Add("Renk");
+            }
+
+            if (hasSizeVariant && !commonKeys.Contains("Beden"))
+            {
+                commonKeys.Add("Beden");
+            }
+
+            product.VariantSelectors = product.VariantSelectors!
+                .Where(s => commonKeys.Contains(s.Key))
+                .ToList();
+        }
+
+        private async Task LoadDefaultVariantDetails(ProductWithDetailsDto product)
+        {
+            var defaultVariantId = product.Variants.FirstOrDefault(v => v.IsDefault)?.ProductVariantId;
+            if (defaultVariantId == null)
+                return;
+
+            var defaultVariantFull = await _manager.ProductVariant.GetByIdAsync(defaultVariantId.Value, false);
+            if (defaultVariantFull == null)
+                throw new ProductVariantNotFoundException(defaultVariantId.Value);
+
+            var defaultVariant = product.Variants.First(v => v.ProductVariantId == defaultVariantId);
+            _mapper.Map(defaultVariantFull, defaultVariant);
+        }
+
+        public async Task<IEnumerable<ProductDto>> GetRecommendationsAsync()
+        {
+            var products = await _manager.Product.GetRecommendationsAsync(false);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
 
             return productsDto;
         }
 
-        public async Task<IEnumerable<ProductDto>> GetFavouriteProductsAsync(FavouriteResultDto favouritesDto)
+        public async Task<IEnumerable<ProductDto>> GetFavouritesAsync(FavouriteResultDto favouritesDto)
         {
-            var products = await _manager.Product.GetFavouriteProductsAsync(favouritesDto.FavouriteProductsId, false);
+            var products = await _manager.Product.GetFavouritesAsync(favouritesDto.FavouriteProductVariantsId, false);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
 
             return productsDto;
         }
 
-        public async Task<IEnumerable<ProductDto>> GetLastestProductsAsync(int n)
+        public async Task<IEnumerable<ProductDto>> GetLatestAsync(int count)
         {
-            var products = await _manager.Product.GetLastestProductsAsync(n, false);
+            var products = await _manager.Product.GetLatestAsync(count, false);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
 
             return productsDto;
         }
 
-        public async Task<IEnumerable<ProductDto>> GetShowcaseProductsAsync()
+        public async Task<IEnumerable<ProductDto>> GetShowcaseListAsync(CancellationToken ct = default)
         {
-            var products = await _manager.Product.GetShowcaseProductsAsync(false);
+            var products = await _manager.Product.GetShowcaseListAsync(false);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
 
             return productsDto;
         }
 
-        public async Task<OperationResult<int>> CreateProductAsync(ProductDtoForCreation productDto)
+        public async Task<OperationResult<ProductWithDetailsDto>> CreateAsync(ProductDtoForCreation productDto)
         {
             try
             {
                 var product = _mapper.Map<Product>(productDto);
 
                 if (!string.IsNullOrWhiteSpace(product.LongDescription))
-                {
                     product.LongDescription = _htmlSanitizer.Sanitize(product.LongDescription);
-                }
 
-                product.Slug = SlugHelper.GenerateSlug(product.ProductName);
+                product.Slug = !string.IsNullOrWhiteSpace(productDto.Slug)
+                    ? SlugHelper.GenerateSlug(productDto.Slug)
+                    : SlugHelper.GenerateSlug(product.ProductName);
 
                 var existingCount = await _manager.Product.CountBySlugAsync(product.Slug);
                 if (existingCount > 0)
-                {
                     product.Slug = SlugHelper.MakeUnique(product.Slug, existingCount + 1);
-                }
 
                 if (string.IsNullOrWhiteSpace(product.MetaTitle))
-                {
                     product.MetaTitle = SeoMetaHelper.GenerateProductMetaTitle(product.ProductName, productDto.Brand);
-                }
 
                 if (string.IsNullOrWhiteSpace(product.MetaDescription))
-                {
                     product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
                         product.ProductName,
                         productDto.Summary,
-                        product.DiscountPrice ?? product.ActualPrice,
+                        product.MinPrice,
                         productDto.Brand);
+
+                await EnsureCategoryAttributesExist(productDto.CategoryId, productDto.Variants, productDto.NewAttributeDefinitions);
+
+                var attributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(product.CategoryId, false);
+
+                foreach (var variant in product.Variants)
+                {
+                    variant.ValidateStock();
+
+                    variant.CombinationKey = GenerateCombinationKey(variant, attributes);
+
+                    if (string.IsNullOrWhiteSpace(variant.CombinationKey))
+                        throw new ProductValidationException("Varyant belirleyici alanlar boş olamaz.");
+
+                    var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+                    variant.CreatedByUserId = userId;
+                    variant.UpdatedByUserId = userId;
+                    variant.CreatedAt = DateTime.UtcNow;
+                    variant.UpdatedAt = DateTime.UtcNow;
                 }
 
                 product.ValidateForCreation();
 
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+                ValidateVariantConsistency(product.Variants, attributes);
+
+                var duplicateKeys = product.Variants
+                    .GroupBy(v => v.CombinationKey)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                if (duplicateKeys.Any())
+                    throw new ProductValidationException("Aynı varyant kombinasyonu birden fazla oluşturulamaz.");
+
+                var userIdLog = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-                _manager.Product.CreateProduct(product);
-                product.CreatedByUserId = userId;
-                product.UpdatedByUserId = userId;
+                product.CreatedByUserId = userIdLog;
+                product.UpdatedByUserId = userIdLog;
 
+                _manager.Product.Create(product);
                 await _manager.SaveAsync();
 
                 await _auditLogService.LogAsync(
-                    userId: userId,
+                    userId: userIdLog,
                     userName: userName,
                     action: "Create",
                     entityName: "Product",
@@ -195,51 +289,68 @@ namespace Application.Services.Implementations
                     newValues: new
                     {
                         product.ProductName,
-                        product.ActualPrice,
-                        product.DiscountPrice,
-                        product.Stock,
-                        product.CategoryId
+                        product.MinPrice,
+                        product.MaxPrice,
+                        TotalStock = product.TotalStock,
+                        product.CategoryId,
+                        VariantCount = product.Variants.Count
                     }
                 );
 
-                await _activityService.LogActivityAsync(
+                await _activityService.LogAsync(
                     "Yeni Ürün",
                     $"{product.ProductName} ürünü eklendi.",
                     "fa-box",
                     "text-blue-500 bg-blue-100",
-                    $"/admin/products/edit/{product.ProductId}"
+                    $"/admin/products/update/{product.ProductId}"
                 );
 
                 _logger.LogInformation(
                     "Product created successfully. ProductId: {ProductId}, Name: {ProductName}, User: {UserId}",
-                    product.ProductId, product.ProductName, userId);
+                    product.ProductId, product.ProductName, userIdLog);
 
-                return OperationResult<int>.Success(product.ProductId, "Ürün başarıyla oluşturuldu.");
+                var productWithDetailsDto = _mapper.Map<ProductWithDetailsDto>(product);
+
+                return OperationResult<ProductWithDetailsDto>.Success(productWithDetailsDto, "Ürün başarıyla oluşturuldu.");
             }
             catch (ProductValidationException ex)
             {
                 _logger.LogWarning(ex, "Product validation failed. ProductName: {ProductName}", productDto.ProductName);
-                return OperationResult<int>.Failure(ex.Message, ResultType.ValidationError);
+                return OperationResult<ProductWithDetailsDto>.Failure(ex.Message, ResultType.ValidationError);
             }
             catch (InvalidPriceException ex)
             {
-                _logger.LogWarning(ex, "Invalid price. ActualPrice: {ActualPrice}, DiscountPrice: {DiscountPrice}",
-                    productDto.ActualPrice, productDto.DiscountPrice);
-                return OperationResult<int>.Failure(ex.Message, ResultType.ValidationError);
+                _logger.LogWarning(ex, "Invalid price.");
+                return OperationResult<ProductWithDetailsDto>.Failure(ex.Message, ResultType.ValidationError);
             }
         }
 
-        public async Task<OperationResult<ProductWithDetailsDto>> UpdateProductImagesAsync(IEnumerable<ProductImageDtoForCreation> productImagesDto)
+        public async Task<OperationResult<ProductWithDetailsDto>> UpdateImagesAsync(IEnumerable<ProductImageDtoForCreation> productImagesDto)
         {
             try
             {
-                var product = await GetOneProductForServiceAsync(productImagesDto.First().ProductId, true);
+                if (productImagesDto == null || !productImagesDto.Any()) return OperationResult<ProductWithDetailsDto>.Success("Resim listesi boş.");
+
+                var variantId = productImagesDto.First().ProductVariantId;
+                var productVariant = await GetVariantByIdForServiceAsync(variantId, true);
+
+                if (productVariant.Images != null && productVariant.Images.Any())
+                {
+                     var existingImages = productVariant.Images.ToList();
+                     foreach(var img in existingImages)
+                     {
+                         _manager.Product.DeleteImage(img);
+                     }
+                     productVariant.Images.Clear();
+                }
 
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
 
-                var productImage = _mapper.Map<IEnumerable<ProductImage>>(productImagesDto);
+                var newImages = _mapper.Map<IEnumerable<ProductImage>>(productImagesDto);
 
-                foreach (var img in productImage)
+                if (productVariant.Images == null) productVariant.Images = new List<ProductImage>();
+
+                foreach (var img in newImages)
                 {
                     img.ValidateForCreation();
 
@@ -247,31 +358,33 @@ namespace Application.Services.Implementations
                     img.CreatedByUserId = userId;
                     img.UpdatedAt = DateTime.UtcNow;
                     img.UpdatedByUserId = userId;
+                    
+                    img.ProductVariantId = productVariant.ProductVariantId;
 
-                    _manager.Product.CreateProductImage(img);
-                    product.Images?.Add(img);
+                    _manager.Product.CreateImage(img);
+                    productVariant.Images.Add(img);
                 }
 
                 await _manager.SaveAsync();
 
                 _logger.LogInformation(
-                    "Product images updated. ProductId: {ProductId}, ImageCount: {Count}",
-                    product.ProductId, productImagesDto.Count());
+                    "Product images overwritten. ProductId: {ProductId}, ProductVariantId: {ProductVariantId}, NewImageCount: {Count}",
+                    productVariant.ProductId, productVariant.ProductVariantId, productImagesDto.Count());
 
                 return OperationResult<ProductWithDetailsDto>.Success("Ürün resimleri başarıyla güncellendi.");
             }
             catch (ProductValidationException ex)
             {
-                _logger.LogWarning(ex, "Product image validation failed. ProductId: {ProductId}",
-                    productImagesDto.First().ProductId);
+                _logger.LogWarning(ex, "Product image validation failed. ProductId: {ProductId}, ProductVariantId: {ProductVariantId}",
+                    productImagesDto?.FirstOrDefault()?.ProductId, productImagesDto?.FirstOrDefault()?.ProductVariantId);
                 return OperationResult<ProductWithDetailsDto>.Failure(ex.Message, ResultType.ValidationError);
             }
         }
 
-        public async Task<OperationResult<ProductWithDetailsDto>> UpdateProductShowcaseStatus(int id)
+        public async Task<OperationResult<ProductWithDetailsDto>> UpdateShowcaseStatus(int productId)
         {
             _manager.ClearTracker();
-            var product = await GetOneProductForServiceAsync(id, true);
+            var product = await GetByIdForServiceAsync(productId, true);
             var oldShowCase = product.ShowCase;
 
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
@@ -304,19 +417,19 @@ namespace Application.Services.Implementations
                 product.ShowCase ? "Ürün vitrine eklendi." : "Ürün vitrinden kaldırıldı.");
         }
 
-        public async Task<OperationResult<ProductWithDetailsDto>> UpdateProductAsync(ProductDtoForUpdate productDto)
+        public async Task<OperationResult<ProductWithDetailsDto>> UpdateAsync(ProductDtoForUpdate productDto)
         {
             try
             {
                 _manager.ClearTracker();
-                var product = await GetOneProductForServiceAsync(productDto.ProductId, true);
+                var product = await GetByIdForServiceAsync(productDto.ProductId, true);
 
                 var oldValues = new
                 {
                     product.ProductName,
-                    product.ActualPrice,
-                    product.DiscountPrice,
-                    product.Stock
+                    product.MinPrice,
+                    product.MaxPrice,
+                    product.TotalStock
                 };
 
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
@@ -325,11 +438,16 @@ namespace Application.Services.Implementations
                 _mapper.Map(productDto, product);
 
                 if (!string.IsNullOrWhiteSpace(product.LongDescription))
-                {
                     product.LongDescription = _htmlSanitizer.Sanitize(product.LongDescription);
-                }
 
-                product.Slug = SlugHelper.GenerateSlug(product.ProductName);
+                if (!string.IsNullOrWhiteSpace(productDto.Slug))
+                {
+                    product.Slug = SlugHelper.GenerateSlug(productDto.Slug);
+                }
+                else
+                {
+                    product.Slug = SlugHelper.GenerateSlug(product.ProductName);
+                }
 
                 var existingCount = await _manager.Product.CountBySlugAsync(product.Slug);
                 if (existingCount > 0)
@@ -346,14 +464,129 @@ namespace Application.Services.Implementations
                 {
                     product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
                         product.ProductName,
-                        productDto.Summary,
-                        product.DiscountPrice ?? product.ActualPrice,
+                        product.Summary,
+                        product.MinPrice,
                         productDto.Brand);
                 }
 
-                product.ValidatePrice();
-                product.ValidateStock();
+                if (string.IsNullOrWhiteSpace(product.MetaDescription))
+                {
+                    product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
+                        product.ProductName,
+                        product.Summary,
+                        product.MinPrice,
+                        productDto.Brand);
+                }
 
+                _mapper.Map(productDto, product);
+
+                await EnsureCategoryAttributesExist(product.CategoryId, productDto.Variants, productDto.NewAttributeDefinitions);
+
+                var attributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(product.CategoryId, false);
+
+                if (productDto.Variants != null && productDto.Variants.Any())
+                {
+                    var existingVariants = await _manager.ProductVariant.GetByProductIdAsync(product.ProductId, true);
+                    var existingVariantsList = existingVariants.ToList();
+
+                    var incomingVariantIds = productDto.Variants
+                        .Where(v => v.ProductVariantId > 0)
+                        .Select(v => v.ProductVariantId)
+                        .ToList();
+
+                    var variantsToDelete = existingVariantsList
+                        .Where(ev => !incomingVariantIds.Contains(ev.ProductVariantId))
+                        .ToList();
+
+                    foreach (var variantToDelete in variantsToDelete)
+                    {
+                        _manager.ProductVariant.Delete(variantToDelete);
+                        _logger.LogInformation("Variant deleted. ProductVariantId: {VariantId}", variantToDelete.ProductVariantId);
+                    }
+
+                    foreach (var variantDto in productDto.Variants)
+                    {
+                        ProductVariant? targetVariant;
+                        
+                        if (variantDto.ProductVariantId > 0)
+                        {
+                            targetVariant = existingVariantsList
+                                .FirstOrDefault(ev => ev.ProductVariantId == variantDto.ProductVariantId);
+
+                            if (targetVariant != null)
+                            {
+                                targetVariant.Color = variantDto.Color;
+                                targetVariant.Size = variantDto.Size;
+                                targetVariant.Price = variantDto.Price;
+                                targetVariant.DiscountPrice = variantDto.DiscountPrice;
+                                targetVariant.Stock = variantDto.Stock;
+                                targetVariant.Sku = variantDto.Sku;
+                                targetVariant.Gtin = variantDto.Gtin;
+                                targetVariant.IsActive = variantDto.IsActive;
+                                targetVariant.IsDefault = variantDto.IsDefault;
+                                targetVariant.UpdatedAt = DateTime.UtcNow;
+                                targetVariant.VariantSpecificationsJson = JsonSerializer.Serialize(variantDto.VariantSpecifications);
+
+                                targetVariant.WeightOverride = variantDto.WeightOverride;
+                                targetVariant.LengthOverride = variantDto.LengthOverride;
+                                targetVariant.WidthOverride = variantDto.WidthOverride;
+                                targetVariant.HeightOverride = variantDto.HeightOverride;
+
+                                _manager.ProductVariant.Update(targetVariant);
+                                _logger.LogInformation("Variant updated. ProductVariantId: {VariantId}", targetVariant.ProductVariantId);
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            targetVariant = new ProductVariant
+                            {
+                                ProductId = product.ProductId,
+                                Color = variantDto.Color,
+                                Size = variantDto.Size,
+                                Price = variantDto.Price,
+                                DiscountPrice = variantDto.DiscountPrice,
+                                Stock = variantDto.Stock,
+                                Sku = variantDto.Sku,
+                                Gtin = variantDto.Gtin,
+                                IsActive = variantDto.IsActive,
+                                IsDefault = variantDto.IsDefault,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow,
+                                VariantSpecificationsJson = JsonSerializer.Serialize(variantDto.VariantSpecifications),
+
+                                WeightOverride = variantDto.WeightOverride,
+                                LengthOverride = variantDto.LengthOverride,
+                                WidthOverride = variantDto.WidthOverride,
+                                HeightOverride = variantDto.HeightOverride
+                            };
+                            
+                            _manager.ProductVariant.Create(targetVariant);
+                            
+                            _logger.LogInformation("New variant added. Color: {Color}, Size: {Size}", targetVariant.Color, targetVariant.Size);
+                        }
+
+                        targetVariant.ValidateStock();
+                        targetVariant.CombinationKey = GenerateCombinationKey(targetVariant, attributes);
+
+                        if (string.IsNullOrWhiteSpace(targetVariant.CombinationKey))
+                             throw new ProductValidationException("Varyant belirleyici alanlar boş olamaz.");
+
+                        targetVariant.UpdatedByUserId = userId;
+                        if(targetVariant.ProductVariantId == 0) targetVariant.CreatedByUserId = userId;
+                    }
+                }
+
+                product.ValidateForCreation();
+
+                 var duplicateKeys = (productDto.Variants ?? Enumerable.Empty<ProductVariantDtoForCreation>())
+                    .Select(v => {
+                        return 0; 
+                    }).ToList();
+                
                 product.UpdatedAt = DateTime.UtcNow;
                 product.UpdatedByUserId = userId;
 
@@ -369,9 +602,6 @@ namespace Application.Services.Implementations
                     newValues: new
                     {
                         productDto.ProductName,
-                        productDto.ActualPrice,
-                        productDto.DiscountPrice,
-                        productDto.Stock
                     }
                 );
 
@@ -393,9 +623,9 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<ProductWithDetailsDto>> DeleteProductAsync(int id)
+        public async Task<OperationResult<ProductWithDetailsDto>> DeleteAsync(int productId)
         {
-            var product = await GetOneProductForServiceAsync(id, true);
+            var product = await GetByIdForServiceAsync(productId, true);
 
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
@@ -409,14 +639,152 @@ namespace Application.Services.Implementations
                 userName: userName,
                 action: "Delete",
                 entityName: "Product",
-                entityId: id.ToString()
+                entityId: productId.ToString()
             );
 
             _logger.LogInformation(
                 "Product soft deleted. ProductId: {ProductId}, User: {UserId}",
-                id, userId);
+                productId, userId);
 
             return OperationResult<ProductWithDetailsDto>.Success("Ürün başarıyla silindi.");
+        }
+
+        private async Task EnsureCategoryAttributesExist(int categoryId, IEnumerable<ProductVariantDtoForCreation> variants, List<CategoryVariantAttributeDtoForCreation>? newAttributeDefinitions)
+        {
+            if (newAttributeDefinitions != null && newAttributeDefinitions.Any())
+            {
+                foreach (var attrDef in newAttributeDefinitions)
+                {
+                    var exists = await _manager.CategoryVariantAttribute.ExistsByKeyAsync(attrDef.Key, categoryId);
+                    if (!exists)
+                    {
+                        var newAttr = new CategoryVariantAttribute
+                        {
+                            CategoryId = categoryId,
+                            Key = attrDef.Key,
+                            DisplayName = attrDef.DisplayName,
+                            Type = attrDef.Type,
+                            IsVariantDefiner = attrDef.IsVariantDefiner,
+                            IsTechnicalSpec = attrDef.IsTechnicalSpec,
+                            SortOrder = attrDef.SortOrder,
+                            IsRequired = attrDef.IsRequired
+                        };
+                        _manager.CategoryVariantAttribute.Create(newAttr);
+                    }
+                }
+                await _manager.SaveAsync();
+            }
+
+            if (variants == null || !variants.Any()) return;
+
+            var allKeysUsed = variants
+                .SelectMany(v => v.VariantSpecifications.Select(s => s.Key))
+                .Distinct()
+                .ToList();
+
+            if (variants.Any(v => !string.IsNullOrEmpty(v.Color))) allKeysUsed.Add("Renk");
+            if (variants.Any(v => !string.IsNullOrEmpty(v.Size))) allKeysUsed.Add("Beden");
+
+            allKeysUsed = allKeysUsed.Distinct().ToList();
+
+            if (!allKeysUsed.Any()) return;
+
+            var existingAttributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(categoryId, false);
+            var existingKeys = existingAttributes.Select(a => a.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var totallyNewKeys = allKeysUsed.Where(k => !existingKeys.Contains(k)).ToList();
+
+            if (totallyNewKeys.Any())
+            {
+                foreach (var key in totallyNewKeys)
+                {
+                    var newAttr = new CategoryVariantAttribute
+                    {
+                        CategoryId = categoryId,
+                        Key = key,
+                        DisplayName = key,
+                        Type = VariantAttributeType.Select,
+                        IsVariantDefiner = true,
+                        IsTechnicalSpec = false,
+                        SortOrder = 0
+                    };
+                    _manager.CategoryVariantAttribute.Create(newAttr);
+                }
+                await _manager.SaveAsync();
+            }
+        }
+
+        private void ValidateVariantConsistency(ICollection<ProductVariant> variants, IEnumerable<CategoryVariantAttribute> attributes)
+        {
+            if (variants.Count == 0) return;
+
+            var requiredAttributes = attributes.Where(a => a.IsRequired).ToList();
+
+            foreach (var attr in requiredAttributes)
+            {
+                foreach (var variant in variants)
+                {
+                    var value = GetAttributeValue(variant, attr.Key);
+
+                    if (string.IsNullOrWhiteSpace(value))
+                        throw new ProductValidationException(
+                            $"'{attr.DisplayName}' zorunludur ve tüm varyantlarda girilmelidir.");
+                }
+            }
+
+            var definers = attributes
+                .Where(a => a.IsVariantDefiner && !a.IsRequired)
+                .ToList();
+
+            foreach (var definer in definers)
+            {
+                var filledCount = variants.Count(v =>
+                    !string.IsNullOrWhiteSpace(GetAttributeValue(v, definer.Key)));
+
+                if (filledCount > 0 && filledCount < variants.Count)
+                {
+                    throw new ProductValidationException(
+                        $"'{definer.DisplayName}' ya tüm varyantlarda olmalı ya da hiçbirinde olmamalı.");
+                }
+            }
+        }
+
+        private string GenerateCombinationKey(ProductVariant variant, IEnumerable<CategoryVariantAttribute> attributes)
+        {
+            var definers = attributes
+                .Where(a => a.IsVariantDefiner)
+                .OrderBy(a => a.SortOrder)
+                .ToList();
+
+            var parts = new List<string>();
+
+            foreach (var attr in definers)
+            {
+                var value = GetAttributeValue(variant, attr.Key);
+
+                if (!string.IsNullOrWhiteSpace(value))
+                    parts.Add($"{attr.Key}:{value.Trim()}");
+            }
+
+            return string.Join("|", parts);
+        }
+
+        private string? GetAttributeValue(ProductVariant variant, string key)
+        {
+            if (key.Equals("Renk", StringComparison.OrdinalIgnoreCase))
+                return variant.Color;
+
+            if (key.Equals("Beden", StringComparison.OrdinalIgnoreCase))
+                return variant.Size;
+
+            if (string.IsNullOrEmpty(variant.VariantSpecificationsJson))
+                return null;
+
+            var specs = JsonSerializer.Deserialize<List<ProductSpecificationDto>>(variant.VariantSpecificationsJson);
+
+            return specs?
+                .FirstOrDefault(x => x.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
+                ?.Value;
         }
     }
 }

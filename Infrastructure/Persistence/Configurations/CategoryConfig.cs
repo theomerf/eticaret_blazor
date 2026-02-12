@@ -60,7 +60,16 @@ namespace Infrastructure.Persistence.Configurations
                 .WithOne(p => p.Category)
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.NoAction);
-            
+
+            builder.HasMany(c => c.VariantAttributes)
+                .WithOne(va => va.Category)
+                .HasForeignKey(va => va.CategoryId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.HasOne(c => c.ParentCategory)
+                .WithMany(pc => pc.ChildCategories)
+                .HasForeignKey(c => c.ParentId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

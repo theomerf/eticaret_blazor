@@ -1,7 +1,5 @@
 <div class="group relative flex flex-col bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.15),0_10px_10px_-5px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300 hover:-translate-y-1 h-full">
-    <!-- Header: Colored Background -->
     <div class="@Theme.HeaderBg p-6 pb-4 text-white relative overflow-hidden transition-all duration-300">
-        <!-- Decorative Blur Circles -->
         <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none group-hover:bg-white/20 transition-colors duration-500"></div>
         <div class="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-black/5 blur-xl pointer-events-none"></div>
 
@@ -16,27 +14,21 @@
         </div>
     </div>
 
-    <!-- Body: White Background -->
     <div class="flex-1 p-5 bg-white flex flex-col justify-between gap-1">
         
-        <!-- Dynamic Mini Chart Area -->
         <div class="h-[60px] w-full rounded-xl relative overflow-hidden mb-3 @Theme.ChartBg shadow-inner">
-             <!-- Chart Fill -->
              <div class="absolute bottom-0 left-0 right-0 h-full opacity-40 @Theme.ChartFill transition-all duration-500" 
                   style="clip-path: @GetChartPolygon()">
              </div>
-             <!-- Optional: Stroke/Line Effect (Top border of fill) -->
              <div class="absolute bottom-0 left-0 right-0 h-full opacity-60 @Theme.ChartFill mix-blend-multiply" 
                    style="clip-path: @GetChartPolygon(offsetY: 5)">
              </div>
         </div>
 
-        <!-- Description -->
         <div class="mb-3 px-1">
              <p class="text-[11px] text-gray-400 font-medium truncate">@Description</p>
         </div>
 
-        <!-- Buttons -->
         <div class="grid grid-cols-2 gap-3 mt-auto">
             @if (!string.IsNullOrEmpty(CreateLink))
             {

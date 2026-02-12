@@ -3,13 +3,9 @@
 @using Application.DTOs
 @using Microsoft.AspNetCore.Authorization
 @inject ETicaret.Services.INotificationService NotificationService
-@inject IProductService ProductService
-@inject ICategoryService CategoryService
-@inject IAuthService AuthService
-@inject IOrderService OrderService
-@inject IUserReviewService UserReviewService
-@inject IActivityService ActivityService
-@inject ISystemService SystemService
+@inherits OwningComponentBase
+@inject IJSRuntime JSRuntime
+@implements IDisposable
 @attribute [Authorize(Roles = "Admin")]
 
 <div class="bg-primary text-white rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.15)] mb-8 relative overflow-hidden animate-slideDown">
@@ -53,7 +49,18 @@
     [CascadingParameter]
     private Task<AuthenticationState>? AuthStateTask { get; set; }
 
-    private string? userName;
+    private IProductService? _productService;
+    private ICategoryService? _categoryService;
+    private IAuthService? _authService;
+    private IOrderService? _orderService;
+    private IUserReviewService? _userReviewService;
+    private IActivityService? _activityService;
+    private ISystemService? _systemService;
+
+    private CancellationTokenSource? _cts;
+
+    private string? firstName;
+    private string? lastName;
     private bool isLoading = false;
 
     private int? productsCount;
@@ -67,12 +74,25 @@
     private IEnumerable<ProductSalesDto> topSellingProducts = new List<ProductSalesDto>();
     private SystemStatusDto? systemStatus;
 
+    private bool _isDisposed = false;
+
     protected override async Task OnInitializedAsync()
     {
+        _productService = ScopedServices.GetRequiredService<IProductService>();
+        _categoryService = ScopedServices.GetRequiredService<ICategoryService>();
+        _authService = ScopedServices.GetRequiredService<IAuthService>();
+        _orderService = ScopedServices.GetRequiredService<IOrderService>();
+        _userReviewService = ScopedServices.GetRequiredService<IUserReviewService>();
+        _activityService = ScopedServices.GetRequiredService<IActivityService>();
+        _systemService = ScopedServices.GetRequiredService<ISystemService>();
+
         NotificationService.Clear();
         isLoading = true;
 
-        await LoadDashboardDatasAsync();
+        _cts = new CancellationTokenSource();
+        await LoadDashboardDatasAsync(_cts.Token);
+        
+        if (_isDisposed) return;
 
         isLoading = false;
 
@@ -83,25 +103,59 @@
 
             if (user.Identity?.IsAuthenticated == true)
             {
-                userName = user.Identity.Name;
+                firstName = user.FindFirst("first_name")?.Value;
+                lastName = user.FindFirst("last_name")?.Value;
             }
         }
-        NotificationService.ShowInfo($"Tekrar Hoşgeldiniz {userName}, Saat: {DateTime.Now.ToShortTimeString()}");
+
+        var welcomeShown = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "dashboardWelcomeShown");
+
+        if (string.IsNullOrEmpty(welcomeShown))
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"Tekrar Hoşgeldiniz {firstName} {lastName}, Saat: {DateTime.Now.ToShortTimeString()}", "info");
+            await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "dashboardWelcomeShown", "true");
+        }
     }
 
-    private async Task LoadDashboardDatasAsync()
+    private async Task LoadDashboardDatasAsync(CancellationToken ct)
     {
-        productsCount = await ProductService.GetProductsCountAsync();
-        categoriesCount = await CategoryService.GetCategoriesCountAsync();
-        usersCount = await AuthService.GetUsersCountAsync();
-        ordersInProcessCount = await OrderService.GetOrdersInProcessCountAsync();
-        reviewsCount = await UserReviewService.GetCountAsync();
-        rolesCount = AuthService.Roles.Count();
-        recentActivities = await ActivityService.GetRecentActivitiesAsync(5);
-        showcaseProducts = await ProductService.GetShowcaseProductsAsync();
-        recentActivities = await ActivityService.GetRecentActivitiesAsync(5);
-        showcaseProducts = await ProductService.GetShowcaseProductsAsync();
-        topSellingProducts = await OrderService.GetTopSellingProductsAsync(4);
-        systemStatus = await SystemService.GetSystemStatusAsync();
+        if (_productService != null) productsCount = await _productService.CountAsync(ct);
+        if (ct.IsCancellationRequested) return;
+        
+        if (_categoryService != null) categoriesCount = await _categoryService.CountAsync(ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_authService != null) usersCount = await _authService.GetUsersCountAsync(ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_orderService != null) ordersInProcessCount = await _orderService.CountOfInProcessAsync(ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_userReviewService != null) reviewsCount = await _userReviewService.CountAsync(ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_authService != null) rolesCount = await _authService.GetRolesCountAsync(ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_activityService != null) recentActivities = await _activityService.GetRecentAsync(5, ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_productService != null) showcaseProducts = await _productService.GetShowcaseListAsync(ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_orderService != null) topSellingProducts = await _orderService.GetTopSellingProductsAsync(4, ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_systemService != null) systemStatus = await _systemService.GetSystemStatusAsync(ct);
     }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+
 }

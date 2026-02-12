@@ -4,9 +4,9 @@ namespace Application.Repositories.Interfaces
 {
     public interface ICouponUsageRepository
     {
-        Task<IEnumerable<CouponUsage>> GetCouponUsagesAsync(int couponId, bool trackChanges);
-        Task<IEnumerable<CouponUsage>> GetUserCouponUsagesAsync(string userId, bool trackChanges);
-        Task<CouponUsage?> GetUserCouponUsageAsync(int couponId, string userId, bool trackChanges);
-        void CreateCouponUsage(CouponUsage couponUsage);
+        Task<IEnumerable<CouponUsage>> GetAllAsync(int couponId, bool trackChanges);
+        Task<IEnumerable<CouponUsage>> GetByUserIdAsync(string userId, bool trackChanges);
+        Task<CouponUsage?> GetByUserIdForCouponAsync(int couponId, string userId, bool trackChanges);
+        void Create(CouponUsage couponUsage);
     }
 }

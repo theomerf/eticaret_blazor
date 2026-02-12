@@ -19,12 +19,12 @@
     <script asp-append-version="true" src="~/js/products-mobile.js"></script>
 }
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-    <div class="hidden lg:block lg:col-span-3">
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+    <div class="hidden lg:block lg:col-span-1">
         @await Html.PartialAsync("_ProductsFilterMenu")
     </div>
     
-    <div class="lg:col-span-9">
+    <div class="lg:col-span-3">
         <div id="productContainer">
             @await Html.PartialAsync("_ProductsListPartial", Model)
         </div>
@@ -75,22 +75,12 @@
     </div>
 </div>
 
-
 <!-- Loading Overlay -->
 <div id="loadingOverlay"
-     style="
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.3);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-     ">
-    <div class="bg-white rounded p-4 text-center">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Yükleniyor...</span>
-        </div>
-        <div class="mt-2">Filtreler uygulanıyor...</div>
+     class="fixed inset-0 bg-black/30 z-[9999] flex justify-center items-center backdrop-blur-sm transition-opacity duration-300 opacity-100 pointer-events-auto"
+     style="display:none">
+    <div class="bg-white rounded-2xl p-6 text-center shadow-2xl transform transition-transform duration-300 scale-100">
+        <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <div class="text-gray-800 font-semibold">Filtreler uygulanıyor...</div>
     </div>
 </div>

@@ -5,13 +5,14 @@ namespace Application.Services.Interfaces
 {
     public interface ICategoryService
     {
-        Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync(bool trackChanges);
-        Task<int> GetCategoriesCountAsync();
-        Task<CategoryWithDetailsDto> GetOneCategoryAsync(int id);
-        Task<IEnumerable<CategoryDto>> GetParentCategoriesAsync();
-        Task<IEnumerable<Category>> GetChildsOfOneCategoryAsync(int parentId);
-        Task<OperationResult<CategoryWithDetailsDto>> CreateCategoryAsync(CategoryDtoForCreation categoryDto);
-        Task<OperationResult<CategoryWithDetailsDto>> UpdateCategoryAsync(CategoryDtoForUpdate categoryDto);
-        Task<OperationResult<CategoryWithDetailsDto>> DeleteCategoryAsync(int id);
+        Task<IEnumerable<CategoryDto>> GetAllAsync(bool trackChanges);
+        Task<int> CountAsync(CancellationToken ct = default);
+        Task<CategoryWithDetailsDto> GetByIdAsync(int id);
+        Task<IEnumerable<CategoryDto>> GetParentsAsync();
+        Task<IEnumerable<Category>> GetChildrenByIdAsync(int parentId);
+        Task<OperationResult<CategoryWithDetailsDto>> CreateAsync(CategoryDtoForCreation categoryDto);
+        Task<OperationResult<CategoryWithDetailsDto>> UpdateAsync(CategoryDtoForUpdate categoryDto);
+        Task<OperationResult<CategoryWithDetailsDto>> DeleteAsync(int id);
+        Task<IEnumerable<CategoryVariantAttributeDto>> GetAttributesAsync(int categoryId);
     }
 }

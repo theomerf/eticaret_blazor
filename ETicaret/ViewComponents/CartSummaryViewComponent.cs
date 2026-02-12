@@ -26,7 +26,7 @@ namespace ETicaret.ViewComponents
             }
             else
             {
-                var count = await _cartService.GetCartLinesCountAsync(userId);
+                var count = await _cartService.CountOfLinesAsync(userId);
                 return View(count);
             }
         }

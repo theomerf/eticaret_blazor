@@ -36,16 +36,16 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
 
-            _manager.AuditLog.Add(auditLog);
+            _manager.AuditLog.Create(auditLog);
             await _manager.SaveAsync();
         }
-        public async Task<IEnumerable<AuditLog>> GetUserActivityAsync(string userId, int pageNumber = 1, int pageSize = 50)
+        public async Task<IEnumerable<AuditLog>> GetByUserIdAsync(string userId, int pageNumber = 1, int pageSize = 50)
         {
             var logs = await _manager.AuditLog.GetByUserIdAsync(userId, pageNumber, pageSize);
 
             return logs;
         }
-        public async Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityName, string entityId)
+        public async Task<IEnumerable<AuditLog>> GetByEntityAsync(string entityName, string entityId)
         {
             var logs = await _manager.AuditLog.GetByEntityAsync(entityName, entityId);
 
@@ -80,7 +80,7 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
 
-            _manager.AuditLog.Add(auditLog);
+            _manager.AuditLog.Create(auditLog);
             await _manager.SaveAsync();
         }
 
@@ -112,7 +112,7 @@ namespace Application.Services.Implementations
                 Timestamp = DateTime.UtcNow
             };
 
-            _manager.AuditLog.Add(auditLog);
+            _manager.AuditLog.Create(auditLog);
             await _manager.SaveAsync();
         }
     }

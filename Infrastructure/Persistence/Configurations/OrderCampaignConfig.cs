@@ -22,17 +22,13 @@ namespace Infrastructure.Persistence.Configurations
                 .HasPrecision(18, 2)
                 .IsRequired();
 
-            // Indexes
             builder.HasIndex(oc => oc.OrderId)
                 .HasDatabaseName("IX_OrderCampaigns_OrderId");
 
             builder.HasIndex(oc => new { oc.OrderId, oc.CampaignId })
                 .HasDatabaseName("IX_OrderCampaigns_Order_Campaign");
 
-            // Query filter to match parent Order's soft delete filter
             builder.HasQueryFilter(oc => !oc.Order.IsDeleted);
-
-            // Relationships are configured in OrderConfig
         }
     }
 }

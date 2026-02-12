@@ -14,7 +14,7 @@ namespace Infrastructure.Persistence.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
-            builder.Property(ol => ol.ActualPrice)
+            builder.Property(ol => ol.Price)
                 .IsRequired()
                 .HasPrecision(18, 2);
 
@@ -34,6 +34,17 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.HasIndex(ol => ol.ProductId)
                 .HasDatabaseName("IX_OrderLines_ProductId");
+
+            builder.HasOne(ol => ol.ProductVariant)
+                .WithMany()
+                .HasForeignKey(ol => ol.ProductVariantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(ol => ol.VariantColor)
+                .HasMaxLength(50);
+
+            builder.Property(ol => ol.VariantSize)
+                .HasMaxLength(50);
 
             builder.Ignore(ol => ol.LineTotal);
         }

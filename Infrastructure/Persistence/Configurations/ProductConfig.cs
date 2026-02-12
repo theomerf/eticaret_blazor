@@ -24,24 +24,37 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(p => p.MetaDescription)
                 .HasMaxLength(160);
 
+            builder.Property(p => p.LongDescription);
+
             builder.Property(p => p.Summary)
-                .HasMaxLength(1000);
+                .HasMaxLength(500);
 
-            builder.Property(p => p.ActualPrice)
-                .IsRequired()
-                .HasPrecision(18, 2);
-
-            builder.Property(p => p.DiscountPrice)
-                .HasPrecision(18, 2);
+            builder.Ignore(p => p.TotalStock);
+            builder.Ignore(p => p.MinPrice);
+            builder.Ignore(p => p.MaxPrice);
 
             builder.Property(p => p.Brand)
                 .HasMaxLength(100);
 
-            builder.Property(p => p.Gtin)
-                .HasMaxLength(50);
+            builder.Property(v => v.DefaultWeight)
+                .HasPrecision(18, 2);
 
-            builder.Property(p => p.Color)
-                .HasMaxLength(50);
+            builder.Property(v => v.DefaultLength)
+                .HasPrecision(18, 2);
+
+            builder.Property(v => v.DefaultWidth)
+                .HasPrecision(18, 2);
+
+            builder.Property(v => v.DefaultHeight)
+                .HasPrecision(18, 2);
+
+            builder.Property(p => p.ManufacturingCountry)
+                .HasMaxLength(100);
+
+            builder.Property(p => p.WarrantyInfo)
+                .HasMaxLength(200);
+
+            builder.Property(p => p.SpecificationsJson);
 
             builder.Property(p => p.DeletedByUserId)
                 .HasMaxLength(450);
@@ -79,14 +92,14 @@ namespace Infrastructure.Persistence.Configurations
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasMany(p => p.Variants)
+                .WithOne(v => v.Product)
+                .HasForeignKey(v => v.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.HasMany(c => c.UserReviews)
                 .WithOne(sc => sc.Product)
                 .HasForeignKey(sc => sc.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasMany(p => p.Images)
-                .WithOne(pi => pi.Product)
-                .HasForeignKey(pi => pi.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasGeneratedTsVectorColumn(
@@ -99,11 +112,9 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasGeneratedTsVectorColumn(
                 p => p.SearchVector,
                 "turkish",
-                p => new { p.ProductName, p.Brand, p.Summary, p.LongDescription, p.MetaTitle, p.MetaDescription, p.Gtin })
-                .HasIndex(p => p.SearchVector)
-                .HasMethod("GIN"); // Hızlı tam metin arama indeksi
-
-            builder.Ignore(p => p.Discount);
+                p => new { p.ProductName, p.Brand, p.Summary, p.LongDescription, p.MetaTitle, p.MetaDescription })
+            .HasIndex(p => p.SearchVector)
+            .HasMethod("GIN");
         }
     }
 }

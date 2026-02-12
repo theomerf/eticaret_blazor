@@ -17,15 +17,15 @@ namespace Application.Services.Implementations
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<ActivityDto>> GetRecentActivitiesAsync(int count = 5)
+        public async Task<IEnumerable<ActivityDto>> GetRecentAsync(int count = 5, CancellationToken ct = default)
         {
-            var activities = await _manager.Activity.GetRecentActivitiesAsync(count, false);
+            var activities = await _manager.Activity.GetRecentAsync(count, false);
             var activiesDto = _mapper.Map<IEnumerable<ActivityDto>>(activities);
 
             return activiesDto;
         }
 
-        public async Task LogActivityAsync(string title, string description, string icon, string colorClass, string? link = null)
+        public async Task LogAsync(string title, string description, string icon, string colorClass, string? link = null)
         {
             var activity = new Activity
             {
@@ -37,7 +37,7 @@ namespace Application.Services.Implementations
                 CreatedAt = DateTime.UtcNow
             };
 
-            _manager.Activity.CreateActivity(activity);
+            _manager.Activity.Create(activity);
             await _manager.SaveAsync();
         }
     }

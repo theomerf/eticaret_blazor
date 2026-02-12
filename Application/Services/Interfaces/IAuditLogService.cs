@@ -6,10 +6,9 @@ namespace Application.Services.Interfaces
     {
         Task LogAsync(string userId, string userName, string action, string entityName,
             string? entityId = null, object? oldValues = null, object? newValues = null);
-        Task<IEnumerable<AuditLog>> GetUserActivityAsync(string userId, int pageNumber = 1, int pageSize = 50);
-        Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityName, string entityId);
+        Task<IEnumerable<AuditLog>> GetByUserIdAsync(string userId, int pageNumber = 1, int pageSize = 50);
+        Task<IEnumerable<AuditLog>> GetByEntityAsync(string entityName, string entityId);
         
-        // Payment-specific audit logging
         Task LogPaymentEventAsync(string userId, string userName, string action, string orderNumber, 
             string? transactionId, decimal amount, string status, string? provider = null);
 

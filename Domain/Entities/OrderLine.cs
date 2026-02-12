@@ -12,15 +12,22 @@ namespace Domain.Entities
         public int ProductId { get; set; }
         public Product? Product { get; set; }
         
+        public int ProductVariantId { get; set; }
+        public ProductVariant? ProductVariant { get; set; }
+        
         public string ProductName { get; set; } = null!;
         public string CategoryName { get; set; } = null!;
         public string? SubCategoryName { get; set; }
         public int Quantity { get; set; }
-        public decimal ActualPrice { get; set; }
+        public decimal Price { get; set; }
         public decimal? DiscountPrice { get; set; }
         public string? ImageUrl { get; set; }
         
-        public decimal LineTotal => (DiscountPrice ?? ActualPrice) * Quantity;
+        public string? VariantColor { get; set; }
+        public string? VariantSize { get; set; }
+        public string? SpecificationsJson { get; set; }
+        
+        public decimal LineTotal => (DiscountPrice ?? Price) * Quantity;
 
         #region Validation Methods
 
@@ -64,7 +71,7 @@ namespace Domain.Entities
 
         public void ValidatePricing()
         {
-            if (ActualPrice <= 0)
+            if (Price <= 0)
             {
                 throw new OrderValidationException("Ürün fiyatı 0'dan büyük olmalıdır.");
             }
@@ -74,7 +81,7 @@ namespace Domain.Entities
                 throw new OrderValidationException("İndirimli fiyat 0'dan küçük olamaz.");
             }
 
-            if (DiscountPrice.HasValue && DiscountPrice.Value >= ActualPrice)
+            if (DiscountPrice.HasValue && DiscountPrice.Value >= Price)
             {
                 throw new OrderValidationException("İndirimli fiyat normal fiyattan küçük olmalıdır.");
             }
@@ -101,7 +108,7 @@ namespace Domain.Entities
 
         public decimal RecalculateLineTotal()
         {
-            return (DiscountPrice ?? ActualPrice) * Quantity;
+            return (DiscountPrice ?? Price) * Quantity;
         }
 
         #endregion

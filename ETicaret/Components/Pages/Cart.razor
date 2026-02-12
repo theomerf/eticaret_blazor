@@ -8,7 +8,15 @@
 @inject ILogger<Cart> _logger
 
 <div data-blazor-loaded="true">
-    <h2 class="page-title">Alışveriş Sepetim</h2>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="page-title mb-0">Alışveriş Sepetim</h2>
+        @if (CartState.CurrentCart.Lines.Any())
+        {
+            <button class="text-gray-400 hover:text-red-600 font-medium text-sm flex items-center gap-2 transition-colors duration-300" @onclick="ClearCart">
+                <i class="fas fa-trash-alt"></i> Sepeti Temizle
+            </button>
+        }
+    </div>
 
     @if (CartState.IsLoading && !_initialLoadComplete)
     {
@@ -70,9 +78,9 @@
                         @foreach (var line in CartState.CurrentCart.Lines)
                         {
                             <CartItem Line="@line"
-                                      OnQuantityIncrease="@(async (productId) => await HandleQuantityIncrease(productId))"
-                                      OnQuantityDecrease="@(async (productId) => await HandleQuantityDecrease(productId))"
-                                      OnRemove="HandleRemoveItem" IsUpdating="@IsLineUpdating(line.ProductId)" />
+                                      OnQuantityIncrease="async () => await HandleQuantityIncrease(line)"
+                                      OnQuantityDecrease="async () => await HandleQuantityDecrease(line)"
+                                      OnRemove="async () => await HandleRemoveItem(line)" IsUpdating="@IsLineUpdating(line.ProductId)" />
                         }
                     </div>
 
@@ -133,53 +141,47 @@
         _initialLoadComplete = true;
     }
 
-    private async Task HandleQuantityIncrease(int productId)
+    private async Task HandleQuantityIncrease(CartLineDto lineDto)
     {
-        var line = CartState.CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId);
-        if (line == null) return;
-
-        _updatingProducts.Add(productId);
+        _updatingProducts.Add(lineDto.ProductId);
         StateHasChanged();
 
-        await CartState.SetQuantityAsync(productId, line.Quantity + 1);
+        await CartState.SetQuantityAsync(lineDto.ProductId, lineDto.ProductVariantId, lineDto.Quantity + 1);
 
-        _updatingProducts.Remove(productId);
+        _updatingProducts.Remove(lineDto.ProductId);
 
         StateHasChanged();
     }
 
-    private async Task HandleQuantityDecrease(int productId)
+    private async Task HandleQuantityDecrease(CartLineDto lineDto)
     {
-        var line = CartState.CurrentCart.Lines.FirstOrDefault(l => l.ProductId == productId);
-        if (line == null) return;
-
-        _updatingProducts.Add(productId);
+        _updatingProducts.Add(lineDto.ProductId);
         StateHasChanged();
 
-        var newQuantity = line.Quantity - 1;
+        var newQuantity = lineDto.Quantity - 1;
         if (newQuantity == 0)
         {
-            await CartState.RemoveItemAsync(productId);
+            await CartState.RemoveItemAsync(lineDto.ProductId, lineDto.ProductVariantId);
         }
         else
         {
-            await CartState.SetQuantityAsync(productId, newQuantity);
+            await CartState.SetQuantityAsync(lineDto.ProductId, lineDto.ProductVariantId, newQuantity);
         }
 
-        _updatingProducts.Remove(productId);
+        _updatingProducts.Remove(lineDto.ProductId);
 
 
         StateHasChanged();
     }
 
-    private async Task HandleRemoveItem(int productId)
+    private async Task HandleRemoveItem(CartLineDto lineDto)
     {
-        _updatingProducts.Add(productId);
+        _updatingProducts.Add(lineDto.ProductId);
         StateHasChanged();
 
-        await CartState.RemoveItemAsync(productId);
+        await CartState.RemoveItemAsync(lineDto.ProductId, lineDto.ProductVariantId);
 
-        _updatingProducts.Remove(productId);
+        _updatingProducts.Remove(lineDto.ProductId);
 
         await NavbarBadgeUpdateAsync();
 
@@ -187,6 +189,15 @@
     }
 
     private bool IsLineUpdating(int productId) => _updatingProducts.Contains(productId);
+
+    private async Task ClearCart()
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Sepetinizdeki tüm ürünleri silmek istediğinize emin misiniz?"))
+        {
+            await CartState.ClearCartAsync();
+            await JSRuntime.InvokeVoidAsync("setCounter", "cart-summary", 0);
+        }
+    }
 
     private void ClearError()
     {

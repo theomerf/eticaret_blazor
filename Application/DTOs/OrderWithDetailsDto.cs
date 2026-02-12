@@ -16,8 +16,8 @@ namespace Application.DTOs
         public string District { get; set; } = null!;
         public string AddressLine { get; set; } = null!;
         public string? PostalCode { get; set; }
-        
-        public ICollection<OrderLineDto> Lines { get; set; } = new List<OrderLineDto>();
+
+        public List<OrderLineDto> Lines { get; set; } = [];
         
         public OrderStatus OrderStatus { get; set; }
         public DateTime OrderedAt { get; set; }
@@ -33,8 +33,8 @@ namespace Application.DTOs
         public decimal? CouponDiscountAmount { get; set; }
         public decimal? CampaignDiscountTotal { get; set; }
         public string? CouponCode { get; set; }
-        
-        public ICollection<OrderCampaignDto> AppliedCampaigns { get; set; } = new List<OrderCampaignDto>();
+
+        public List<OrderCampaignDto> AppliedCampaigns { get; set; } = [];
         
         public ShippingMethod ShippingMethod { get; set; }
         public DateTime? ShippedAt { get; set; }
@@ -60,6 +60,6 @@ namespace Application.DTOs
         public string? CustomerNotes { get; set; }
         public string? AdminNotes { get; set; }
         
-        public ICollection<OrderHistoryDto> History { get; set; } = new List<OrderHistoryDto>();
+        public List<OrderHistoryDto> History { get; set; } = [];
     }
 }

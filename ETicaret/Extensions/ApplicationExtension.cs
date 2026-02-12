@@ -1,5 +1,4 @@
 ﻿using Domain.Entities;
-using ETicaret.Extensions;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

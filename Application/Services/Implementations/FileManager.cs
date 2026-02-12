@@ -55,7 +55,7 @@ namespace Application.Services.Implementations
             return OperationResult<string>.Success(storageKey, "Dosya başarıyla yüklendi.");
         }
 
-        public async Task<OperationResult<List<string>>> UploadMultipleFilesAsync(IEnumerable<(Stream fileStream, string fileName, string contentType)> files, string subFolder)
+        public async Task<OperationResult<List<string>>> UploadMultipleAsync(IEnumerable<(Stream fileStream, string fileName, string contentType)> files, string subFolder)
         {
             List<string> uploadedFileNames = new();
 
@@ -87,6 +87,19 @@ namespace Application.Services.Implementations
 
             File.Delete(physicalPath);
             return OperationResult.Success("Dosya silindi.");
+        }
+
+        public OperationResult DeleteMultipleAsync(List<string> storageKeys)
+        {
+            if (storageKeys.Count == 0)
+                return OperationResult.Failure("Geçerisz dosya yolları.", ResultType.ValidationError);
+
+            foreach (var storageKey in storageKeys)
+            {
+                Delete(storageKey);
+            }
+
+            return OperationResult.Success("Dosyalar silindi.");
         }
     }
 }

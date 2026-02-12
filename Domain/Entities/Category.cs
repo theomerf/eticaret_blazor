@@ -18,6 +18,7 @@ namespace Domain.Entities
         public Category? ParentCategory { get; set; }
         public ICollection<Category>? ChildCategories { get; set; }
         public ICollection<Product>? Products { get; set; }
+        public ICollection<CategoryVariantAttribute>? VariantAttributes { get; set; }
 
         public int DisplayOrder { get; set; } = 0;
         public bool IsVisible { get; set; } = true;

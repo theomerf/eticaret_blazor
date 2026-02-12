@@ -13,14 +13,13 @@ using Infrastructure.Security;
 using Infrastructure.Services.Implementations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 
 namespace ETicaret.Extensions
 {
     public static class ServiceExtension
     {
-        public static void ConfigureDbContext(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureDbContext(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
         {
             services.AddDbContext<RepositoryContext>(options =>
             {
@@ -28,6 +27,9 @@ namespace ETicaret.Extensions
                     configuration.GetConnectionString("postgresqlconnection"),
                     b => b.MigrationsAssembly("ETicaret")
                 );
+
+                if (environment.IsDevelopment())
+                    options.EnableSensitiveDataLogging();
             });
         }
 
@@ -90,6 +92,7 @@ namespace ETicaret.Extensions
         {
             services.AddScoped<IRepositoryManager, RepositoryManager>();
             services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<IUserReviewRepository, UserReviewRepository>();
@@ -104,6 +107,7 @@ namespace ETicaret.Extensions
             services.AddScoped<IOrderHistoryRepository, OrderHistoryRepository>();
             services.AddScoped<IOrderLinePaymentTransactionRepository, OrderLinePaymentTransactionRepository>();
             services.AddScoped<IActivityRepository, ActivityRepository>();
+            services.AddScoped<ICategoryVariantAttributeRepository, CategoryVariantAttributeRepository>();
         }
 
         public static void ConfigureServiceRegistration(this IServiceCollection services)

@@ -2,6 +2,7 @@
     'use strict';
 
     let cartItems = new Set(); // Sepetteki ürün ID'leri
+    let cartSyncInProgress = false;
     const CART_VERSION_KEY = 'cart_version';
 
     function getCookie(name) {
@@ -59,8 +60,17 @@
 
 
     async function initCartState() {
+        if (!window.isAuthenticated) return;
+        if (cartSyncInProgress) return;
+
+        cartSyncInProgress = true;
         try {
             const response = await fetch('/api/cart');
+
+            if (response.status === 401) {
+                window.isAuthenticated = false;
+                return;
+            }
 
             if (response.ok) {
                 const cart = await response.json();
@@ -74,28 +84,32 @@
             }
         } catch (error) {
             console.error('Sepet yüklenirken hata oluştu:', error);
+        } finally {
+            cartSyncInProgress = false;
         }
     }
 
     function syncAllButtons() {
         document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
             const productId = parseInt(btn.dataset.productId);
+            const productVariantId = parseInt(btn.dataset.productVariantId);
 
             if (cartItems.has(productId)) {
-                convertToRemoveButton(btn, productId);
+                convertToRemoveButton(btn, productId, productVariantId);
             }
         });
 
         document.querySelectorAll('.remove-from-cart-btn').forEach(btn => {
             const productId = parseInt(btn.dataset.productId);
+            const productVariantId = parseInt(btn.dataset.productVariantId);
 
             if (!cartItems.has(productId)) {
-                convertToAddButton(btn, productId);
+                convertToAddButton(btn, productId, productVariantId);
             }
         });
     }
 
-    function convertToRemoveButton(button, productId) {
+    function convertToRemoveButton(button, productId, productVariantId) {
         const cartActionDiv = button.closest('.cart-action');
         if (cartActionDiv) {
             const isSmall = cartActionDiv.classList.contains('small-card-action');
@@ -110,7 +124,8 @@
                 cartActionDiv.innerHTML = `
                 <button type="button"
                     class="remove-from-cart-btn w-[90%] px-2 py-2 sm:px-4 sm:py-3 border-none rounded-xl bg-gradient-to-br from-red-500 via-red-600 to-red-700 text-white font-bold text-[0.6rem] sm:text-base flex items-center justify-center gap-1 sm:gap-2.5 transition-all duration-[400ms] [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)] shadow-[0_10px_25px_rgba(239,68,68,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] uppercase tracking-wide cursor-pointer relative overflow-hidden before:content-[''] before:absolute before:top-0 before:-left-full before:w-full before:h-full before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:transition-[left] before:duration-500 before:ease-out hover:before:left-full hover:bg-gradient-to-br hover:from-red-600 hover:via-red-700 hover:to-red-800 hover:shadow-[0_15px_35px_rgba(239,68,68,0.4),inset_0_1px_0_rgba(255,255,255,0.3)] hover:-translate-y-1 hover:scale-[1.02] [&.processing]:opacity-60 [&.processing]:pointer-events-none [&.processing]:animate-[processing_1.5s_infinite]"
-                    data-product-id="${productId}">
+                    data-product-id="${productId}"
+                    data-product-variant-id="${productVariantId}">
                     <span class="hidden sm:inline mr-1 sm:mr-2 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">Sepetten Çıkar</span>
                     <span class="sm:hidden mr-0.5 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">Çıkar</span>
                     <span class="inline-flex items-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]">
@@ -121,7 +136,7 @@
         }
     }
 
-    function convertToAddButton(button, productId) {
+    function convertToAddButton(button, productId, productVariantId) {
         const cartActionDiv = button.closest('.cart-action');
         if (cartActionDiv) {
             const isSmall = cartActionDiv.classList.contains('small-card-action');
@@ -136,7 +151,8 @@
                 cartActionDiv.innerHTML = `
                 <button type="button"
                     class="add-to-cart-btn w-[90%] px-2 py-2 sm:px-4 sm:py-3 border-none rounded-xl bg-button text-white font-bold text-[0.6rem] sm:text-base flex items-center justify-center gap-1 sm:gap-2.5 transition-all duration-[400ms] [transition-timing-function:cubic-bezier(0.175,0.885,0.32,1.275)] shadow-[0_10px_25px_rgba(59,130,246,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] uppercase tracking-wide cursor-pointer relative overflow-hidden before:content-[''] before:absolute before:top-0 before:-left-full before:w-full before:h-full before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:transition-[left] before:duration-500 before:ease-out hover:before:left-full hover:bg-button-hover hover:shadow-[0_15px_35px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.3)] hover:-translate-y-1 hover:scale-[1.02] [&.processing]:opacity-60 [&.processing]:pointer-events-none [&.processing]:animate-[processing_1.5s_infinite]"
-                    data-product-id="${productId}">
+                    data-product-id="${productId}"
+                    data-product-variant-id="${productVariantId}">
                     <span class="hidden sm:inline mr-1 sm:mr-2 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">Sepete Ekle</span>
                     <span class="sm:hidden mr-0.5 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">Ekle</span>
                     <span class="inline-flex items-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[5deg]">
@@ -160,10 +176,15 @@
         const button = e.target.closest('.add-to-favs-btn');
         if (!button) return;
 
+        if (!window.isAuthenticated) {
+            redirectToLogin();
+            return;
+        }
+
         e.preventDefault();
 
-        const productId = parseInt(button.dataset.productId);
-        if (!productId || isNaN(productId)) return;
+        const productVariantId = parseInt(button.dataset.productVariantId);
+        if (!productVariantId || isNaN(productVariantId)) return;
 
         if (button.classList.contains('processing')) return;
         button.classList.add('processing');
@@ -171,7 +192,7 @@
         updateCounter('favourites-summary', +1);
 
         try {
-            const response = await fetch(`/api/account/favourites/add/${productId}`, {
+            const response = await fetch(`/api/account/favourites/add/${productVariantId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -232,10 +253,15 @@
         const button = e.target.closest('.remove-from-favs-btn');
         if (!button) return;
 
+        if (!window.isAuthenticated) {
+            redirectToLogin();
+            return;
+        }
+
         e.preventDefault();
 
-        const productId = parseInt(button.dataset.productId);
-        if (!productId || isNaN(productId)) return;
+        const productVariantId = parseInt(button.dataset.productVariantId);
+        if (!productVariantId || isNaN(productVariantId)) return;
 
         if (button.classList.contains('processing')) return;
         button.classList.add('processing');
@@ -243,7 +269,7 @@
         updateCounter('favourites-summary', -1);
 
         try {
-            const response = await fetch(`/api/account/favourites/remove/${productId}`, {
+            const response = await fetch(`/api/account/favourites/remove/${productVariantId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -341,8 +367,9 @@
         e.preventDefault();
 
         const productId = parseInt(button.dataset.productId);
+        const productVariantId = parseInt(button.dataset.productVariantId);
 
-        if (isNaN(productId)) return;
+        if (isNaN(productId) || isNaN(productVariantId)) return;
 
         if (button.classList.contains('processing')) return;
         button.classList.add('processing');
@@ -352,6 +379,7 @@
         try {
             const data = {
                 productId: productId,
+                productVariantId: productVariantId,
                 quantity: 1
             };
 
@@ -360,7 +388,7 @@
             if (response.success) {
                 cartItems.add(productId);
 
-                convertToRemoveButton(button, productId);
+                convertToRemoveButton(button, productId, productVariantId);
 
                 showToast(response.message, response.type);
             } else {
@@ -382,7 +410,8 @@
         e.preventDefault();
 
         const productId = parseInt(button.dataset.productId);
-        if (!productId || isNaN(productId)) return;
+        const productVariantId = parseInt(button.dataset.productVariantId);
+        if (!productId || isNaN(productId) || !productVariantId || isNaN(productVariantId)) return;
 
         if (button.classList.contains('processing')) return;
         button.classList.add('processing');
@@ -390,12 +419,12 @@
         updateCounter('cart-summary', -1);
 
         try {
-            const response = await deleteJSON('/api/cart/items/' + productId);
+            const response = await deleteJSON('/api/cart/items/' + productId + '/variants/' + productVariantId);
 
             if (response.success) {
                 cartItems.delete(productId);
 
-                convertToAddButton(button, productId);
+                convertToAddButton(button, productId, productVariantId);
 
                 showToast(response.message, response.type);
             } else {
@@ -418,12 +447,18 @@
 
     document.addEventListener('visibilitychange', async function () {
         if (!document.hidden) {
+            if (!window.isAuthenticated) return;
             try {
                 const response = await fetch('/api/cart/version');
 
+                if (response.status === 401) {
+                    window.isAuthenticated = false;
+                    return;
+                }
+
                 if (response.ok) {
-                    const version = await response.json();
-                    if (version !== localStorage.getItem('cartVersion')) {
+                    const data = await response.json();
+                    if (data.version !== parseInt(localStorage.getItem(CART_VERSION_KEY))) {
                         initCartState();
                     }
                 }

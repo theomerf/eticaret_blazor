@@ -98,7 +98,7 @@ namespace Application.Services.Implementations
             return $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
         }
 
-        public async Task<OperationResult<int>> CreateOrderAsync(OrderDtoForCreation orderDto)
+        public async Task<OperationResult<int>> CreateAsync(OrderDtoForCreation orderDto)
         {
             var userId = GetCurrentUserId();
             try
@@ -111,24 +111,24 @@ namespace Application.Services.Implementations
                     {
                         UserId = userId,
                         OrderNumber = GenerateOrderNumber(),
-                        
+
                         // Customer Info
                         FirstName = orderDto.FirstName,
                         LastName = orderDto.LastName,
                         Phone = orderDto.Phone,
-                        
+
                         // Address
                         City = orderDto.City,
                         District = orderDto.District,
                         AddressLine = orderDto.AddressLine,
                         PostalCode = orderDto.PostalCode,
-                        
+
                         // Shipping & Payment
                         ShippingMethod = orderDto.ShippingMethod,
                         PaymentMethod = orderDto.PaymentMethod,
                         GiftWrap = orderDto.GiftWrap,
                         CustomerNotes = orderDto.CustomerNotes,
-                        
+
                         // Status
                         OrderStatus = OrderStatus.Pending,
                         PaymentStatus = PaymentStatus.Pending,
@@ -138,17 +138,24 @@ namespace Application.Services.Implementations
 
                     foreach (var cartLine in orderDto.CartLines)
                     {
-                        var product = await _manager.Product.GetOneProductAsync(cartLine.ProductId, false);
+                        var product = await _manager.Product.GetByIdAsync(cartLine.ProductId, false);
                         if (product == null)
                         {
                             return OperationResult<int>.Failure($"Ürün bulunamadı: {cartLine.ProductName}", ResultType.NotFound);
                         }
 
-                        if (product.Stock < cartLine.Quantity)
+                        var variant = await _manager.ProductVariant.GetByIdAsync(cartLine.ProductVariantId, true);
+                        if (variant == null)
                         {
-                            return OperationResult<int>.Failure($"Yetersiz stok: {product.ProductName}. Mevcut: {product.Stock}", ResultType.ValidationError);
+                            return OperationResult<int>.Failure($"Ürün varyantı bulunamadı: {cartLine.ProductName}", ResultType.NotFound);
                         }
-                        var category = await _manager.Category.GetOneCategoryAsync(product.CategoryId, false);
+
+                        if (variant.Stock < cartLine.Quantity)
+                        {
+                            return OperationResult<int>.Failure($"Yetersiz stok: {product.ProductName} ({variant.Color} - {variant.Size}). Mevcut: {variant.Stock}", ResultType.ValidationError);
+                        }
+
+                        var category = await _manager.Category.GetByIdAsync(product.CategoryId, false);
 
                         if (category == null || category.CategoryName == null)
                         {
@@ -162,42 +169,50 @@ namespace Application.Services.Implementations
                             CategoryName = category.CategoryName,
                             SubCategoryName = category.ParentCategory != null ? category.ParentCategory.CategoryName : null,
                             Quantity = cartLine.Quantity,
-                            ActualPrice = product.ActualPrice,
-                            DiscountPrice = product.DiscountPrice,
-                            ImageUrl = cartLine.ImageUrl
+                            Price = cartLine.ActualPrice,
+                            DiscountPrice = cartLine.DiscountPrice,
+                            ImageUrl = cartLine.ImageUrl,
+                            ProductVariantId = cartLine.ProductVariantId,
+                            VariantColor = cartLine.SelectedColor,
+                            VariantSize = cartLine.SelectedSize,
+                            SpecificationsJson = System.Text.Json.JsonSerializer.Serialize(cartLine.VariantSpecifications.Select(x => new ProductSpecificationDto { Key = x.Key, Value = x.Value }))
                         };
 
                         orderLine.ValidateForCreation();
                         order.Lines.Add(orderLine);
 
-                        product.DecreaseStock(cartLine.Quantity);
+                        if (variant != null)
+                        {
+                            variant.Stock -= cartLine.Quantity;
+                            _manager.ProductVariant.Update(variant);
+                        }
                     }
 
-                    order.SubTotal = order.Lines.Sum(l => (l.DiscountPrice ?? l.ActualPrice) * l.Quantity);
+                    order.SubTotal = order.Lines.Sum(l => (l.DiscountPrice ?? l.Price) * l.Quantity);
 
                     decimal remainingAmount = order.SubTotal;
 
                     if (!string.IsNullOrWhiteSpace(orderDto.CouponCode))
                     {
-                        var couponResult = await _couponService.ValidateCouponForOrderAsync(orderDto.CouponCode, order.SubTotal, userId);
+                        var couponResult = await _couponService.ValidateForOrderAsync(orderDto.CouponCode, order.SubTotal, userId);
                         if (couponResult.IsSuccess && couponResult.Data != null)
                         {
                             var coupon = couponResult.Data;
                             order.CouponCode = coupon.Code;
                             order.CouponDiscountAmount = coupon.CalculateDiscount(order.SubTotal);
-                            
+
                             remainingAmount -= order.CouponDiscountAmount.Value;
-                            
+
                             _logger.LogInformation(
                                 "Coupon applied. Code: {CouponCode}, Discount: {Discount}, Remaining: {Remaining}",
                                 coupon.Code, order.CouponDiscountAmount, remainingAmount);
                         }
                     }
 
-                    var applicableCampaigns = await _campaignService.GetApplicableCampaignsAsync(order.SubTotal);
-                    
+                    var applicableCampaigns = await _campaignService.GetApplicableAsync(order.SubTotal);
+
                     var sortedCampaigns = applicableCampaigns.OrderByDescending(c => c.Priority).ToList();
-                    
+
                     decimal campaignDiscountTotal = 0;
                     bool nonStackableApplied = false;
 
@@ -207,7 +222,7 @@ namespace Application.Services.Implementations
                             break;
 
                         var discount = campaign.CalculateDiscount(remainingAmount);
-                        
+
                         if (discount > 0)
                         {
                             var orderCampaign = new OrderCampaign
@@ -224,7 +239,7 @@ namespace Application.Services.Implementations
                             orderCampaign.ValidateForCreation();
                             order.AppliedCampaigns.Add(orderCampaign);
                             campaignDiscountTotal += discount;
-                            
+
                             remainingAmount -= discount;
 
                             _logger.LogInformation(
@@ -259,7 +274,7 @@ namespace Application.Services.Implementations
 
                     const decimal freeShippingThreshold = 500m;
                     decimal netAmountAfterDiscounts = order.SubTotal - (order.TotalDiscountAmount ?? 0);
-                    
+
                     if (netAmountAfterDiscounts >= freeShippingThreshold && order.ShippingMethod == ShippingMethod.Standard)
                     {
                         order.ShippingCost = 0;
@@ -278,11 +293,11 @@ namespace Application.Services.Implementations
 
                     order.ValidateForCreation();
 
-                    _manager.Order.CreateOrder(order);
+                    _manager.Order.Create(order);
 
                     var currentUserId = GetCurrentUserId();
                     var historyEntry = OrderHistory.CreateEvent(
-                        orderId: 0, // Will be set after save
+                        orderId: 0,
                         eventType: OrderEventType.OrderCreated,
                         description: "Sipariş oluşturuldu",
                         userId: currentUserId
@@ -293,11 +308,11 @@ namespace Application.Services.Implementations
 
                     if (!string.IsNullOrWhiteSpace(order.CouponCode))
                     {
-                        var coupon = await _manager.Coupon.GetCouponByCodeAsync(order.CouponCode, true);
+                        var coupon = await _manager.Coupon.GetByCodeAsync(order.CouponCode, true);
                         if (coupon != null)
                         {
                             coupon.IncrementUsage();
-                            
+
                             var couponUsage = new CouponUsage
                             {
                                 CouponId = coupon.CouponId,
@@ -305,12 +320,12 @@ namespace Application.Services.Implementations
                                 OrderId = order.OrderId,
                                 UsedAt = DateTime.UtcNow
                             };
-                            _manager.CouponUsage.CreateCouponUsage(couponUsage);
+                            _manager.CouponUsage.Create(couponUsage);
                             await _manager.SaveAsync();
                         }
                     }
 
-                    await _activityService.LogActivityAsync(
+                    await _activityService.LogAsync(
                         "Yeni Sipariş",
                         $"#{order.OrderNumber} numaralı sipariş alındı. Tutar: {order.TotalAmount:C2}",
                         "fa-shopping-cart",
@@ -322,7 +337,7 @@ namespace Application.Services.Implementations
                         "Order created successfully. OrderId: {OrderId}, OrderNumber: {OrderNumber}, User: {UserId}, Total: {Total}",
                         order.OrderId, order.OrderNumber, userId, order.TotalAmount);
 
-                    await _cartService.ClearCartAsync(userId);
+                    await _cartService.ClearAsync(userId);
 
                     return OperationResult<int>.Success(order.OrderId, "Sipariş başarıyla oluşturuldu.");
                 }, CancellationToken.None);
@@ -339,11 +354,11 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OrderWithDetailsDto> GetOrderByIdAsync(int orderId)
+        public async Task<OrderWithDetailsDto> GetByIdAsync(int orderId)
         {
             var currentUserId = GetCurrentUserId();
-            
-            var order = await _manager.Order.GetOrderWithDetailsAsync(orderId, false);
+
+            var order = await _manager.Order.GetWithDetailsAsync(orderId, false);
             if (order == null)
             {
                 throw new OrderNotFoundException(orderId);
@@ -356,11 +371,11 @@ namespace Application.Services.Implementations
             return orderDto;
         }
 
-        public async Task<OrderWithDetailsDto> GetOrderByNumberAsync(string orderNumber)
+        public async Task<OrderWithDetailsDto> GetByNumberAsync(string orderNumber)
         {
             var currentUserId = GetCurrentUserId();
-            
-            var order = await _manager.Order.GetOrderByNumberAsync(orderNumber, false);
+
+            var order = await _manager.Order.GetByNumberAsync(orderNumber, false);
             if (order == null)
             {
                 throw new OrderNotFoundException(orderNumber);
@@ -373,21 +388,21 @@ namespace Application.Services.Implementations
             return orderDto;
         }
 
-        public async Task<IEnumerable<OrderDto>> GetUserOrdersAsync(string userId)
+        public async Task<IEnumerable<OrderDto>> GetByUserIdAsync(string userId)
         {
             var currentUserId = GetCurrentUserId();
             ValidateUserAccess(userId, currentUserId);
 
-            var orders = await _manager.Order.GetUserOrdersAsync(userId, false);
+            var orders = await _manager.Order.GetByUserIdAsync(userId, false);
             var ordersDto = _mapper.Map<IEnumerable<OrderDto>>(orders);
 
             return ordersDto;
         }
 
-        public async Task<OperationResult<OrderWithDetailsDto>> UpdateOrderStatusAsync(OrderDtoForUpdate orderDto)
+        public async Task<OperationResult<OrderWithDetailsDto>> UpdateStatusAsync(OrderDtoForUpdate orderDto)
         {
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderByIdAsync(orderDto.OrderId, true);
+            var order = await _manager.Order.GetByIdAsync(orderDto.OrderId, true);
             if (order == null)
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
@@ -416,7 +431,7 @@ namespace Application.Services.Implementations
                     description: $"Sipariş durumu değiştirildi: {orderDto.OrderStatus.Value}",
                     userId: userId
                 );
-                _manager.OrderHistory.CreateOrderHistory(historyEntry);
+                _manager.OrderHistory.Create(historyEntry);
             }
 
             if (orderDto.PaymentStatus.HasValue && order.PaymentStatus != orderDto.PaymentStatus.Value)
@@ -475,11 +490,11 @@ namespace Application.Services.Implementations
             return OperationResult<OrderWithDetailsDto>.Success(orderDtoForReturn, "Sipariş güncellendi.");
         }
 
-        public async Task<OperationResult<OrderWithDetailsDto>> CancelOrderAsync(int orderId, string reason)
+        public async Task<OperationResult<OrderWithDetailsDto>> CancelAsync(int orderId, string reason)
         {
             _manager.ClearTracker();
             var userId = GetCurrentUserId();
-            var order = await _manager.Order.GetOrderWithDetailsAsync(orderId, true);
+            var order = await _manager.Order.GetWithDetailsAsync(orderId, true);
 
             if (order == null)
             {
@@ -495,12 +510,10 @@ namespace Application.Services.Implementations
                     ResultType.ValidationError);
             }
 
-            // Check if payment was completed - if so, refund it
             if (order.PaymentStatus == PaymentStatus.Completed)
             {
                 _logger.LogInformation("Order has completed payment, initiating refund. OrderId: {OrderId}", orderId);
 
-                // Get payment transactions for this order
                 var paymentTransactions = await _manager.OrderLinePaymentTransaction
                     .GetByOrderIdAsync(orderId, true);
 
@@ -509,7 +522,6 @@ namespace Application.Services.Implementations
                     var userIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "127.0.0.1";
                     var refundErrors = new List<string>();
 
-                    // Refund each item transaction
                     foreach (var transaction in paymentTransactions)
                     {
                         if (transaction!.IsRefunded)
@@ -529,15 +541,14 @@ namespace Application.Services.Implementations
                             Description = $"Sipariş iptali - {order.OrderNumber} - {reason}"
                         };
 
-                        var refundResult = await _paymentProvider.RefundPaymentAsync(refundRequest);
+                        var refundResult = await _paymentProvider.RefundAsync(refundRequest);
 
                         if (refundResult.IsSuccess && refundResult.Data != null)
                         {
-                            // Mark transaction as refunded
                             transaction.IsRefunded = true;
                             transaction.RefundTransactionId = refundResult.Data.PaymentTransactionId;
                             transaction.RefundedAt = DateTime.UtcNow;
-                            _manager.OrderLinePaymentTransaction.UpdateOrderLinePaymentTransaction(transaction);
+                            _manager.OrderLinePaymentTransaction.Update(transaction);
 
                             _logger.LogInformation(
                                 "Payment refunded for cancelled order. PaymentTransactionId: {PaymentTransactionId}",
@@ -551,7 +562,6 @@ namespace Application.Services.Implementations
                         }
                     }
 
-                    // If any refund failed, return error
                     if (refundErrors.Any())
                     {
                         return OperationResult<OrderWithDetailsDto>.Failure(
@@ -559,7 +569,6 @@ namespace Application.Services.Implementations
                             ResultType.Error);
                     }
 
-                    // Mark payment as refunded
                     order.PaymentStatus = PaymentStatus.Refunded;
                     _logger.LogInformation("Payment fully refunded for cancelled order. OrderId: {OrderId}", orderId);
                 }
@@ -569,27 +578,31 @@ namespace Application.Services.Implementations
                 }
             }
 
-            // Cancel the order
             order.Cancel(reason);
 
-            // Create history entry
             var historyEntry = OrderHistory.CreateEvent(
                 orderId: order.OrderId,
                 eventType: OrderEventType.Cancelled,
                 description: $"Sipariş müşteri tarafından iptal edildi. Sebep: {reason}",
                 userId: userId
             );
-            _manager.OrderHistory.CreateOrderHistory(historyEntry);
+            _manager.OrderHistory.Create(historyEntry);
 
-            // Restore product stock
             foreach (var line in order.Lines)
             {
-                var product = await _manager.Product.GetOneProductAsync(line.ProductId, true);
+                var product = await _manager.Product.GetByIdAsync(line.ProductId, true);
                 if (product != null)
                 {
-                    product.IncreaseStock(line.Quantity);
-                    _logger.LogInformation("Stock restored for product {ProductId}: +{Quantity}",
-                        line.ProductId, line.Quantity);
+                    var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
+                    if (variant != null)
+                    {
+                        variant.Stock += line.Quantity;
+                        _manager.ProductVariant.Update(variant);
+
+                        _logger.LogInformation("Stock restored for variant {VariantId}: +{Quantity}", variant.ProductVariantId, line.Quantity);
+                    }
+
+                    _manager.Product.Update(product);
                 }
             }
 
@@ -609,7 +622,7 @@ namespace Application.Services.Implementations
         public async Task<OperationResult<OrderWithDetailsDto>> MarkAsShippedAsync(int orderId, string trackingNumber, string? companyName, string? serviceName)
         {
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderByIdAsync(orderId, true);
+            var order = await _manager.Order.GetByIdAsync(orderId, true);
             if (order == null)
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
@@ -624,7 +637,7 @@ namespace Application.Services.Implementations
                 description: $"Sipariş kargoya verildi. Takip No: {trackingNumber}",
                 userId: userId
             );
-            _manager.OrderHistory.CreateOrderHistory(historyEntry);
+            _manager.OrderHistory.Create(historyEntry);
 
             await _manager.SaveAsync();
 
@@ -639,7 +652,7 @@ namespace Application.Services.Implementations
         public async Task<OperationResult<OrderWithDetailsDto>> MarkAsDeliveredAsync(int orderId)
         {
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderByIdAsync(orderId, true);
+            var order = await _manager.Order.GetByIdAsync(orderId, true);
             if (order == null)
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
@@ -654,7 +667,7 @@ namespace Application.Services.Implementations
                 description: "Sipariş teslim edildi",
                 userId: userId
             );
-            _manager.OrderHistory.CreateOrderHistory(historyEntry);
+            _manager.OrderHistory.Create(historyEntry);
 
             await _manager.SaveAsync();
 
@@ -668,19 +681,19 @@ namespace Application.Services.Implementations
 
         public async Task<OperationResult<OrderWithDetailsDto>> HandlePaymentCallbackAsync(PaymentCallbackDto callback)
         {
-            var retrieveResult = await _paymentProvider.VerifyPaymentAsync(callback.Token);
+            var retrieveResult = await _paymentProvider.VerifyAsync(callback.Token);
             if (!retrieveResult.IsSuccess || retrieveResult.Data == null)
             {
                 _logger.LogWarning("Payment callback retrieval failed. Token: {Token}", callback.Token);
                 return OperationResult<OrderWithDetailsDto>.Failure(
-                    "Ödeme sonucu alınamadı.", 
+                    "Ödeme sonucu alınamadı.",
                     ResultType.Error);
             }
 
             var paymentResult = retrieveResult.Data;
 
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderByNumberAsync(paymentResult.BasketId, true);
+            var order = await _manager.Order.GetByNumberAsync(paymentResult.BasketId, true);
             if (order == null)
             {
                 _logger.LogError("Order not found for payment callback. BasketId: {BasketId}", paymentResult.BasketId);
@@ -690,12 +703,10 @@ namespace Application.Services.Implementations
             if (paymentResult.PaymentStatus == "SUCCESS" && paymentResult.FraudStatus == 1)
             {
                 string? bankName = null;
-                // BIN sorgusu ile banka adını al
                 if (!string.IsNullOrEmpty(paymentResult.BinNumber))
                 {
                     try
                     {
-                        // Sadece ilk 6 veya 8 hane yeterli
                         var binResult = await _paymentProvider.GetBinDetailsAsync(paymentResult.BinNumber);
                         if (binResult.IsSuccess && binResult.Data != null)
                         {
@@ -709,30 +720,26 @@ namespace Application.Services.Implementations
                 }
 
                 order.MarkAsPaid(
-                    paymentResult.PaymentId, 
+                    paymentResult.PaymentId,
                     "Iyzico",
                     cardType: paymentResult.CardType,
                     cardAssociation: paymentResult.CardAssociation,
                     cardFamily: paymentResult.CardFamily,
-                    bankName: bankName, 
+                    bankName: bankName,
                     installmentCount: paymentResult.Installment,
                     lastFourDigits: paymentResult.LastFourDigits
                 );
 
-                // Save itemTransactions for refund capability
                 if (paymentResult.ItemTransactions != null && paymentResult.ItemTransactions.Any())
                 {
                     foreach (var item in paymentResult.ItemTransactions)
                     {
-                        // Find matching order line by itemId
-                        // ItemId format from Iyzico: "BI{ProductId}" or similar
                         var orderLine = order.Lines.FirstOrDefault(l =>
                             item.ItemId.Contains(l.ProductId.ToString()) ||
                             item.ItemId.Contains(l.OrderLineId.ToString()));
 
                         if (orderLine != null)
                         {
-                            // Check if transaction already exists
                             var existingTransaction = await _manager.OrderLinePaymentTransaction
                                 .GetByOrderLineIdAsync(orderLine.OrderLineId, false);
 
@@ -750,7 +757,7 @@ namespace Application.Services.Implementations
                                     CreatedAt = DateTime.UtcNow
                                 };
 
-                                _manager.OrderLinePaymentTransaction.CreateOrderLinePaymentTransaction(paymentTransaction);
+                                _manager.OrderLinePaymentTransaction.Create(paymentTransaction);
 
                                 _logger.LogInformation(
                                     "Payment transaction saved. OrderLineId: {OrderLineId}, PaymentTransactionId: {PaymentTransactionId}",
@@ -766,7 +773,6 @@ namespace Application.Services.Implementations
                     }
                 }
 
-                // Create history entry
                 var historyEntry = OrderHistory.CreateEvent(
                     orderId: order.OrderId,
                     eventType: OrderEventType.PaymentCompleted,
@@ -774,7 +780,7 @@ namespace Application.Services.Implementations
                     userId: null,
                     isSystemEvent: true
                 );
-                _manager.OrderHistory.CreateOrderHistory(historyEntry);
+                _manager.OrderHistory.Create(historyEntry);
 
                 _logger.LogInformation(
                     "Payment successful. OrderId: {OrderId}, PaymentId: {PaymentId}, FraudStatus: {FraudStatus}",
@@ -782,26 +788,29 @@ namespace Application.Services.Implementations
             }
             else
             {
-                // Payment failed or fraud detected
-                var failureReason = paymentResult.PaymentStatus != "SUCCESS" 
-                    ? $"Ödeme başarısız: {paymentResult.ErrorMessage}" 
+                var failureReason = paymentResult.PaymentStatus != "SUCCESS"
+                    ? $"Ödeme başarısız: {paymentResult.ErrorMessage}"
                     : $"Fraud kontrolü başarısız. FraudStatus: {paymentResult.FraudStatus}";
 
                 order.MarkAsFailed(failureReason);
 
-                // Restore product stock since payment failed
                 foreach (var line in order.Lines)
                 {
-                    var product = await _manager.Product.GetOneProductAsync(line.ProductId, true);
+                    var product = await _manager.Product.GetByIdAsync(line.ProductId, true);
                     if (product != null)
                     {
-                        product.IncreaseStock(line.Quantity);
-                        _logger.LogInformation("Stock restored for failed order. ProductId: {ProductId}, Quantity: +{Quantity}",
-                            line.ProductId, line.Quantity);
+                        var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
+                        if (variant != null)
+                        {
+                            variant.Stock += line.Quantity;
+                            _manager.ProductVariant.Update(variant);
+                        }
+
+                        _manager.Product.Update(product);
+                        _logger.LogInformation("Stock restored for failed order. ProductId: {ProductId}, Quantity: +{Quantity}", line.ProductId, line.Quantity);
                     }
                 }
 
-                // Create history entry for failed payment
                 var historyEntry = OrderHistory.CreateEvent(
                     orderId: order.OrderId,
                     eventType: OrderEventType.PaymentFailed,
@@ -809,7 +818,7 @@ namespace Application.Services.Implementations
                     userId: null,
                     isSystemEvent: true
                 );
-                _manager.OrderHistory.CreateOrderHistory(historyEntry);
+                _manager.OrderHistory.Create(historyEntry);
 
                 _logger.LogWarning(
                     "Payment failed or fraud detected. OrderId: {OrderId}, Status: {Status}, FraudStatus: {FraudStatus}, OrderStatus: Failed",
@@ -823,10 +832,10 @@ namespace Application.Services.Implementations
             return OperationResult<OrderWithDetailsDto>.Success(orderDto);
         }
 
-        public async Task<OperationResult<OrderWithDetailsDto>> RefundOrderAsync(int orderId)
+        public async Task<OperationResult<OrderWithDetailsDto>> RefundAsync(int orderId)
         {
             _manager.ClearTracker();
-            var order = await _manager.Order.GetOrderWithDetailsAsync(orderId, true);
+            var order = await _manager.Order.GetWithDetailsAsync(orderId, true);
             if (order == null)
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
@@ -835,7 +844,6 @@ namespace Application.Services.Implementations
             {
                 return OperationResult<OrderWithDetailsDto>.Failure("Bu sipariş iade edilemez.", ResultType.ValidationError);
             }
-            // Get payment transactions for this order
             var paymentTransactions = await _manager.OrderLinePaymentTransaction
                 .GetByOrderIdAsync(orderId, true);
             if (!paymentTransactions.Any() || paymentTransactions == null)
@@ -847,7 +855,6 @@ namespace Application.Services.Implementations
             }
             var userId = GetCurrentUserId();
             var userIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-            // Refund each item transaction
             var refundErrors = new List<string>();
             foreach (var transaction in paymentTransactions)
             {
@@ -866,14 +873,13 @@ namespace Application.Services.Implementations
                     Reason = "BUYER_REQUEST",
                     Description = $"Sipariş iadesi - {order.OrderNumber}"
                 };
-                var refundResult = await _paymentProvider.RefundPaymentAsync(refundRequest);
+                var refundResult = await _paymentProvider.RefundAsync(refundRequest);
                 if (refundResult.IsSuccess && refundResult.Data != null)
                 {
-                    // Mark transaction as refunded
                     transaction.IsRefunded = true;
                     transaction.RefundTransactionId = refundResult.Data.PaymentTransactionId;
                     transaction.RefundedAt = DateTime.UtcNow;
-                    _manager.OrderLinePaymentTransaction.UpdateOrderLinePaymentTransaction(transaction);
+                    _manager.OrderLinePaymentTransaction.Update(transaction);
                     _logger.LogInformation(
                         "Item refunded successfully. PaymentTransactionId: {PaymentTransactionId}",
                         transaction.PaymentTransactionId);
@@ -885,30 +891,34 @@ namespace Application.Services.Implementations
                     _logger.LogError("Refund failed for item. Error: {Error}", errorMsg);
                 }
             }
-            // If any refund failed, return error
             if (refundErrors.Any())
             {
                 return OperationResult<OrderWithDetailsDto>.Failure(
                     $"İade işlemi kısmen başarısız: {string.Join(", ", refundErrors)}",
                     ResultType.Error);
             }
-            // All refunds successful - mark order as refunded
             order.MarkAsRefunded();
-            // Create history entry
             var historyEntry = OrderHistory.CreateEvent(
                 orderId: order.OrderId,
                 eventType: OrderEventType.Refunded,
                 description: "Sipariş iade edildi. İyzico üzerinden otomatik iade yapıldı.",
                 userId: userId
             );
-            _manager.OrderHistory.CreateOrderHistory(historyEntry);
-            // Restore product stock
+            _manager.OrderHistory.Create(historyEntry);
             foreach (var line in order.Lines)
             {
-                var product = await _manager.Product.GetOneProductAsync(line.ProductId, true);
+                var product = await _manager.Product.GetByIdAsync(line.ProductId, true);
                 if (product != null)
                 {
-                    product.IncreaseStock(line.Quantity);
+                    var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
+                    if (variant != null)
+                    {
+                        variant.Stock += line.Quantity;
+                        _manager.ProductVariant.Update(variant);
+                    }
+
+                    _manager.Product.Update(product);
+                    _logger.LogInformation("Stock restored for refunded order. ProductId: {ProductId}, Quantity: +{Quantity}", line.ProductId, line.Quantity);
                 }
             }
             await _manager.SaveAsync();
@@ -919,18 +929,18 @@ namespace Application.Services.Implementations
             return OperationResult<OrderWithDetailsDto>.Success(orderDto, "Sipariş başarıyla iade edildi.");
         }
 
-        public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN)
+        public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default)
         {
-            var products = await _manager.Order.GetTopSellingProductsAsync(topN);
+            var products = await _manager.Order.GetTopSellingProductsAsync(topN, ct);
 
             return products;
         }
 
 
 
-        public async Task<int> GetUserOrdersCountAsync(string userId)
+        public async Task<int> CountByUserIdAsync(string userId)
         {
-            return await _manager.Order.GetUserOrdersCountAsync(userId);
+            return await _manager.Order.CountByUserIdAsync(userId);
         }
 
         public async Task<decimal> GetUserTotalSpentAsync(string userId)
@@ -938,9 +948,9 @@ namespace Application.Services.Implementations
             return await _manager.Order.GetUserTotalSpentAsync(userId);
         }
 
-        public async Task<int> GetOrdersInProcessCountAsync()
+        public async Task<int> CountOfInProcessAsync(CancellationToken ct = default)
         {
-            return await _manager.Order.GetOrdersInProcessCountAsync();
+            return await _manager.Order.CountOfInProcessAsync(ct);
         }
     }
 }

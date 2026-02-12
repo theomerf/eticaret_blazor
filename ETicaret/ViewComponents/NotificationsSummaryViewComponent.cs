@@ -16,7 +16,7 @@ namespace ETicaret.ViewComponents
         public async Task<IViewComponentResult> InvokeAsync()
         {
             var userId = (User as ClaimsPrincipal)?.FindFirstValue(ClaimTypes.NameIdentifier);
-            var notifications = await _notificationService.GetAllNotificationsOfOneUserAsync(userId!);
+            var notifications = await _notificationService.GetByUserIdAsync(userId!);
             var unreadNotifications = notifications.Where(n => n.IsRead == false);
 
             return View(unreadNotifications.Count());

@@ -5,7 +5,7 @@ namespace Application.Services.Interfaces
 {
     public interface IActivityService
     {
-        Task LogActivityAsync(string title, string description, string icon, string colorClass, string? link = null);
-        Task<IEnumerable<ActivityDto>> GetRecentActivitiesAsync(int count = 5);
+        Task LogAsync(string title, string description, string icon, string colorClass, string? link = null);
+        Task<IEnumerable<ActivityDto>> GetRecentAsync(int count = 5, CancellationToken ct = default);
     }
 }

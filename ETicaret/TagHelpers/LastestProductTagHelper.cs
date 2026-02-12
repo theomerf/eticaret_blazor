@@ -22,7 +22,7 @@ namespace ETicaret.TagHelpers
             TagBuilder div = new TagBuilder("div");
             div.AddCssClass("latest-products-container");
 
-            var products = await _productService.GetLastestProductsAsync(Number);
+            var products = await _productService.GetLatestAsync(Number);
 
             foreach (var product in products)
             {
@@ -62,7 +62,7 @@ namespace ETicaret.TagHelpers
                 // Ürün fiyatı
                 TagBuilder priceDiv = new TagBuilder("div");
                 priceDiv.AddCssClass("text-primary fw-bold");
-                priceDiv.InnerHtml.Append($"{product.ActualPrice.ToString("c")}");
+                priceDiv.InnerHtml.Append($"{product.Price.ToString("c")}");
 
                 infoDiv.InnerHtml.AppendHtml(priceDiv);
                 itemDiv.InnerHtml.AppendHtml(infoDiv);

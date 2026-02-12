@@ -7,8 +7,9 @@ namespace Application.Services.Interfaces
     public interface IAuthService
     {
         Task<IEnumerable<UserDto>> GetAllUsersAsync();
-        IEnumerable<IdentityRole> Roles { get; }
-        Task<int> GetUsersCountAsync();
+        Task<IEnumerable<IdentityRole>> GetRolesAsync(CancellationToken ct = default);
+        Task<int> GetRolesCountAsync(CancellationToken ct = default);
+        Task<int> GetUsersCountAsync(CancellationToken ct = default);
         Task<UserDto> GetOneUserAsync(string userId);
         Task<OperationResult<UserDto>> ResetPasswordAsync(ResetPasswordDto model);
         Task<OperationResult<UserDto>> ChangePasswordAsync(ChangePasswordDto model);

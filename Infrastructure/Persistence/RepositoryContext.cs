@@ -18,6 +18,7 @@ namespace Infrastructure.Persistence
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SecurityLog> SecurityLogs { get; set; }
+        public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<Campaign> Campaigns { get; set; }
         public DbSet<Coupon> Coupons { get; set; }
@@ -25,6 +26,8 @@ namespace Infrastructure.Persistence
         public DbSet<OrderCampaign> OrderCampaigns { get; set; }
         public DbSet<OrderHistory> OrderHistories { get; set; }
         public DbSet<OrderLinePaymentTransaction> OrderLinePaymentTransactions { get; set; }
+        public DbSet<Activity> Activities { get; set; }
+        public DbSet<CategoryVariantAttribute> CategoryVariantAttributes { get; set; }
 
         public RepositoryContext(DbContextOptions<RepositoryContext> options)
             : base(options)

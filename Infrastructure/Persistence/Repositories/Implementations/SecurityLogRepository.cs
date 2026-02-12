@@ -10,11 +10,6 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public void Add(SecurityLog securityLog)
-        {
-            Create(securityLog);
-        }
-
         public async Task<IEnumerable<SecurityLog>> GetByUserIdAsync(string userId, int pageNumber = 1, int pageSize = 50)
         {
             var logs = await FindAll(false)
@@ -27,7 +22,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return logs;
         }
 
-        public async Task<int> GetFailedLoginCountAsync(string ipAddress, DateTime since)
+        public async Task<int> CountOfFailedLoginsAsync(string ipAddress, DateTime since)
         {
             var count = await FindAll(false)
                 .Where(sl => sl.IpAddress == ipAddress && sl.EventType == "FailedLogin" && sl.Timestamp >= since)
@@ -56,7 +51,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return logs;
         }
 
-        public async Task<int> GetPaymentAttemptsCountAsync(string ipAddress, DateTime since)
+        public async Task<int> CountOfPaymentAttemptsAsync(string ipAddress, DateTime since)
         {
             var paymentEventTypes = new[] { "SuspiciousPayment", "MultipleCardAttempts", "PaymentAnomaly" };
             
@@ -67,6 +62,11 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .CountAsync();
 
             return count;
+        }
+
+        public void Create(SecurityLog securityLog)
+        {
+            CreateEntity(securityLog);
         }
     }
 }

@@ -16,7 +16,7 @@ namespace ETicaret.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Activity",
+                name: "Activities",
                 columns: table => new
                 {
                     ActivityId = table.Column<int>(type: "integer", nullable: false)
@@ -30,7 +30,7 @@ namespace ETicaret.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Activity", x => x.ActivityId);
+                    table.PrimaryKey("PK_Activities", x => x.ActivityId);
                 });
 
             migrationBuilder.CreateTable(
@@ -58,7 +58,7 @@ namespace ETicaret.Migrations
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     BirthDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     LastLoginDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FavouriteProductsId = table.Column<int[]>(type: "integer[]", nullable: false),
+                    FavouriteProductVariantsId = table.Column<int[]>(type: "integer[]", nullable: false),
                     LastLoginIpAddress = table.Column<string>(type: "text", nullable: true),
                     RegistrationIpAddress = table.Column<string>(type: "text", nullable: true),
                     TwoFactorSecretKey = table.Column<string>(type: "text", nullable: true),
@@ -172,7 +172,6 @@ namespace ETicaret.Migrations
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     IconUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     ParentId = table.Column<int>(type: "integer", nullable: true),
-                    ParentCategoryCategoryId = table.Column<int>(type: "integer", nullable: true),
                     DisplayOrder = table.Column<int>(type: "integer", nullable: false),
                     IsVisible = table.Column<bool>(type: "boolean", nullable: false),
                     IsFeatured = table.Column<bool>(type: "boolean", nullable: false),
@@ -188,8 +187,8 @@ namespace ETicaret.Migrations
                 {
                     table.PrimaryKey("PK_Categories", x => x.CategoryId);
                     table.ForeignKey(
-                        name: "FK_Categories_Categories_ParentCategoryCategoryId",
-                        column: x => x.ParentCategoryCategoryId,
+                        name: "FK_Categories_Categories_ParentId",
+                        column: x => x.ParentId,
                         principalTable: "Categories",
                         principalColumn: "CategoryId");
                 });
@@ -482,6 +481,35 @@ namespace ETicaret.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CategoryVariantAttributes",
+                columns: table => new
+                {
+                    VariantAttributeId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CategoryId = table.Column<int>(type: "integer", nullable: false),
+                    Key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    DisplayName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Type = table.Column<int>(type: "integer", maxLength: 50, nullable: false),
+                    IsVariantDefiner = table.Column<bool>(type: "boolean", nullable: false),
+                    IsTechnicalSpec = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CategoryVariantAttributes", x => x.VariantAttributeId);
+                    table.ForeignKey(
+                        name: "FK_CategoryVariantAttributes_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "CategoryId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Products",
                 columns: table => new
                 {
@@ -491,21 +519,23 @@ namespace ETicaret.Migrations
                     Slug = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
                     MetaTitle = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
                     MetaDescription = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: true),
-                    Summary = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Summary = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     LongDescription = table.Column<string>(type: "text", nullable: true),
                     CategoryId = table.Column<int>(type: "integer", nullable: false),
-                    ActualPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    DiscountPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
-                    Stock = table.Column<int>(type: "integer", nullable: false),
                     AverageRating = table.Column<double>(type: "double precision", nullable: false),
                     ReviewCount = table.Column<int>(type: "integer", nullable: false),
                     Brand = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Gtin = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    Color = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    DefaultWeight = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    DefaultLength = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    DefaultWidth = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    DefaultHeight = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    ManufacturingCountry = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    WarrantyInfo = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    SpecificationsJson = table.Column<string>(type: "text", nullable: true),
                     ShowCase = table.Column<bool>(type: "boolean", nullable: false),
                     SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false)
                         .Annotation("Npgsql:TsVectorConfig", "turkish")
-                        .Annotation("Npgsql:TsVectorProperties", new[] { "ProductName", "Brand", "Summary", "LongDescription", "MetaTitle", "MetaDescription", "Gtin" }),
+                        .Annotation("Npgsql:TsVectorProperties", new[] { "ProductName", "Brand", "Summary", "LongDescription", "MetaTitle", "MetaDescription" }),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
@@ -619,96 +649,40 @@ namespace ETicaret.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CartLines",
+                name: "ProductVariants",
                 columns: table => new
                 {
-                    CartLineId = table.Column<int>(type: "integer", nullable: false)
+                    ProductVariantId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ProductId = table.Column<int>(type: "integer", nullable: false),
-                    ProductName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    ImageUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
-                    ActualPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    Color = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Size = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    WeightOverride = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    LengthOverride = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    WidthOverride = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    HeightOverride = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    VariantSpecificationsJson = table.Column<string>(type: "text", nullable: true),
+                    CombinationKey = table.Column<string>(type: "text", nullable: true),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     DiscountPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
-                    Quantity = table.Column<int>(type: "integer", nullable: false),
-                    CartId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CartLines", x => x.CartLineId);
-                    table.ForeignKey(
-                        name: "FK_CartLines_Carts_CartId",
-                        column: x => x.CartId,
-                        principalTable: "Carts",
-                        principalColumn: "CartId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CartLines_Products_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "Products",
-                        principalColumn: "ProductId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "OrderLines",
-                columns: table => new
-                {
-                    OrderLineId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    OrderId = table.Column<int>(type: "integer", nullable: false),
-                    ProductId = table.Column<int>(type: "integer", nullable: false),
-                    ProductName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    CategoryName = table.Column<string>(type: "text", nullable: false),
-                    SubCategoryName = table.Column<string>(type: "text", nullable: true),
-                    Quantity = table.Column<int>(type: "integer", nullable: false),
-                    ActualPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    DiscountPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
-                    ImageUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
+                    Stock = table.Column<int>(type: "integer", nullable: false),
+                    Gtin = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Sku = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OrderLines", x => x.OrderLineId);
-                    table.ForeignKey(
-                        name: "FK_OrderLines_Orders_OrderId",
-                        column: x => x.OrderId,
-                        principalTable: "Orders",
-                        principalColumn: "OrderId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_OrderLines_Products_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "Products",
-                        principalColumn: "ProductId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ProductImages",
-                columns: table => new
-                {
-                    ProductImageId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ProductId = table.Column<int>(type: "integer", nullable: false),
-                    ImageUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
-                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
-                    Caption = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    DisplayOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                    DeletedByUserId = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                    CreatedByUserId = table.Column<string>(type: "text", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true)
+                    UpdatedByUserId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductImages", x => x.ProductImageId);
+                    table.PrimaryKey("PK_ProductVariants", x => x.ProductVariantId);
                     table.ForeignKey(
-                        name: "FK_ProductImages_Products_ProductId",
+                        name: "FK_ProductVariants_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "ProductId",
@@ -752,6 +726,123 @@ namespace ETicaret.Migrations
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "ProductId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CartLines",
+                columns: table => new
+                {
+                    CartLineId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductId = table.Column<int>(type: "integer", nullable: false),
+                    ProductName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ImageUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    DiscountPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    CartId = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantId = table.Column<int>(type: "integer", nullable: false),
+                    SelectedColor = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    SelectedSize = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    SpecificationsJson = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CartLines", x => x.CartLineId);
+                    table.ForeignKey(
+                        name: "FK_CartLines_Carts_CartId",
+                        column: x => x.CartId,
+                        principalTable: "Carts",
+                        principalColumn: "CartId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CartLines_ProductVariants_ProductVariantId",
+                        column: x => x.ProductVariantId,
+                        principalTable: "ProductVariants",
+                        principalColumn: "ProductVariantId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CartLines_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "ProductId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrderLines",
+                columns: table => new
+                {
+                    OrderLineId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrderId = table.Column<int>(type: "integer", nullable: false),
+                    ProductId = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantId = table.Column<int>(type: "integer", nullable: false),
+                    ProductName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    CategoryName = table.Column<string>(type: "text", nullable: false),
+                    SubCategoryName = table.Column<string>(type: "text", nullable: true),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    DiscountPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    ImageUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
+                    VariantColor = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    VariantSize = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    SpecificationsJson = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrderLines", x => x.OrderLineId);
+                    table.ForeignKey(
+                        name: "FK_OrderLines_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "OrderId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrderLines_ProductVariants_ProductVariantId",
+                        column: x => x.ProductVariantId,
+                        principalTable: "ProductVariants",
+                        principalColumn: "ProductVariantId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrderLines_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "ProductId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductImages",
+                columns: table => new
+                {
+                    ProductImageId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductVariantId = table.Column<int>(type: "integer", nullable: false),
+                    ImageUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
+                    Caption = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductImages", x => x.ProductImageId);
+                    table.ForeignKey(
+                        name: "FK_ProductImages_ProductVariants_ProductVariantId",
+                        column: x => x.ProductVariantId,
+                        principalTable: "ProductVariants",
+                        principalColumn: "ProductVariantId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -905,6 +996,11 @@ namespace ETicaret.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CartLines_ProductVariantId",
+                table: "CartLines",
+                column: "ProductVariantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Categories_IsDeleted_Filtered",
                 table: "Categories",
                 column: "IsDeleted",
@@ -917,11 +1013,6 @@ namespace ETicaret.Migrations
                 filter: "\"IsDeleted\" = false AND \"IsVisible\" = true");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Categories_ParentCategoryCategoryId",
-                table: "Categories",
-                column: "ParentCategoryCategoryId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Categories_ParentId",
                 table: "Categories",
                 column: "ParentId");
@@ -931,6 +1022,34 @@ namespace ETicaret.Migrations
                 table: "Categories",
                 column: "Slug",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CategoryVariantAttributes_CategoryId",
+                table: "CategoryVariantAttributes",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CategoryVariantAttributes_CategoryId_IsTechnicalSpec_SortOrder",
+                table: "CategoryVariantAttributes",
+                columns: new[] { "CategoryId", "IsTechnicalSpec", "SortOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CategoryVariantAttributes_CategoryId_IsVariantDefiner_SortOrder",
+                table: "CategoryVariantAttributes",
+                columns: new[] { "CategoryId", "IsVariantDefiner", "SortOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CategoryVariantAttributes_IsDeleted_Filtered",
+                table: "CategoryVariantAttributes",
+                column: "IsDeleted",
+                filter: "\"IsDeleted\" = false");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_CategoryVariantAttributes_CategoryId_Key_Active",
+                table: "CategoryVariantAttributes",
+                columns: new[] { "CategoryId", "Key" },
+                unique: true,
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Coupons_Active_Dates",
@@ -1056,6 +1175,11 @@ namespace ETicaret.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrderLines_ProductVariantId",
+                table: "OrderLines",
+                column: "ProductVariantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Orders_OrderedAt_Desc",
                 table: "Orders",
                 column: "OrderedAt",
@@ -1095,14 +1219,14 @@ namespace ETicaret.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductImage_ProductId",
+                name: "IX_ProductImage_ProductVariantId",
                 table: "ProductImages",
-                column: "ProductId");
+                column: "ProductVariantId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductImage_ProductId_Primary_Filtered",
+                name: "IX_ProductImage_ProductVariantId_Primary_Filtered",
                 table: "ProductImages",
-                columns: new[] { "ProductId", "IsPrimary" },
+                columns: new[] { "ProductVariantId", "IsPrimary" },
                 filter: "\"IsPrimary\" = true AND \"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
@@ -1142,6 +1266,13 @@ namespace ETicaret.Migrations
                 table: "Products",
                 column: "Slug",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductVariants_Unique_Attributes",
+                table: "ProductVariants",
+                columns: new[] { "ProductId", "CombinationKey" },
+                unique: true,
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SecurityLogs_Event_Success",
@@ -1191,7 +1322,7 @@ namespace ETicaret.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Activity");
+                name: "Activities");
 
             migrationBuilder.DropTable(
                 name: "Addresses");
@@ -1219,6 +1350,9 @@ namespace ETicaret.Migrations
 
             migrationBuilder.DropTable(
                 name: "CartLines");
+
+            migrationBuilder.DropTable(
+                name: "CategoryVariantAttributes");
 
             migrationBuilder.DropTable(
                 name: "CouponUsages");
@@ -1260,10 +1394,13 @@ namespace ETicaret.Migrations
                 name: "Orders");
 
             migrationBuilder.DropTable(
-                name: "Products");
+                name: "ProductVariants");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Products");
 
             migrationBuilder.DropTable(
                 name: "Categories");

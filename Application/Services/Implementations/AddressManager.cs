@@ -8,7 +8,6 @@ using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace Application.Services.Implementations
 {
@@ -29,9 +28,9 @@ namespace Application.Services.Implementations
             _securityLogService = securityLogService;
         }
 
-        public async Task<IEnumerable<AddressDto>> GetAllAddressesAsync()
+        public async Task<IEnumerable<AddressDto>> GetAllAsync()
         {
-            var addresses = await _manager.Address.GetAllAddressesAsync(false);
+            var addresses = await _manager.Address.GetAllAsync(false);
             var addressesDto = _mapper.Map<IEnumerable<AddressDto>>(addresses); 
             
             return addressesDto;
@@ -39,7 +38,7 @@ namespace Application.Services.Implementations
 
         private async Task<Address> GetOneAddressForServiceAsync(int addressId, bool trackChanges)
         {
-            var address = await _manager.Address.GetOneAddressAsync(addressId, trackChanges);
+            var address = await _manager.Address.GetByIdAsync(addressId, trackChanges);
 
             if (address == null)
             {
@@ -49,7 +48,7 @@ namespace Application.Services.Implementations
             return address;
         }
 
-        public async Task<AddressDto> GetOneAddressAsync(int addressId)
+        public async Task<AddressDto> GetByIdAsync(int addressId)
         {
             var address = await GetOneAddressForServiceAsync(addressId, false);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
@@ -67,15 +66,15 @@ namespace Application.Services.Implementations
             return addressDto;
         }
 
-        public async Task<IEnumerable<AddressDto>> GetAllAddressesOfOneUserAsync(string userId)
+        public async Task<IEnumerable<AddressDto>> GetByUserIdAsync(string userId)
         {
-            var addresses =  await _manager.Address.GetAllUserAddressesOfOneUserAsync(userId, false);
+            var addresses =  await _manager.Address.GetByUserIdAsync(userId, false);
             var addressesDto = _mapper.Map<IEnumerable<AddressDto>>(addresses);
 
             return addressesDto;
         }
 
-        public async Task<OperationResult<AddressDto>> CreateAddressAsync(AddressDtoForCreation addressDto)
+        public async Task<OperationResult<AddressDto>> CreateAsync(AddressDtoForCreation addressDto)
         {
             try
             {
@@ -84,7 +83,7 @@ namespace Application.Services.Implementations
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 if (addressDto.IsDefault)
                 {
-                    var userAddresses = await _manager.Address.GetAllUserAddressesOfOneUserAsync(userId, true);
+                    var userAddresses = await _manager.Address.GetByUserIdAsync(userId, true);
                     foreach (var addr in userAddresses)
                     {
                         if (addr.IsDefault)
@@ -99,7 +98,7 @@ namespace Application.Services.Implementations
 
                 address.ValidateForCreation();
 
-                _manager.Address.CreateAddress(address);
+                _manager.Address.Create(address);
                 await _manager.SaveAsync();
 
                 _logger.LogInformation("Address created successfully for user {UserId}", userId);
@@ -113,13 +112,13 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<AddressDto>> MakeAddressDefaultAsync(int addressId)
+        public async Task<OperationResult<AddressDto>> MakeDefaultAsync(int addressId)
         {
             try
             {
                 _manager.ClearTracker();
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                var addresses = await _manager.Address.GetAllUserAddressesOfOneUserAsync(userId, true);
+                var addresses = await _manager.Address.GetByUserIdAsync(userId, true);
                 var addressToMakeDefault = addresses.Where(a => a.AddressId == addressId).FirstOrDefault();
 
                 if (addressToMakeDefault == null)
@@ -163,7 +162,7 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<AddressDto>> UpdateAddressAsync(AddressDtoForUpdate addressDto)
+        public async Task<OperationResult<AddressDto>> UpdateAsync(AddressDtoForUpdate addressDto)
         {
             try
             {
@@ -172,7 +171,7 @@ namespace Application.Services.Implementations
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 if (addressDto.IsDefault)
                 {
-                    var userAddresses = await _manager.Address.GetAllUserAddressesOfOneUserAsync(userId, true);
+                    var userAddresses = await _manager.Address.GetByUserIdAsync(userId, true);
                     foreach (var addr in userAddresses)
                     {
                         if (addr.IsDefault && addr.AddressId != addressDto.AddressId)
@@ -210,7 +209,7 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<AddressDto>> DeleteAddressAsync(int addressId)
+        public async Task<OperationResult<AddressDto>> DeleteAsync(int addressId)
         {
             try
             {
@@ -219,7 +218,7 @@ namespace Application.Services.Implementations
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 if (address.IsDefault)
                 {
-                    var userAddresses = await _manager.Address.GetAllUserAddressesOfOneUserAsync(userId, true);
+                    var userAddresses = await _manager.Address.GetByUserIdAsync(userId, true);
                     var addressToMakeDefault = userAddresses.FirstOrDefault(a => a.AddressId != addressId);
                     if (addressToMakeDefault != null)
                     {

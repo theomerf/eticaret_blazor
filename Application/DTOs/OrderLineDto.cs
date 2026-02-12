@@ -13,7 +13,11 @@ namespace Application.DTOs
         public decimal? DiscountPrice { get; set; }
         public string? ImageUrl { get; set; }
         
-        // Computed property
+        public int? ProductVariantId { get; set; }
+        public string? VariantColor { get; set; }
+        public string? VariantSize { get; set; }
+        public List<ProductSpecificationDto> VariantSpecifications { get; set; } = [];
+        
         public decimal LineTotal => (DiscountPrice ?? ActualPrice) * Quantity;
         public decimal FinalPrice => DiscountPrice ?? ActualPrice;
     }

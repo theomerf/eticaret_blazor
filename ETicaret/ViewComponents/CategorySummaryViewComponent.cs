@@ -14,7 +14,7 @@ namespace ETicaret.ViewComponents
 
         public async Task<int> InvokeAsync()
         {
-            var count = await _categoryService.GetCategoriesCountAsync();
+            var count = await _categoryService.CountAsync();
 
             return count;
         }

@@ -260,3 +260,10 @@ window.updateCounter = function(selector, delta) {
     const current = parseInt(badge.textContent) || 0;
     badge.textContent = Math.max(0, current + delta);
 }
+
+window.setCounter = function (selector, value) {
+    const badge = document.getElementById(selector);
+    if (!badge) return;
+
+    badge.textContent = Math.max(0, value);
+}

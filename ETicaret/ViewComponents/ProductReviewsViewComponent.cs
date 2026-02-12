@@ -16,7 +16,7 @@ namespace ETicaret.ViewComponents.Admin
 
         public async Task<IViewComponentResult> InvokeAsync(int productId)
         {
-            var reviews = await _userReviewService.GetAllUserReviewsOfOneProductAsync(productId);
+            var reviews = await _userReviewService.GetByProductIdAsync(productId);
 
             var model = new ProductReviewsViewModel
             {

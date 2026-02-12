@@ -38,19 +38,23 @@ namespace ETicaret.Models
                 UserId = cart.UserId,
                 Lines = cart.Lines.Select(l => new CartLineDto
                 {
+                    CartLineId = l.CartLineId,
                     ProductId = l.ProductId,
                     ProductName = l.ProductName,
                     ImageUrl = l.ImageUrl,
-                    ActualPrice = l.ActualPrice,
+                    ActualPrice = l.Price,
                     DiscountPrice = l.DiscountPrice,
-                    Quantity = l.Quantity
+                    Quantity = l.Quantity,
+                    ProductVariantId = l.ProductVariantId,
+                    SelectedColor = l.SelectedColor,
+                    SelectedSize = l.SelectedSize
                 }).ToList()
             };
         }
 
-        public override CartOperationResult SetQuantity(int prouductId, int newQuantity)
+        public override CartOperationResult SetQuantity(int productId, int variantId, int newQuantity)
         {
-            var result = base.SetQuantity(prouductId, newQuantity);
+            var result = base.SetQuantity(productId, variantId, newQuantity);
 
             if (result.IsSuccess)
             {
@@ -60,9 +64,9 @@ namespace ETicaret.Models
             return result;
         }
 
-        public override CartOperationResult AddOrUpdateItem(Product product, int quantity)
+        public override CartOperationResult AddOrUpdateItem(Product product, ProductVariant variant, int quantity)
         {
-            var result = base.AddOrUpdateItem(product, quantity);
+            var result = base.AddOrUpdateItem(product, variant, quantity);
 
             if (result.IsSuccess)
             {
@@ -72,9 +76,9 @@ namespace ETicaret.Models
             return result;
         }
 
-        public override CartOperationResult RemoveItem(int productId)
+        public override CartOperationResult RemoveItem(int productId, int variantId)
         {
-            var result = base.RemoveItem(productId);
+            var result = base.RemoveItem(productId, variantId);
 
             if (result.IsSuccess)
             {
@@ -113,9 +117,13 @@ namespace ETicaret.Models
                     ProductId = lineDto.ProductId,
                     ProductName = lineDto.ProductName,
                     ImageUrl = lineDto.ImageUrl,
-                    ActualPrice = lineDto.ActualPrice,
+                    Price = lineDto.ActualPrice,
                     DiscountPrice = lineDto.DiscountPrice,
                     Quantity = lineDto.Quantity,
+                    ProductVariantId = lineDto.ProductVariantId,
+                    SelectedColor = lineDto.SelectedColor,
+                    SelectedSize = lineDto.SelectedSize,
+                    SpecificationsJson = System.Text.Json.JsonSerializer.Serialize(lineDto.VariantSpecifications.Select(x => new Application.DTOs.ProductSpecificationDto { Key = x.Key, Value = x.Value })),
                     Cart = this
                 });
             }

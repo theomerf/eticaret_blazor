@@ -23,7 +23,6 @@ namespace Application.DTOs
         
         public bool IsActive { get; set; }
         
-        // Computed properties
         public bool IsCurrentlyValid => IsActive && DateTime.UtcNow >= StartsAt && DateTime.UtcNow <= EndsAt;
         public int RemainingUses => UsageLimit > 0 ? Math.Max(0, UsageLimit - UsedCount) : int.MaxValue;
     }

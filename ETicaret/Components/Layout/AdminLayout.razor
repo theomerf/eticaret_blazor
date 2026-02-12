@@ -5,12 +5,9 @@
         <AdminNavbar />
     </header>
     <div class="flex flex-1 min-h-0">
-        <aside class="w-64 shrink-0 overflow-hidden">
-            <AdminSidebar />
-        </aside>
-        <div class="flex flex-col flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 lg:px-6 xl:px-16">
-            <Notification />
-            <main role="main" class="flex-1 lg:mt-4" id="main-content">
+        <AdminSidebar />
+        <div class="flex flex-col flex-1 min-h-0 overflow-y-auto px-2 md:px-4">
+            <main role="main" class="flex-1 lg:mt-4 lg:mb-4" id="main-content">
                 @Body
             </main>
         </div>
@@ -18,3 +15,22 @@
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
+
+<div id="confirmModal" class="fixed inset-0 hidden items-center justify-center bg-black/50 z-[9999]">
+    <div class="bg-white rounded-2xl shadow-xl w-[90%] max-w-sm p-6 scale-95 opacity-0 transition-all duration-200">
+        <h3 id="confirmTitle" class="text-lg font-bold mb-2">Onay</h3>
+        <p id="confirmMessage" class="text-gray-700 mb-6"></p>
+
+        <div class="flex justify-end gap-3">
+            <button id="confirmCancel"
+                    class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">
+                Vazgeç
+            </button>
+
+            <button id="confirmOk"
+                    class="px-4 py-2 rounded-lg bg-button text-white hover:bg-button-hover">
+                Evet
+            </button>
+        </div>
+    </div>
+</div>

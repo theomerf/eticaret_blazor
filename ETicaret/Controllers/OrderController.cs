@@ -56,8 +56,8 @@ namespace ETicaret.Controllers
                 return RedirectToAction("Index", "Cart");
             }
 
-            var addresses = await _addressService.GetAllAddressesOfOneUserAsync(userId);
-            var campaigns = await _campaignService.GetActiveCampaignsAsync();
+            var addresses = await _addressService.GetByUserIdAsync(userId);
+            var campaigns = await _campaignService.GetActiveAsync();
 
             var model = new CheckoutViewModel
             {
@@ -95,7 +95,7 @@ namespace ETicaret.Controllers
                 return RedirectToAction("Checkout");
             }
 
-            var address = await _addressService.GetOneAddressAsync(formData.AddressId);
+            var address = await _addressService.GetByIdAsync(formData.AddressId);
 
             var orderDto = new OrderDtoForCreation
             {
@@ -118,11 +118,15 @@ namespace ETicaret.Controllers
                     Quantity = l.Quantity,
                     ActualPrice = l.ActualPrice,
                     DiscountPrice = l.DiscountPrice,
-                    ImageUrl = l.ImageUrl
+                    ImageUrl = l.ImageUrl,
+                    ProductVariantId = l.ProductVariantId,
+                    SelectedColor = l.SelectedColor,
+                    SelectedSize = l.SelectedSize,
+                    VariantSpecifications = l.VariantSpecifications
                 }).ToList()
             };
 
-            var orderResult = await _orderService.CreateOrderAsync(orderDto);
+            var orderResult = await _orderService.CreateAsync(orderDto);
 
             if (!orderResult.IsSuccess)
             {
@@ -136,7 +140,7 @@ namespace ETicaret.Controllers
 
             HttpContext.Session.Remove("cart");
 
-            var order = await _orderService.GetOrderByIdAsync(orderId);
+            var order = await _orderService.GetByIdAsync(orderId);
 
             if (formData.PaymentMethod == PaymentMethod.CreditCard)
             {
@@ -157,7 +161,7 @@ namespace ETicaret.Controllers
                     CallbackUrl = callbackUrl
                 };
 
-                var paymentResult = await _paymentProvider.CreatePaymentAsync(paymentRequest);
+                var paymentResult = await _paymentProvider.CreateAsync(paymentRequest);
 
                 if (!paymentResult.IsSuccess || string.IsNullOrEmpty(paymentResult.Data?.PaymentPageUrl))
                 {
@@ -261,7 +265,7 @@ namespace ETicaret.Controllers
         public async Task<IActionResult> Complete(int orderId, bool success = true, string? reason = null)
         {
             var userId = GetUserId();
-            var order = await _orderService.GetOrderByIdAsync(orderId);
+            var order = await _orderService.GetByIdAsync(orderId);
 
             ViewBag.PaymentSuccess = success;
             ViewBag.FailureReason = reason;

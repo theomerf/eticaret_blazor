@@ -64,7 +64,7 @@ namespace ETicaret.Migrations
 
                     b.HasKey("ActivityId");
 
-                    b.ToTable("Activity");
+                    b.ToTable("Activities");
                 });
 
             modelBuilder.Entity("Domain.Entities.Address", b =>
@@ -337,10 +337,6 @@ namespace ETicaret.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CartLineId"));
 
-                    b.Property<decimal>("ActualPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
                     b.Property<int>("CartId")
                         .HasColumnType("integer");
 
@@ -352,6 +348,10 @@ namespace ETicaret.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
@@ -360,14 +360,30 @@ namespace ETicaret.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int>("ProductVariantId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SelectedColor")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SelectedSize")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SpecificationsJson")
+                        .HasColumnType("text");
 
                     b.HasKey("CartLineId");
 
                     b.HasIndex("CartId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductVariantId");
 
                     b.ToTable("CartLines");
                 });
@@ -427,9 +443,6 @@ namespace ETicaret.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)");
 
-                    b.Property<int?>("ParentCategoryCategoryId")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("ParentId")
                         .HasColumnType("integer");
 
@@ -451,8 +464,6 @@ namespace ETicaret.Migrations
                         .HasDatabaseName("IX_Categories_IsDeleted_Filtered")
                         .HasFilter("\"IsDeleted\" = false");
 
-                    b.HasIndex("ParentCategoryCategoryId");
-
                     b.HasIndex("ParentId")
                         .HasDatabaseName("IX_Categories_ParentId");
 
@@ -465,6 +476,76 @@ namespace ETicaret.Migrations
                         .HasFilter("\"IsDeleted\" = false AND \"IsVisible\" = true");
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CategoryVariantAttribute", b =>
+                {
+                    b.Property<int>("VariantAttributeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VariantAttributeId"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTechnicalSpec")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVariantDefiner")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasMaxLength(50)
+                        .HasColumnType("integer");
+
+                    b.HasKey("VariantAttributeId");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("IX_CategoryVariantAttributes_CategoryId");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_CategoryVariantAttributes_IsDeleted_Filtered")
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.HasIndex("CategoryId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("UX_CategoryVariantAttributes_CategoryId_Key_Active")
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.HasIndex("CategoryId", "IsTechnicalSpec", "SortOrder")
+                        .HasDatabaseName("IX_CategoryVariantAttributes_CategoryId_IsTechnicalSpec_SortOrder");
+
+                    b.HasIndex("CategoryId", "IsVariantDefiner", "SortOrder")
+                        .HasDatabaseName("IX_CategoryVariantAttributes_CategoryId_IsVariantDefiner_SortOrder");
+
+                    b.ToTable("CategoryVariantAttributes");
                 });
 
             modelBuilder.Entity("Domain.Entities.Coupon", b =>
@@ -1001,10 +1082,6 @@ namespace ETicaret.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderLineId"));
 
-                    b.Property<decimal>("ActualPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
                     b.Property<string>("CategoryName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1030,6 +1107,10 @@ namespace ETicaret.Migrations
                     b.Property<int>("OrderId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
@@ -1038,11 +1119,25 @@ namespace ETicaret.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int>("ProductVariantId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SpecificationsJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("SubCategoryName")
                         .HasColumnType("text");
+
+                    b.Property<string>("VariantColor")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("VariantSize")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("OrderLineId");
 
@@ -1051,6 +1146,8 @@ namespace ETicaret.Migrations
 
                     b.HasIndex("ProductId")
                         .HasDatabaseName("IX_OrderLines_ProductId");
+
+                    b.HasIndex("ProductVariantId");
 
                     b.ToTable("OrderLines");
                 });
@@ -1138,10 +1235,6 @@ namespace ETicaret.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductId"));
 
-                    b.Property<decimal>("ActualPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
                     b.Property<double>("AverageRating")
                         .HasColumnType("double precision");
 
@@ -1152,16 +1245,28 @@ namespace ETicaret.Migrations
                     b.Property<int>("CategoryId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Color")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedByUserId")
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
+
+                    b.Property<decimal?>("DefaultHeight")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("DefaultLength")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("DefaultWeight")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("DefaultWidth")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1170,19 +1275,15 @@ namespace ETicaret.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
-                    b.Property<decimal?>("DiscountPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Gtin")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<string>("LongDescription")
                         .HasColumnType("text");
+
+                    b.Property<string>("ManufacturingCountry")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("MetaDescription")
                         .HasMaxLength(160)
@@ -1205,7 +1306,7 @@ namespace ETicaret.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
                         .HasAnnotation("Npgsql:TsVectorConfig", "turkish")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "ProductName", "Brand", "Summary", "LongDescription", "MetaTitle", "MetaDescription", "Gtin" });
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "ProductName", "Brand", "Summary", "LongDescription", "MetaTitle", "MetaDescription" });
 
                     b.Property<bool>("ShowCase")
                         .HasColumnType("boolean");
@@ -1215,12 +1316,13 @@ namespace ETicaret.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
-                    b.Property<int>("Stock")
-                        .HasColumnType("integer");
+                    b.Property<string>("SpecificationsJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("Summary")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1228,6 +1330,10 @@ namespace ETicaret.Migrations
                     b.Property<string>("UpdatedByUserId")
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
+
+                    b.Property<string>("WarrantyInfo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("ProductId");
 
@@ -1300,7 +1406,7 @@ namespace ETicaret.Migrations
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("ProductId")
+                    b.Property<int>("ProductVariantId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1312,14 +1418,111 @@ namespace ETicaret.Migrations
 
                     b.HasKey("ProductImageId");
 
-                    b.HasIndex("ProductId")
-                        .HasDatabaseName("IX_ProductImage_ProductId");
+                    b.HasIndex("ProductVariantId")
+                        .HasDatabaseName("IX_ProductImage_ProductVariantId");
 
-                    b.HasIndex("ProductId", "IsPrimary")
-                        .HasDatabaseName("IX_ProductImage_ProductId_Primary_Filtered")
+                    b.HasIndex("ProductVariantId", "IsPrimary")
+                        .HasDatabaseName("IX_ProductImage_ProductVariantId_Primary_Filtered")
                         .HasFilter("\"IsPrimary\" = true AND \"IsDeleted\" = false");
 
                     b.ToTable("ProductImages");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProductVariant", b =>
+                {
+                    b.Property<int>("ProductVariantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductVariantId"));
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CombinationKey")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("DiscountPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Gtin")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal?>("HeightOverride")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("LengthOverride")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Size")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("VariantSpecificationsJson")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("WeightOverride")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("WidthOverride")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("ProductVariantId");
+
+                    b.HasIndex("ProductId", "CombinationKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ProductVariants_Unique_Attributes")
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("ProductVariants");
                 });
 
             modelBuilder.Entity("Domain.Entities.SecurityLog", b =>
@@ -1426,7 +1629,7 @@ namespace ETicaret.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
-                    b.PrimitiveCollection<int[]>("FavouriteProductsId")
+                    b.PrimitiveCollection<int[]>("FavouriteProductVariantsId")
                         .IsRequired()
                         .HasColumnType("integer[]");
 
@@ -1781,20 +1984,41 @@ namespace ETicaret.Migrations
                     b.HasOne("Domain.Entities.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Cart");
 
                     b.Navigation("Product");
+
+                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("Domain.Entities.Category", b =>
                 {
                     b.HasOne("Domain.Entities.Category", "ParentCategory")
                         .WithMany("ChildCategories")
-                        .HasForeignKey("ParentCategoryCategoryId");
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("ParentCategory");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CategoryVariantAttribute", b =>
+                {
+                    b.HasOne("Domain.Entities.Category", "Category")
+                        .WithMany("VariantAttributes")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("Domain.Entities.CouponUsage", b =>
@@ -1889,9 +2113,17 @@ namespace ETicaret.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+
+                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("Domain.Entities.OrderLinePaymentTransaction", b =>
@@ -1918,8 +2150,19 @@ namespace ETicaret.Migrations
 
             modelBuilder.Entity("Domain.Entities.ProductImage", b =>
                 {
-                    b.HasOne("Domain.Entities.Product", "Product")
+                    b.HasOne("Domain.Entities.ProductVariant", "ProductVariant")
                         .WithMany("Images")
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProductVariant", b =>
+                {
+                    b.HasOne("Domain.Entities.Product", "Product")
+                        .WithMany("Variants")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2007,6 +2250,8 @@ namespace ETicaret.Migrations
                     b.Navigation("ChildCategories");
 
                     b.Navigation("Products");
+
+                    b.Navigation("VariantAttributes");
                 });
 
             modelBuilder.Entity("Domain.Entities.Coupon", b =>
@@ -2025,9 +2270,14 @@ namespace ETicaret.Migrations
 
             modelBuilder.Entity("Domain.Entities.Product", b =>
                 {
-                    b.Navigation("Images");
-
                     b.Navigation("UserReviews");
+
+                    b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProductVariant", b =>
+                {
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("Domain.Entities.User", b =>

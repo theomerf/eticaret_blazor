@@ -2,6 +2,6 @@
 {
     public record FavouriteResultDto
     {
-        public ICollection<int> FavouriteProductsId { get; set; } = new List<int>();
+        public List<int> FavouriteProductVariantsId { get; set; } = [];
     }
 }

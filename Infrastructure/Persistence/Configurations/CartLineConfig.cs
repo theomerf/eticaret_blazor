@@ -17,7 +17,7 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(cl => cl.ImageUrl)
                    .HasMaxLength(2048);
 
-            builder.Property(cl => cl.ActualPrice)
+            builder.Property(cl => cl.Price)
                    .IsRequired()
                    .HasPrecision(18, 2);
 
@@ -25,10 +25,22 @@ namespace Infrastructure.Persistence.Configurations
                    .HasPrecision(18, 2);
 
             builder.HasOne(cl => cl.Product)
-                   .WithMany()
-                   .HasForeignKey(cl => cl.ProductId)
-                   .OnDelete(DeleteBehavior.Restrict)
-                   .IsRequired(false);
+                .WithMany()
+                .HasForeignKey(cl => cl.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(cl => cl.Variant)
+                .WithMany()
+                .HasForeignKey(cl => cl.ProductVariantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(cl => cl.SelectedColor)
+                .HasMaxLength(50);
+
+            builder.Property(cl => cl.SelectedSize)
+                .HasMaxLength(50);
+
+            builder.HasQueryFilter(cl => !cl.Product!.IsDeleted && (cl.Variant == null || !cl.Variant.IsDeleted));
         }
     }
 }

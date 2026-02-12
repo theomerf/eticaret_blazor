@@ -4,14 +4,13 @@ namespace Application.Repositories.Interfaces
 {
     public interface ICampaignRepository
     {
-        Task<Campaign?> GetCampaignByIdAsync(int campaignId, bool trackChanges);
-        Task<IEnumerable<Campaign>> GetActiveCampaignsAsync(bool trackChanges);
-        Task<IEnumerable<Campaign>> GetActiveCampaignsByPriorityAsync(bool trackChanges);
-        Task<IEnumerable<Campaign>> GetAllCampaignsAsync(bool trackChanges);
-        Task<(IEnumerable<Campaign> campaigns, int count)> GetCampaignsPagedAsync(int pageNumber, int pageSize, bool trackChanges);
-
-        void CreateCampaign(Campaign campaign);
-        void UpdateCampaign(Campaign campaign);
-        void DeleteCampaign(Campaign campaign);
+        Task<IEnumerable<Campaign>> GetAllAsync(bool trackChanges);
+        Task<Campaign?> GetByIdAsync(int campaignId, bool trackChanges);
+        Task<IEnumerable<Campaign>> GetActiveAsync(bool trackChanges);
+        Task<IEnumerable<Campaign>> GetActiveByPriorityAsync(bool trackChanges);
+        Task<(IEnumerable<Campaign> campaigns, int count)> GetPagedAsync(int pageNumber, int pageSize, bool trackChanges);
+        void Create(Campaign campaign);
+        void Update(Campaign campaign);
+        void Delete(Campaign campaign);
     }
 }

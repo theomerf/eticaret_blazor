@@ -10,14 +10,14 @@
 
         #region Validation Methods
 
-        public virtual CartOperationResult SetQuantity(int prouductId, int newQuantity)
+        public virtual CartOperationResult SetQuantity(int productId, int variantId, int newQuantity)
         {
             if (newQuantity < 0)
             {
                 return CartOperationResult.Failure("Miktar negatif olamaz");
             }
 
-            var line = Lines.FirstOrDefault(l => l.ProductId.Equals(prouductId));
+            var line = Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == variantId);
 
             if (line == null)
             {
@@ -47,24 +47,29 @@
             );
         }
 
-        public virtual CartOperationResult AddOrUpdateItem(Product product, int quantity)
+        public virtual CartOperationResult AddOrUpdateItem(Product product, ProductVariant variant, int quantity)
         {
             if (quantity <= 0)
             {
                 return CartOperationResult.Failure("Miktar 0'dan büyük olmalıdır");
             }
 
-            var line = Lines.FirstOrDefault(l => l.ProductId.Equals(product.ProductId));
+            // Find existing cart line for this specific variant
+            var line = Lines.FirstOrDefault(l => l.ProductId.Equals(product.ProductId) && l.ProductVariantId == variant.ProductVariantId);
 
             if (line == null)
             {
                 Lines.Add(new CartLine
                 {
                     ProductId = product.ProductId,
+                    ProductVariantId = variant.ProductVariantId,
                     ProductName = product.ProductName,
-                    ImageUrl = product.Images?.FirstOrDefault()?.ImageUrl ?? "",
-                    ActualPrice = product.ActualPrice,
-                    DiscountPrice = product.DiscountPrice,
+                    ImageUrl = product.Variants.FirstOrDefault(v => v.ProductVariantId == variant.ProductVariantId)?.Images?.FirstOrDefault()?.ImageUrl,
+                    Price = variant.Price,
+                    DiscountPrice = variant.DiscountPrice,
+                    SelectedColor = variant.Color,
+                    SelectedSize = variant.Size,
+                    SpecificationsJson = variant.VariantSpecificationsJson,
                     CartId = CartId,
                     Cart = this,
                     Quantity = quantity
@@ -87,9 +92,9 @@
             return CartOperationResult.Success("Miktar güncellendi", oldQuantity, quantity);
         }
 
-        public virtual CartOperationResult RemoveItem(int productId)
+        public virtual CartOperationResult RemoveItem(int productId, int variantId)
         {
-            var line = Lines.FirstOrDefault(l => l.ProductId.Equals(productId));
+            var line = Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == variantId);
 
             if (line == null)
             {
@@ -113,7 +118,7 @@
 
 
         public decimal ComputeTotalValue() =>
-            Lines.Sum(e => e.ActualPrice * e.Quantity);
+            Lines.Sum(e => e.Price * e.Quantity);
 
         public decimal ComputeTotalDiscountValue() =>
             Lines.Sum(e => (e.DiscountPrice ?? 0) * e.Quantity);

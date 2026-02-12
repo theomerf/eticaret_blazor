@@ -1,0 +1,186 @@
+@using Application.DTOs
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center">
+        <i class="fas fa-folder-tree mr-2 text-blue-500"></i>Kategori Seçimi
+    </h3>
+
+    @if (Categories == null || !Categories.Any())
+    {
+        <div class="flex flex-col items-center justify-center py-12 text-center text-gray-500 bg-gray-50 rounded-xl border-dashed border-2 border-gray-200">
+            <i class="fas fa-exclamation-triangle text-3xl mb-3 text-amber-500"></i>
+            <p>Kategori bulunamadı</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Main Categories Column -->
+            <div class="flex flex-col h-full">
+                <div class="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 px-1">
+                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs mr-2">1</span>
+                    Ana Kategori
+                </div>
+                
+                <div class="flex-1 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+                    <div class="overflow-y-auto max-h-[400px] p-2 space-y-1 custom-scrollbar">
+                        @foreach (var mainCategory in Categories.Where(c => c.ParentId == null))
+                        {
+                            var isSelected = selectedMainCategoryId == mainCategory.CategoryId;
+                            <div class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 @(isSelected ? "bg-white border-blue-500 text-blue-700 shadow-md ring-1 ring-blue-500" : "hover:bg-white hover:shadow-sm text-gray-700")"
+                                 @onclick="() => SelectMainCategory(mainCategory.CategoryId)">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas @(isSelected ? "fa-folder-open" : "fa-folder") text-lg transition-colors @(isSelected ? "text-blue-500" : "text-gray-400")"></i>
+                                    <span class="font-medium">@mainCategory.CategoryName</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-xs transition-transform duration-200 @(isSelected ? "text-blue-500 translate-x-1" : "text-gray-300 opacity-0")"></i>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subcategories Column (Conditional) -->
+            <div class="flex flex-col h-full transition-opacity duration-300 @(selectedMainCategoryId == null ? "opacity-50 pointer-events-none grayscale" : "opacity-100")">
+                <div class="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 px-1">
+                    <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-2">2</span>
+                    Alt Kategori
+                </div>
+                
+                <div class="flex-1 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex flex-col relative">
+                    @if (selectedMainCategoryId == null)
+                    {
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-6 text-center">
+                            <i class="fas fa-arrow-left text-3xl mb-3 opacity-50"></i>
+                            <p>Lütfen önce sol taraftan bir ana kategori seçin</p>
+                        </div>
+                    }
+                    else
+                    {
+                        var subcategories = Categories.Where(c => c.ParentId == selectedMainCategoryId).ToList();
+                        
+                        @if (subcategories.Any())
+                        {
+                            <div class="overflow-y-auto max-h-[400px] p-2 space-y-1 custom-scrollbar">
+                                @foreach (var subCategory in subcategories)
+                                {
+                                    var isSelected = Value == subCategory.CategoryId;
+                                    <div class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 @(isSelected ? "bg-white border-green-500 text-green-700 shadow-md ring-1 ring-green-500" : "hover:bg-white hover:shadow-sm text-gray-700")"
+                                         @onclick="() => SelectSubCategory(subCategory.CategoryId)">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fas @(isSelected ? "fa-check-circle" : "fa-circle-notch") text-lg transition-colors @(isSelected ? "text-green-500" : "text-gray-300")"></i>
+                                            <span class="font-medium">@subCategory.CategoryName</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                             <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-6 text-center">
+                                <i class="fas fa-ban text-3xl mb-3 opacity-50"></i>
+                                <p>Bu kategorinin alt kategorisi yok.</p>
+                                <button class="mt-4 px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-sm hover:bg-blue-50 transition-colors shadow-sm" 
+                                        @onclick="() => SelectSubCategory(selectedMainCategoryId.Value)">
+                                    Ana Kategoriyi Seç (@Categories.First(c => c.CategoryId == selectedMainCategoryId).CategoryName)
+                                </button>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Summary -->
+        @if (Value > 0)
+        {
+            var selectedCategory = Categories.FirstOrDefault(c => c.CategoryId == Value);
+            if (selectedCategory != null)
+            {
+                <div class="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 flex items-center shadow-sm animate-fade-in">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3 shadow-sm">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-green-600 font-semibold uppercase tracking-wider">Seçilen Kategori</p>
+                        <p class="text-gray-800 font-medium">@GetCategoryPath(selectedCategory)</p>
+                    </div>
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int? Value { get; set; }
+    [Parameter] public EventCallback<int?> ValueChanged { get; set; }
+    [Parameter] public IEnumerable<CategoryDto>? Categories { get; set; }
+
+    private int? selectedMainCategoryId;
+
+    protected override void OnInitialized()
+    {
+        // Init selectedMainCategory if Value is set
+        if (Value > 0 && Categories != null)
+        {
+            var cat = Categories.FirstOrDefault(c => c.CategoryId == Value);
+            if (cat != null)
+            {
+                selectedMainCategoryId = cat.ParentId ?? cat.CategoryId;
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Value > 0 && Categories != null && selectedMainCategoryId == null)
+        {
+            var cat = Categories.FirstOrDefault(c => c.CategoryId == Value);
+            if (cat != null)
+            {
+                selectedMainCategoryId = cat.ParentId ?? cat.CategoryId;
+            }
+        }
+    }
+
+    private async Task SelectMainCategory(int categoryId)
+    {
+        selectedMainCategoryId = categoryId;
+         // If main category has no subcategories AND we want to allow selecting it immediately?
+         // User said "isteğe bağlı alt kategorileri seçilir", implying main category selection is valid?
+         // But usually e-commerce requires leaf category.
+         // Existing logic allowed main category selection.
+         // I'll reset Value to null when switching main category unless it has no subs.
+         // Wait, if I click Main, I shouldn't select it as 'Value' immediately if there are subs.
+         
+         var hasSubs = Categories!.Any(c => c.ParentId == categoryId);
+         if (!hasSubs)
+         {
+             Value = categoryId;
+             await ValueChanged.InvokeAsync(categoryId);
+         }
+         else
+         {
+             // Reset value until sub is selected? Or keep previous value?
+             // Safest is to reset or keep undefined until sub is picked.
+             // But if I reset, the form becomes invalid temporarily.
+         }
+         
+         StateHasChanged();
+    }
+
+    private async Task SelectSubCategory(int categoryId)
+    {
+        Value = categoryId;
+        await ValueChanged.InvokeAsync(categoryId);
+    }
+
+    private string GetCategoryPath(CategoryDto category)
+    {
+        if (category.ParentId == null)
+            return category.CategoryName;
+
+        var parent = Categories?.FirstOrDefault(c => c.CategoryId == category.ParentId);
+        return parent != null ? $"{parent.CategoryName} > {category.CategoryName}" : category.CategoryName;
+    }
+}

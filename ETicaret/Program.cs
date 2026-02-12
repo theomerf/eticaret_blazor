@@ -1,31 +1,52 @@
-using Application.Common.Options;
 using Application.Mappings;
 using ETicaret.Extensions;
 using ETicaret.Middlewares;
 using Serilog;
+using Serilog.Events;
+using NpgsqlTypes;
+using Serilog.Sinks.PostgreSQL.ColumnWriters;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var columnWriters = new Dictionary<string, ColumnWriterBase>
+{
+    { "message", new RenderedMessageColumnWriter(NpgsqlDbType.Text) },
+    { "message_template", new MessageTemplateColumnWriter(NpgsqlDbType.Text) },
+    { "level", new LevelColumnWriter(true, NpgsqlDbType.Varchar) },
+    { "time_stamp", new TimestampColumnWriter(NpgsqlDbType.Timestamp) },
+    { "exception", new ExceptionColumnWriter(NpgsqlDbType.Text) },
+    { "properties", new LogEventSerializedColumnWriter(NpgsqlDbType.Jsonb) }
+};
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .Enrich.WithMachineName()
-    .Enrich.WithThreadId()
-    .WriteTo.Console()
+    .WriteTo.PostgreSQL(
+        connectionString: builder.Configuration.GetConnectionString("logdb")!,
+        tableName: "serilog_logs",
+        columnOptions: columnWriters,
+        needAutoCreateTable: true,
+        restrictedToMinimumLevel: LogEventLevel.Warning,
+        batchSizeLimit: 50,
+        period: TimeSpan.FromSeconds(5)
+    )
     .CreateLogger();
 
 try
 {
     Log.Information("Starting ETicaret web application...");
 
-    var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+    if (!builder.Environment.IsDevelopment())
+    {
+        var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+        builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+    }
 
     builder.Host.UseSerilog();
 
     builder.Services.AddHttpContextAccessor();
 
-    builder.Services.ConfigureDbContext(builder.Configuration);
+    builder.Services.ConfigureDbContext(builder.Configuration, builder.Environment);
     builder.Services.ConfigureIdentity();
     builder.Services.ConfigureSession();
     builder.Services.ConfigureRepositoryRegistration();
@@ -81,7 +102,7 @@ try
 
     if (!app.Environment.IsDevelopment())
     {
-        app.UseExceptionHandler("/Home/Error");
+        app.UseExceptionHandler("/home/error");
         app.UseHsts();
     }
 
@@ -89,6 +110,7 @@ try
     {
         app.UseHttpsRedirection();
     }
+
     app.UseStaticFiles();
 
     app.UseRouting();

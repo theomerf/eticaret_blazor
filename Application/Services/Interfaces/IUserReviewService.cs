@@ -5,17 +5,17 @@ namespace Application.Services.Interfaces
 {
     public interface IUserReviewService
     {
-        Task<IEnumerable<UserReviewDto>> GetAllUserReviewsAsync();
-        Task<int> GetCountAsync();
-        Task<UserReviewDto> GetOneUserReviewAsync(int id);
-        Task<IEnumerable<UserReviewDto>> GetAllUserReviewsOfOneProductAdminAsync(int id);
-        Task<IEnumerable<UserReviewDto>> GetAllUserReviewsOfOneProductAsync(int id);
-        Task<IEnumerable<UserReviewDto>> GetAllUserReviewsOfOneUserAsync(string id);
-        Task<OperationResult<UserReviewDto>> CreateUserReviewAsync(UserReviewDtoForCreation userReview);
-        Task<OperationResult<UserReviewDto>> ApproveUserReviewAsync(int id);
-        Task<OperationResult<UserReviewDto>> UpdateUserReviewFeaturedStatusAsync(int id);
-        Task<OperationResult<UserReviewDto>> DeleteUserReviewAsync(int id);
-        Task<OperationResult<UserReviewDto>> DeleteUserReviewForAdminAsync(int id);
-        Task<OperationResult<UserReviewDto>> UpdateUserReviewAsync(UserReviewDtoForUpdate userReview);
+        Task<IEnumerable<UserReviewDto>> GetAllAsync();
+        Task<int> CountAsync(CancellationToken ct = default);
+        Task<UserReviewDto> GetByIdAsync(int userReviewId);
+        Task<IEnumerable<UserReviewDto>> GetByProductIdAdminAsync(int productId);
+        Task<IEnumerable<UserReviewDto>> GetByProductIdAsync(int productId);
+        Task<IEnumerable<UserReviewDto>> GetByUserIdAsync(string userId);
+        Task<OperationResult<UserReviewDto>> CreateAsync(UserReviewDtoForCreation userReview);
+        Task<OperationResult<UserReviewDto>> ApproveAsync(int userReviewId);
+        Task<OperationResult<UserReviewDto>> UpdateFeaturedStatusAsync(int userReviewId);
+        Task<OperationResult<UserReviewDto>> DeleteAsync(int userReviewId);
+        Task<OperationResult<UserReviewDto>> DeleteAdminAsync(int userReviewId);
+        Task<OperationResult<UserReviewDto>> UpdateAsync(UserReviewDtoForUpdate userReview);
     }
 }

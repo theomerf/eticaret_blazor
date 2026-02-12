@@ -6,19 +6,20 @@ namespace Application.Services.Interfaces
 {
     public interface IProductService
     {
-        Task<(IEnumerable<ProductDto> products, int count)> GetAllProductsAsync(ProductRequestParameters p);
-        Task<(IEnumerable<ProductDto> products, int count)> GetAllProductsAdminAsync(ProductRequestParametersAdmin p);
-        Task<int> GetProductsCountAsync();
-        Task<ProductWithDetailsDto> GetOneProductAsync(int id);
-        Task<ProductWithDetailsDto> GetOneProductBySlugAsync(string slug);
-        Task<IEnumerable<ProductDto>> GetRecommendedProductsAsync();
-        Task<IEnumerable<ProductDto>> GetFavouriteProductsAsync(FavouriteResultDto favouritesDto);
-        Task<IEnumerable<ProductDto>> GetLastestProductsAsync(int n);
-        Task<IEnumerable<ProductDto>> GetShowcaseProductsAsync();
-        Task<OperationResult<ProductWithDetailsDto>> UpdateProductImagesAsync(IEnumerable<ProductImageDtoForCreation> productImagesDto);
-        Task<OperationResult<int>> CreateProductAsync(ProductDtoForCreation productDto);
-        Task<OperationResult<ProductWithDetailsDto>> UpdateProductShowcaseStatus(int id);
-        Task<OperationResult<ProductWithDetailsDto>> UpdateProductAsync(ProductDtoForUpdate productDto);
-        Task<OperationResult<ProductWithDetailsDto>> DeleteProductAsync(int id);
+        Task<(IEnumerable<ProductDto> products, int count)> GetAllAsync(ProductRequestParameters p);
+        Task<(IEnumerable<ProductDto> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, CancellationToken ct = default);
+        Task<int> CountAsync(CancellationToken ct = default);
+        Task<ProductWithDetailsDto> GetByIdAsync(int productId);
+        Task<ProductVariantDto> GetVariantByIdAsync(int variantId);
+        Task<ProductWithDetailsDto> GetBySlugAsync(string slug);
+        Task<IEnumerable<ProductDto>> GetRecommendationsAsync();
+        Task<IEnumerable<ProductDto>> GetFavouritesAsync(FavouriteResultDto favouritesDto);
+        Task<IEnumerable<ProductDto>> GetLatestAsync(int count);
+        Task<IEnumerable<ProductDto>> GetShowcaseListAsync(CancellationToken ct = default);
+        Task<OperationResult<ProductWithDetailsDto>> UpdateImagesAsync(IEnumerable<ProductImageDtoForCreation> productImagesDto);
+        Task<OperationResult<ProductWithDetailsDto>> CreateAsync(ProductDtoForCreation productDto);
+        Task<OperationResult<ProductWithDetailsDto>> UpdateShowcaseStatus(int productId);
+        Task<OperationResult<ProductWithDetailsDto>> UpdateAsync(ProductDtoForUpdate productDto);
+        Task<OperationResult<ProductWithDetailsDto>> DeleteAsync(int productId);
     }
 }

@@ -1,7 +1,6 @@
 using Application.Common.Models;
 using Application.DTOs;
 using Application.Services.Interfaces;
-using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -32,7 +31,7 @@ namespace ETicaret.Controllers.Api
         [HttpGet("{orderId:int}")]
         public async Task<IActionResult> GetOrder(int orderId)
         {
-            var order = await _orderService.GetOrderByIdAsync(orderId);
+            var order = await _orderService.GetByIdAsync(orderId);
 
             return Ok(new
             {
@@ -44,7 +43,7 @@ namespace ETicaret.Controllers.Api
         [HttpGet("by-number/{orderNumber}")]
         public async Task<IActionResult> GetOrderByNumber(string orderNumber)
         {
-            var order = await _orderService.GetOrderByNumberAsync(orderNumber);
+            var order = await _orderService.GetByNumberAsync(orderNumber);
 
             return Ok(new
             {
@@ -57,7 +56,7 @@ namespace ETicaret.Controllers.Api
         public async Task<IActionResult> GetMyOrders()
         {
             var userId = GetUserId();
-            var order = await _orderService.GetUserOrdersAsync(userId);
+            var order = await _orderService.GetByUserIdAsync(userId);
 
             return Ok(new
             {
@@ -79,7 +78,7 @@ namespace ETicaret.Controllers.Api
                 });
             }
 
-            var result = await _orderService.CancelOrderAsync(orderId, request.Reason);
+            var result = await _orderService.CancelAsync(orderId, request.Reason);
 
             if (!result.IsSuccess)
             {
@@ -104,7 +103,7 @@ namespace ETicaret.Controllers.Api
         [HttpPost("{orderId}/refund")]
         public async Task<IActionResult> RefundOrder(int orderId)
         {
-            var result = await _orderService.RefundOrderAsync(orderId);
+            var result = await _orderService.RefundAsync(orderId);
 
             if (!result.IsSuccess)
             {
@@ -130,7 +129,7 @@ namespace ETicaret.Controllers.Api
         public async Task<IActionResult> GetStatistics()
         {
             var userId = GetUserId();
-            var ordersCount = await _orderService.GetUserOrdersCountAsync(userId);
+            var ordersCount = await _orderService.CountByUserIdAsync(userId);
             var totalSpent = await _orderService.GetUserTotalSpentAsync(userId);
 
             return Ok(new
@@ -187,7 +186,7 @@ namespace ETicaret.Controllers.Api
         [HttpGet("active-campaigns")]
         public async Task<IActionResult> GetActiveCampaigns()
         {
-            var campaigns = await _campaignService.GetActiveCampaignsAsync();
+            var campaigns = await _campaignService.GetActiveAsync();
 
             return Ok(new
             {

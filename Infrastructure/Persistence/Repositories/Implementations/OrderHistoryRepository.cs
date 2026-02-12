@@ -10,7 +10,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<IEnumerable<OrderHistory>> GetOrderHistoryAsync(int orderId, bool trackChanges)
+        public async Task<IEnumerable<OrderHistory>> GetAllByOrderIdAsync(int orderId, bool trackChanges)
         {
             var orderHistory = await FindAllByCondition(oh => oh.OrderId == orderId, trackChanges)
                 .Include(oh => oh.CreatedByUser)
@@ -20,6 +20,6 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return orderHistory;
         }
 
-        public void CreateOrderHistory(OrderHistory orderHistory) => Create(orderHistory);
+        public void Create(OrderHistory orderHistory) => CreateEntity(orderHistory);
     }
 }

@@ -1,0 +1,117 @@
+@using Application.Queries.RequestParameters
+@using ETicaret.Models
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+<div id="blazorMobileSortModal" class="fixed inset-0 z-[2000] hidden lg:hidden">
+    <div class="absolute inset-0 bg-gray-500 bg-opacity-75" id="blazorMobileSortBackdrop"></div>
+
+    <div class="absolute bottom-0 w-full transform translate-y-full transition duration-300 ease-in-out"
+         id="blazorMobileSortContent">
+        <div class="bg-white shadow-xl rounded-t-2xl overflow-hidden pb-safe">
+            <!-- Drag Handle -->
+            <div class="flex justify-center py-3">
+                <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+            </div>
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 pb-4 border-b border-gray-200">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                    Sıralama
+                </h2>
+                <button type="button" id="closeBlazorMobileSortModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                    <span class="sr-only">Kapat</span>
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-5">
+                <div class="space-y-2">
+                    @{
+                        var currentSort = FilterParams.SortBy;
+                        var sortOptions = new[] {
+                            new { Value = "default", Label = "Varsayılan", Icon = "fa-list" },
+                            new { Value = "price_asc", Label = "Fiyat: Düşükten Yükseğe", Icon = "fa-arrow-up-short-wide" },
+                            new { Value = "price_desc", Label = "Fiyat: Yüksekten Düşüğe", Icon = "fa-arrow-down-wide-short" },
+                            new { Value = "topReviews", Label = "En Yüksek Puanlılar", Icon = "fa-star" },
+                            new { Value = "mostReviews", Label = "En Çok Değerlendirme", Icon = "fa-comments" }
+                        };
+
+                        foreach (var option in sortOptions)
+                        {
+                            var isActive = currentSort == option.Value || (string.IsNullOrEmpty(currentSort) && option.Value == "default");
+                            <label class="flex items-center p-4 rounded-xl border-2 @(isActive ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white") cursor-pointer transition-all duration-300 hover:border-blue-300 hover:bg-blue-50/50"
+                                   @onclick="@(async () => await SelectSort(option.Value))">
+                                <input type="radio"
+                                       name="SortBy"
+                                       value="@option.Value"
+                                       class="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                       checked="@isActive"
+                                       readonly>
+                                <div class="ml-3 flex-1">
+                                    <div class="flex items-center">
+                                        <i class="fa-solid @option.Icon text-blue-600 mr-2"></i>
+                                        <span class="font-medium text-gray-800">@option.Label</span>
+                                    </div>
+                                </div>
+                                @if(isActive) {
+                                   <span class="text-blue-600">
+                                       <i class="fa-solid fa-check"></i>
+                                   </span>
+                                }
+                            </label>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter(Name = "FilterParams")]
+    public ProductRequestParametersAdmin FilterParams { get; set; } = new();
+
+    [CascadingParameter(Name = "OnFilterChange")]
+    public Func<Task> OnFilterChange { get; set; } = async () => { };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Wait for products-mobile.js script to load fully
+                for (int i = 0; i < 20; i++) // Try for 2 seconds (20 * 100ms)
+                {
+                    var isLoaded = await JSRuntime.InvokeAsync<bool>("eval", "typeof initBlazorMobileSort !== 'undefined'");
+                    if (isLoaded) break;
+                    await Task.Delay(100);
+                }
+
+                await JSRuntime.InvokeVoidAsync("initBlazorMobileSort");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing ProductsSortMobile JS: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SelectSort(string sortBy)
+    {
+        FilterParams.SortBy = sortBy;
+        FilterParams.PageNumber = 1;
+        
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("closeBlazorMobileSort");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error closing sort modal: {ex.Message}");
+        }
+        
+        await OnFilterChange.Invoke();
+    }
+}

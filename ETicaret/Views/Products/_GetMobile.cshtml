@@ -1,33 +1,36 @@
 @model ProductDetailViewModel
 @using System.Security.Claims
+@using ETicaret.Helpers
 
 <div class="lg:hidden bg-white min-h-screen relative font-sans">
 	<div class="relative w-full aspect-square bg-gray-100 group">
 		<div class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide w-full h-full relative z-10">
-			@foreach (var image in Model?.Product.Images ?? Enumerable.Empty<ProductImage>()) {
+			@foreach (var image in Model?.Product.Variants?.FirstOrDefault()?.Images ?? Enumerable.Empty<ProductImageDto>()) {
 				<img src="@image.ImageUrl" class="snap-center shrink-0 w-full h-full object-cover" alt="Product Image" />
 			}
 		</div>
 		<div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20 pointer-events-none">
-			@for(int i=0; i < Math.Min(Model?.Product.Images?.Count ?? 0, 5); i++) {
-				<div class="w-1.5 h-1.5 rounded-full bg-white/70 shadow-sm backdrop-blur-sm"></div>
-			}
+            @for (int i = 0; i < Math.Min(Model?.Product.Variants?.FirstOrDefault()?.Images?.Count ?? 0, 5); i++)
+            {
+                <div class="w-1.5 h-1.5 rounded-full bg-white/70 shadow-sm backdrop-blur-sm"></div>
+            }
 		</div>
         <div class="absolute top-4 right-4 z-20">
              @if (User.Identity != null && User.Identity.IsAuthenticated && Context.User.FindFirstValue(ClaimTypes.NameIdentifier) != null)
              {
                  var favouriteIds = ViewBag.FavouriteIds as List<int>;
-                 if (favouriteIds != null && Model?.Product != null && favouriteIds.Contains(Model.Product.ProductId))
+                 var currentVariant = Model?.Product.Variants?.FirstOrDefault(v => v.IsDefault) ?? Model?.Product.Variants?.FirstOrDefault();
+                 if (favouriteIds != null && currentVariant != null && favouriteIds.Contains(currentVariant.ProductVariantId))
                  {
-                      <button type="button" class="remove-from-favs-btn bg-white/80 backdrop-blur-md p-2 rounded-full shadow-sm text-red-500 w-10 h-10 flex items-center justify-center border border-white/30"
-                         data-product-id="@Model?.Product.ProductId" title="Favorilerden Kaldır">
+                      <button type="button" class="pd-fav-btn pd-remove-from-favs-btn bg-white/80 backdrop-blur-md p-2 rounded-full shadow-sm text-red-500 w-10 h-10 flex items-center justify-center border border-white/30"
+                         data-product-variant-id="@currentVariant.ProductVariantId" title="Favorilerden Kaldır">
                          <i class="fas fa-heart text-lg"></i>
                      </button>
                  }
                  else
                  {
-                     <button type="button" class="add-to-favs-btn bg-white/80 backdrop-blur-md p-2 rounded-full shadow-sm text-gray-500 w-10 h-10 flex items-center justify-center border border-white/30"
-                         data-product-id="@Model?.Product.ProductId" title="Favorilere Ekle">
+                     <button type="button" class="pd-fav-btn pd-add-to-favs-btn bg-white/80 backdrop-blur-md p-2 rounded-full shadow-sm text-gray-500 w-10 h-10 flex items-center justify-center border border-white/30"
+                         data-product-variant-id="@currentVariant?.ProductVariantId" title="Favorilere Ekle">
                          <i class="far fa-heart text-lg"></i>
                      </button>
                  }
@@ -79,42 +82,90 @@
 
 		<div class="w-full h-px bg-gray-100 mb-8"></div>
 
-		<div class="mb-8 flex flex-col items-center">
-			<label class="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Renk Seçimi</label>
-			<div class="flex gap-4">
-				<div class="pd-color-option w-10 h-10 rounded-full cursor-pointer relative shadow-sm border-[3px] border-white ring-1 ring-gray-200 active transition-transform active:scale-95" style="background-color: #000000;"></div>
-				<div class="pd-color-option w-10 h-10 rounded-full cursor-pointer relative shadow-sm border-[3px] border-white ring-1 ring-gray-200 transition-transform active:scale-95" style="background-color: #FFFFFF;"></div>
-				<div class="pd-color-option w-10 h-10 rounded-full cursor-pointer relative shadow-sm border-[3px] border-white ring-1 ring-gray-200 transition-transform active:scale-95" style="background-color: #FF0000;"></div>
-				<div class="pd-color-option w-10 h-10 rounded-full cursor-pointer relative shadow-sm border-[3px] border-white ring-1 ring-gray-200 transition-transform active:scale-95" style="background-color: #0000FF;"></div>
-			</div>
-		</div>
+        @if (Model?.Product.VariantSelectors != null && Model.Product.VariantSelectors.Any())
+        {
+            foreach (var selector in Model.Product.VariantSelectors)
+            {
+                <div class="mb-8 flex flex-col items-center variant-selector-group" data-key="@selector.Key">
+			        <label class="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">@selector.DisplayName Seçimi</label>
+			        
+                    @if (selector.Type == VariantAttributeType.Color)
+                    {
+                        <div class="flex gap-4 flex-wrap justify-center">
+                            @{
+								var uniqueValues = Model.Product.Variants
+								.Select(v => selector.Key == "Renk" ? v.Color :
+                                (v.VariantSpecifications != null && v.VariantSpecifications.Any(v => v.Key == selector.Key) ? v.VariantSpecifications.FirstOrDefault(v => v.Key == selector.Key)?.Value : ""))
+								.Where(val => !string.IsNullOrEmpty(val))
+								.Distinct()
+								.ToList();
+                            }
+                            @foreach (var val in uniqueValues)
+                            {
+								var hasStock = Model.Product.Variants.Any(v =>
+								(selector.Key == "Renk" ? v.Color == val :
+                                (v.VariantSpecifications != null && v.VariantSpecifications.FirstOrDefault(v => v.Key == selector.Key)?.Value == val))
+								&& v.Stock > 0
+								);
 
-		<div class="mb-10 flex flex-col items-center">
-			<label class="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Beden Seçimi</label>
-			<div class="flex gap-3">
-				<div class="pd-size-option w-12 h-12 flex items-center justify-center border border-gray-200 rounded-xl cursor-pointer text-sm font-bold bg-white text-gray-700 shadow-sm transition-all active:bg-gray-50 active:scale-95">S</div>
-				<div class="pd-size-option w-12 h-12 flex items-center justify-center border border-gray-200 rounded-xl cursor-pointer text-sm font-bold bg-white text-gray-700 shadow-sm transition-all active:bg-gray-50 active:scale-95 active">M</div>
-				<div class="pd-size-option w-12 h-12 flex items-center justify-center border border-gray-200 rounded-xl cursor-pointer text-sm font-bold bg-white text-gray-700 shadow-sm transition-all active:bg-gray-50 active:scale-95">L</div>
-				<div class="pd-size-option w-12 h-12 flex items-center justify-center border border-gray-100 rounded-xl text-sm font-bold bg-gray-50 text-gray-300 relative overflow-hidden">
-                    <span class="absolute w-full h-[1px] bg-gray-300 rotate-45"></span>
-                    XL
-                </div>
-			</div>
-		</div>
+			                <div class="relative group">
+				                <div class="pd-variant-option pd-color-option w-12 h-12 lg:w-14 lg:h-14 rounded-full cursor-pointer relative transition-all duration-300 shadow-md border-[3px] border-gray-200 @(!hasStock ? "opacity-40 cursor-not-allowed" : "")" 
+                                     style="background-color: @(ColorHelper.GetColorHex(val));"
+                                     data-key="@selector.Key"
+                                     data-value="@val"
+                                     title="@val">
+									<span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xl font-bold opacity-0 transition-opacity duration-300 active-check" style="text-shadow: 0 0 3px rgba(0,0,0,0.5); line-height: 1;">✓</span>
+								</div>
+								<span class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-gray-600 whitespace-nowrap opacity-0 group-active:opacity-100 transition-opacity">@val</span>
+							</div>
+                            }
+			            </div>
+                    }
+                    else
+                    {
+                        <div class="flex gap-3 flex-wrap justify-center">
+                            @{
+								var uniqueValues = Model.Product.Variants
+								.Select(v => selector.Key == "Beden" ? v.Size :
+                                (v.VariantSpecifications != null && v.VariantSpecifications.Any(v => v.Key == selector.Key) ? v.VariantSpecifications.FirstOrDefault(v => v.Key == selector.Key)?.Value : ""))
+								.Where(val => !string.IsNullOrEmpty(val))
+								.Distinct()
+								.ToList();
+                            }
+                            @foreach (var val in uniqueValues)
+                            {
+								var hasStock = Model.Product.Variants.Any(v =>
+								(selector.Key == "Beden" ? v.Size == val :
+                                (v.VariantSpecifications != null && v.VariantSpecifications.FirstOrDefault(v => v.Key == selector.Key)?.Value == val))
+								&& v.Stock > 0
+								);
 
-		<!-- Ürün Sekmeleri -->
+			                <div class="pd-variant-option pd-text-option min-w-[3.5rem] h-12 px-3 flex items-center justify-center border-2 border-gray-300 rounded-xl cursor-pointer text-sm font-bold bg-white text-gray-700 shadow-sm transition-all active:bg-gray-50 active:scale-95 @(!hasStock ? "opacity-40 cursor-not-allowed" : "")"
+                                     data-key="@selector.Key"
+                                     data-value="@val">
+                                    @val
+                                </div>
+                            }
+			            </div>
+                    }
+		        </div>
+            }
+        }
+
 		<div class="space-y-4">
 			<div class="border border-gray-100 rounded-2xl overflow-hidden bg-gray-50/50">
 				<button onclick="toggleAccordion(this)" class="w-full flex justify-between items-center p-5 font-bold text-gray-800 text-sm active:bg-gray-100 transition-colors">
 					ÜRÜN ÖZELLİKLERİ
 					<i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300"></i>
 				</button>
-				<div class="hidden px-5 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
+				<div class="hidden px-5 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-4" id="mobile-description-content">
 					<p class="mb-3">@Model?.Product.Summary</p>
-                    <ul class="space-y-2">
-						<li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500 text-xs"></i> Yüksek Kalite</li>
-						<li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500 text-xs"></i> Dayanıklı Kumaş</li>
-					</ul>
+					@if (!string.IsNullOrWhiteSpace(Model?.Product.LongDescription))
+                    {
+                        <div class="prose max-w-none text-sm">
+                            @Html.Raw(Model?.Product.LongDescription)
+                        </div>
+                    }
 				</div>
 			</div>
 
@@ -135,10 +186,70 @@
 					TEKNİK ÖZELLİKLER
 					<i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300"></i>
 				</button>
-				<div class="hidden bg-white px-5 pb-5 text-sm text-gray-600 border-t border-gray-100 pt-4">
-                     <div class="flex justify-between py-2 border-b border-dashed border-gray-100"><span>Malzeme</span> <span class="font-bold text-gray-800">%100 Pamuk</span></div>
-                     <div class="flex justify-between py-2 border-b border-dashed border-gray-100"><span>Üretim</span> <span class="font-bold text-gray-800">Türkiye</span></div>
-                     <div class="flex justify-between py-2 pt-3"><span>Garanti</span> <span class="font-bold text-gray-800">2 Yıl</span></div>
+				<div class="hidden bg-white px-5 pb-5 text-sm text-gray-600 border-t border-gray-100 pt-4" id="mobile-specs-content">
+                     @{
+                         var hasAnySpecs = !string.IsNullOrWhiteSpace(Model?.Product.ManufacturingCountry) ||
+                         !string.IsNullOrWhiteSpace(Model?.Product.WarrantyInfo) ||
+                         (Model?.Product.Specifications != null && Model.Product.Specifications.Any());
+                     }
+
+                     @if (hasAnySpecs)
+                     {
+                         var rowIndex = 0;
+                         if (Model?.Product.Specifications != null)
+                         {
+                             foreach (var spec in Model.Product.Specifications)
+                             {
+                                 <div class="flex @(rowIndex % 2 == 0 ? "" : "bg-gray-50")">
+                                     <div class="flex-1 py-3 px-4 text-xs font-bold text-gray-800 bg-blue-500/5 border-r border-gray-100 flex items-center">@spec.Key</div>
+                                     <div class="flex-[2] py-3 px-4 text-xs text-gray-600 font-medium flex items-center">@spec.Value</div>
+                                 </div>
+                                 rowIndex++;
+                             }
+                         }
+
+                         var defaultVariant = Model?.Product.Variants.FirstOrDefault(v => v.IsDefault);
+                         var selectorKeys = Model?.Product.VariantSelectors.Select(s => s.Key).ToHashSet() ?? new HashSet<string>();
+                         var variantTechnicalSpecs = defaultVariant?.VariantSpecifications
+                             .Where(kvp => !selectorKeys.Contains(kvp.Key))
+                             .ToList();
+
+                         if (variantTechnicalSpecs?.Any() == true)
+                         {
+                             foreach (var spec in variantTechnicalSpecs)
+                             {
+                                 <div class="flex @(rowIndex % 2 == 0 ? "" : "bg-gray-50")">
+                                     <div class="flex-1 py-3 px-4 text-xs font-bold text-gray-800 bg-blue-500/5 border-r border-gray-100 flex items-center">@spec.Key</div>
+                                     <div class="flex-[2] py-3 px-4 text-xs text-gray-600 font-medium flex items-center">@spec.Value</div>
+                                 </div>
+                                 rowIndex++;
+                             }
+                         }
+
+                         if (!string.IsNullOrWhiteSpace(Model?.Product.ManufacturingCountry))
+                         {
+                             <div class="flex @(rowIndex % 2 == 0 ? "" : "bg-gray-50")">
+                                 <div class="flex-1 py-3 px-4 text-xs font-bold text-gray-800 bg-blue-500/5 border-r border-gray-100 flex items-center">Üretim Yeri</div>
+                                 <div class="flex-[2] py-3 px-4 text-xs text-gray-600 font-medium flex items-center">@Model.Product.ManufacturingCountry</div>
+                             </div>
+                             rowIndex++;
+                         }
+                         if (!string.IsNullOrWhiteSpace(Model?.Product.WarrantyInfo))
+                         {
+                             <div class="flex @(rowIndex % 2 == 0 ? "" : "bg-gray-50")">
+                                 <div class="flex-1 py-3 px-4 text-xs font-bold text-gray-800 bg-blue-500/5 border-r border-gray-100 flex items-center">Garanti Bilgisi</div>
+                                 <div class="flex-[2] py-3 px-4 text-xs text-gray-600 font-medium flex items-center">@Model.Product.WarrantyInfo</div>
+                             </div>
+                             rowIndex++;
+                         }
+                     }
+                     else
+                     {
+                         <div class="text-center py-8">
+                             <i class="fas fa-info-circle text-4xl text-gray-300 mb-3"></i>
+                             <p class="text-gray-400 italic">Teknik özellik bilgisi henüz eklenmemiş.</p>
+                         </div>
+                     }
 				</div>
 			</div>
 			
@@ -168,16 +279,18 @@
 
 <div class="lg:hidden fixed bottom-0 left-0 w-full bg-primary shadow-[0_-5px_20px_rgba(0,0,0,0.05)] p-4 z-50 flex items-center gap-4 safe-area-bottom">
 	<div class="flex flex-col min-w-[35%] shrink-0">
-        @if(@Model?.Product.Discount > 0) {
+        @if(@Model?.Product.Variants.FirstOrDefault()?.Discount > 0) {
             <div class="flex items-center gap-2 mb-0.5">
-		        <span class="text-sm text-gray-700 font-bold line-through decoration-gray-300">@Model?.Product.ActualPrice.ToString("C2", new CultureInfo("tr-TR"))</span>
+		        <span class="text-sm text-gray-700 font-bold line-through decoration-gray-300">@Model?.Product.Variants.FirstOrDefault()?.Price.ToString("C2", new CultureInfo("tr-TR"))</span>
                 <span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 flex items-center shadow-md">
-                    <i class="fas fa-arrow-down text-[8px] mr-0.5"></i>%@Model?.Product.Discount
+                    <i class="fas fa-arrow-down text-[8px] mr-0.5"></i>%@Model?.Product.Variants.FirstOrDefault()?.Discount
                 </span>
             </div>
-		    <span class="text-2xl font-black text-gray-900 tracking-tight leading-none">@Model?.Product.DiscountPrice?.ToString("C2", new CultureInfo("tr-TR"))</span>
-        } else {
-             <span class="text-2xl font-black text-gray-900 tracking-tight leading-none">@Model?.Product.ActualPrice.ToString("C2", new CultureInfo("tr-TR"))</span>
+		    <span class="text-2xl font-black text-gray-900 tracking-tight leading-none">@Model?.Product.Variants.FirstOrDefault()?.DiscountPrice?.ToString("C2", new CultureInfo("tr-TR"))</span>
+        }
+		else
+		{
+			<span class="text-2xl font-black text-gray-900 tracking-tight leading-none">@Model?.Product.Variants.FirstOrDefault()?.Price.ToString("C2", new CultureInfo("tr-TR"))</span>
         }
 	</div>
 	<div class="flex-1 flex gap-2 h-12">

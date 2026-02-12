@@ -5,6 +5,9 @@ namespace Application.DTOs
 {
     public class ProductImageDtoForCreation
     {
+        [Required(ErrorMessage = "Ürün varyant ID gereklidir.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Geçerli bir ürün varyant ID'si giriniz.")]
+        public int ProductVariantId { get; set; }
         [Required(ErrorMessage = "Ürün ID gereklidir.")]
         [Range(1, int.MaxValue, ErrorMessage = "Geçerli bir ürün ID'si giriniz.")]
         public int ProductId { get; set; }

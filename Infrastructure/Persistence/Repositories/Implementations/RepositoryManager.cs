@@ -6,6 +6,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
     {
         private readonly RepositoryContext _context;
         private readonly IProductRepository _productRepository;
+        private readonly IProductVariantRepository _productVariantRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IOrderRepository _orderRepository;
         private readonly IUserReviewRepository _userReviewRepository;
@@ -20,11 +21,13 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         private readonly ICouponUsageRepository _couponUsageRepository;
         private readonly IOrderLinePaymentTransactionRepository _orderLinePaymentTransactionRepository;
         private readonly IActivityRepository _activityRepository;
+        private readonly ICategoryVariantAttributeRepository _categoryVariantAttributeRepository;
 
-        public RepositoryManager(IProductRepository productRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository, IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository, IActivityRepository activityRepository)
+        public RepositoryManager(IProductRepository productRepository, IProductVariantRepository productVariantRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository, IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository, IActivityRepository activityRepository, ICategoryVariantAttributeRepository categoryVariantAttributeRepository)
         {
             _context = context;
             _productRepository = productRepository;
+            _productVariantRepository = productVariantRepository;
             _categoryRepository = categoryRepository;
             _orderRepository = orderRepository;
             _userReviewRepository = userReviewRepository;
@@ -39,9 +42,11 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             _couponUsageRepository = couponUsageRepository;
             _orderLinePaymentTransactionRepository = orderLinePaymentTransactionRepository;
             _activityRepository = activityRepository;
+            _categoryVariantAttributeRepository = categoryVariantAttributeRepository;
         }
 
         public IProductRepository Product => _productRepository;
+        public IProductVariantRepository ProductVariant => _productVariantRepository;
         public ICategoryRepository Category => _categoryRepository;
         public IOrderRepository Order => _orderRepository;
         public IUserReviewRepository UserReview => _userReviewRepository;
@@ -56,6 +61,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public ICouponUsageRepository CouponUsage => _couponUsageRepository;
         public IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction => _orderLinePaymentTransactionRepository;
         public IActivityRepository Activity => _activityRepository;
+        public ICategoryVariantAttributeRepository CategoryVariantAttribute => _categoryVariantAttributeRepository;
 
         public void Save()
         {

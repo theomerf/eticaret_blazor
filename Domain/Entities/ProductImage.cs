@@ -5,8 +5,8 @@ namespace Domain.Entities
     public class ProductImage : AuditableEntity
     {
         public int ProductImageId { get; set; }
-        public Product? Product { get; set; }
-        public int ProductId { get; set; }
+        public ProductVariant? ProductVariant { get; set; }
+        public int ProductVariantId { get; set; }
         public string ImageUrl { get; set; } = null!;
         public bool IsPrimary { get; set; } = true;
         public string? Caption { get; set; }

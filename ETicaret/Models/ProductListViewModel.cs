@@ -20,6 +20,4 @@ namespace ETicaret.Models
             IsShowCase.HasValue ||
             IsDiscount.HasValue;
     }
-
-
 }

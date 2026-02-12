@@ -161,10 +161,10 @@ namespace ETicaret.Controllers
                         claims.Add(new Claim(ClaimTypes.Role, role));
                     }
 
-                    if (user.FavouriteProductsId != null && user.FavouriteProductsId.Any())
+                    if (user.FavouriteProductVariantsId != null && user.FavouriteProductVariantsId.Any())
                     {
-                        var favouriteProductIdsString = string.Join("|", user.FavouriteProductsId);
-                        Response.Cookies.Append("FavouriteProducts", favouriteProductIdsString, new CookieOptions
+                        var favouriteProductVariantIdsString = string.Join("|", user.FavouriteProductVariantsId);
+                        Response.Cookies.Append("FavouriteProducts", favouriteProductVariantIdsString, new CookieOptions
                         {
                             Expires = DateTimeOffset.Now.AddYears(1),
                             Path = "/",
@@ -312,7 +312,7 @@ namespace ETicaret.Controllers
                     protocol: Request.Scheme
                 );
 
-                await _emailService.SendEmailConfirmationAsync(user.Email, confirmationLink!);
+                await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink!);
 
                 if (roleResult.Succeeded)
                 {
@@ -419,11 +419,11 @@ namespace ETicaret.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var user = await _authService.GetOneUsersFavouritesAsync(userId!);
-            ViewBag.FavouriteIds = user.FavouriteProductsId;
+            ViewBag.FavouriteIds = user.FavouriteProductVariantsId;
 
-            UpdateFavoritesCookie(user.FavouriteProductsId);
+            UpdateFavoritesCookie(user.FavouriteProductVariantsId);
 
-            var favouriteProducts = await _productService.GetFavouriteProductsAsync(user);
+            var favouriteProducts = await _productService.GetFavouritesAsync(user);
 
             return View(favouriteProducts);
         }
@@ -431,7 +431,7 @@ namespace ETicaret.Controllers
         public async Task<IActionResult> Notifications()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var notifications = await _notificationService.GetAllNotificationsOfOneUserAsync(userId!);
+            var notifications = await _notificationService.GetByUserIdAsync(userId!);
 
             return View(notifications);
         }

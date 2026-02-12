@@ -24,6 +24,14 @@ namespace ETicaret.Middlewares
             {
                 await _next(context);
             }
+            catch (OperationCanceledException)
+            {
+                // İstek iptal edildiğinde loglama yapmadan sessizce geç
+            }
+            catch (ObjectDisposedException)
+            {
+                // Nesne dispose edildiğinde sessizce geç
+            }
             catch (Exception ex)
             {
                 await HandleExceptionAsync(context, ex, _isDevelopment);
@@ -49,9 +57,26 @@ namespace ETicaret.Middlewares
             using (LogContext.PushProperty("RequestMethod", context.Request.Method))
             using (LogContext.PushProperty("Severity", severity))
             {
-                Log.Error(exception,
-                    "Unhandled exception occurred. Type: {ExceptionType}, Path: {Path}, Method: {Method}",
-                    exceptionType, context.Request.Path, context.Request.Method);
+                switch (severity)
+                {
+                    case "Warning":
+                        Log.Warning(exception,
+                            "Unhandled exception occurred. Type: {ExceptionType}, Path: {Path}, Method: {Method}",
+                            exceptionType, context.Request.Path, context.Request.Method);
+                        break;
+
+                    case "Error":
+                        Log.Error(exception,
+                            "Unhandled exception occurred. Type: {ExceptionType}, Path: {Path}, Method: {Method}",
+                            exceptionType, context.Request.Path, context.Request.Method);
+                        break;
+
+                    default:
+                        Log.Fatal(exception,
+                            "Unhandled exception occurred. Type: {ExceptionType}, Path: {Path}, Method: {Method}",
+                            exceptionType, context.Request.Path, context.Request.Method);
+                        break;
+                }
             }
 
             context.Response.ContentType = "application/json";

@@ -1,17 +1,17 @@
-﻿let desktopPriceSlider = null;
-let mobilePriceSlider = null;
-let productFilterReference = null;
-let currentFilters = {
+﻿var desktopPriceSlider = desktopPriceSlider || null;
+var mobilePriceSlider = mobilePriceSlider || null;
+var productFilterReference = productFilterReference || null;
+var currentFilters = currentFilters || {
     minPrice: 0,
     maxPrice: 100000,
 };
 
-let isUpdatingDesktopFromInput = false;
-let isUpdatingMobileFromInput = false;
+var isUpdatingDesktopFromInput = false;
+var isUpdatingMobileFromInput = false;
 
-const urlParams = new URLSearchParams(window.location.search);
-currentFilters.minPrice = parseInt(urlParams.get('minPrice')) || 0;
-currentFilters.maxPrice = parseInt(urlParams.get('maxPrice')) || 100000;
+var urlParams = new URLSearchParams(window.location.search);
+currentFilters.minPrice = parseInt(urlParams.get('minPrice')) || currentFilters.minPrice || 0;
+currentFilters.maxPrice = parseInt(urlParams.get('maxPrice')) || currentFilters.maxPrice || 100000;
 
 window.setProductFilterReference = function (dotNetHelper) {
     productFilterReference = dotNetHelper;
@@ -297,4 +297,12 @@ window.priceSliderAPI = {
     getMobileSlider: function () {
         return mobilePriceSlider;
     }
+};
+
+window.initPriceSliders = function (min, max) {
+    if (min !== null && min !== undefined) currentFilters.minPrice = min;
+    if (max !== null && max !== undefined) currentFilters.maxPrice = max;
+
+    initializePriceSlider();
+    initializeMobilePriceSlider();
 };

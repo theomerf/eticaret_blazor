@@ -11,6 +11,10 @@ namespace Application.DTOs
         public decimal ActualPrice { get; set; }
         public decimal? DiscountPrice { get; set; }
         public int Quantity { get; set; }
+        public int ProductVariantId { get; set; }
+        public string? SelectedColor { get; set; }
+        public string? SelectedSize { get; set; }
+        public List<ProductSpecificationDto> VariantSpecifications { get; set; } = [];
         public int CartId { get; set; }
         [JsonIgnore]
         public CartDto Cart { get; set; } = new();

@@ -9,20 +9,33 @@ namespace Application.DTOs
         public string Slug { get; set; } = null!;
         public string? MetaTitle { get; set; }
         public string? MetaDescription { get; set; }
-        public string? Summary { get; set; }
+        public string Summary { get; set; } = null!;
         public string? LongDescription { get; set; }
         public int CategoryId { get; set; }
-        public ICollection<ProductImage>? Images { get; set; }
-        public decimal ActualPrice { get; set; }
-        public decimal? DiscountPrice { get; set; }
-        public int Stock { get; set; }
-        public int Discount => DiscountPrice.HasValue && DiscountPrice.Value > 0
-           ? (int)((1 - DiscountPrice.Value / ActualPrice) * 100) : 0;
+        
+        public int TotalStock => Variants?.Sum(v => v.Stock) ?? 0;
+        public decimal MinPrice => Variants?.Any() == true 
+            ? Variants.Min(v => v.DiscountPrice ?? v.Price) 
+            : 0;
+        public decimal MaxPrice => Variants?.Any() == true 
+            ? Variants.Max(v => v.DiscountPrice ?? v.Price) 
+            : 0;
+        
         public double AverageRating { get; set; }
         public int ReviewCount { get; set; }
         public string? Brand { get; set; }
-        public string? Gtin { get; set; }
-        public string? Color { get; set; }
+
+        public List<ProductVariantDto> Variants { get; set; } = [];
+        public List<ProductVariantSelectorDto> VariantSelectors { get; set; } = [];
+
+        public decimal? DefaultWeight { get; set; }
+        public decimal? DefaultLength { get; set; }
+        public decimal? DefaultWidth { get; set; }
+        public decimal? DefaultHeight { get; set; }
+        public string? ManufacturingCountry { get; set; }
+        public string? WarrantyInfo { get; set; }
+        public List<ProductSpecificationDto> Specifications { get; set; } = [];
+
         public bool ShowCase { get; set; } = false;
     }
 }

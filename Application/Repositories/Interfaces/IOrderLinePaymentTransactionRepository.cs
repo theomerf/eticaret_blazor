@@ -6,8 +6,8 @@ namespace Application.Repositories.Interfaces
     {
         Task<OrderLinePaymentTransaction?> GetByOrderLineIdAsync(int orderLineId, bool trackChanges);
         Task<IEnumerable<OrderLinePaymentTransaction?>> GetByOrderIdAsync(int orderId, bool trackChanges);
-        void CreateOrderLinePaymentTransaction(OrderLinePaymentTransaction transaction);
-        void UpdateOrderLinePaymentTransaction(OrderLinePaymentTransaction transaction);
         Task<bool> ExistsAsync(int orderLineId);
+        void Create(OrderLinePaymentTransaction transaction);
+        void Update(OrderLinePaymentTransaction transaction);
     }
 }

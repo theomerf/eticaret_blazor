@@ -1,0 +1,306 @@
+@using Application.DTOs
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<div class="w-full">
+    <!-- Upload Area -->
+    <div class="w-full mb-6">
+        <InputFile OnChange="HandleFileSelection" multiple accept="image/*" class="hidden" id="@InputId" />
+        <label for="@InputId" class="block w-full p-8 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-dashed border-blue-300 rounded-2xl cursor-pointer transition-all duration-300 hover:border-blue-500 hover:bg-gradient-to-br hover:from-blue-100 hover:to-cyan-100 hover:shadow-md">
+            <div class="flex flex-col items-center justify-center text-center">
+                <i class="fas fa-cloud-upload-alt text-5xl text-blue-500 mb-3"></i>
+                <p class="text-lg font-semibold text-gray-700 mb-1">Resimleri Yükle</p>
+                <p class="text-sm text-gray-500">Birden fazla resim seçmek için tıklayın veya sürükleyin</p>
+                <p class="text-xs text-gray-400 mt-2">PNG, JPG, JPEG (Maks. 20MB)</p>
+            </div>
+        </label>
+    </div>
+
+    <!-- Image Previews Container - Always rendered for SortableJS -->
+    <div id="@SortableContainerId" class="@(_wrappers != null && _wrappers.Any() ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "hidden")">
+        @if (_wrappers != null && _wrappers.Any())
+        {
+            @foreach (var wrapper in _wrappers)
+            {
+                var image = wrapper.Image;
+                <div @key="@wrapper.Id" class="relative bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg cursor-move group image-preview-card" data-image-id="@wrapper.Id">
+                    <!-- Primary Badge -->
+                    @if (image.IsPrimary)
+                    {
+                        <div class="absolute top-2 left-2 z-10 bg-gradient-to-r from-amber-400 to-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
+                            <i class="fas fa-star"></i> Birincil
+                        </div>
+                    }
+
+                    <!-- Delete Button -->
+                    <button type="button" @onclick="() => RemoveImage(image)" @onclick:stopPropagation="true" class="absolute top-2 right-2 z-10 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center transition-all duration-300 hover:bg-red-600 hover:scale-110 shadow-md" title="Resmi Sil">
+                        <i class="fas fa-times"></i>
+                    </button>
+
+                    <!-- Image -->
+                    <div class="relative aspect-square bg-gray-100 overflow-hidden">
+                        <img src="@image.ImageUrl" alt="@image.Caption" class="w-full h-full object-cover" />
+                        <div class="absolute bottom-2 right-2 w-10 h-10 bg-white/90 rounded-lg flex items-center justify-center text-gray-600 cursor-move opacity-0 transition-opacity duration-200 shadow-md group-hover:opacity-100 drag-handle" title="Sıralamak için sürükleyin">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                    </div>
+
+                    <!-- Caption Input -->
+                    <div class="p-3 bg-gray-50 border-t border-gray-200">
+                        <input
+                            type="text"
+                            placeholder="Resim açıklaması (opsiyonel)"
+                            value="@image.Caption"
+                            @oninput="e => UpdateCaption(image, e.Value?.ToString())"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+                    </div>
+
+                    <!-- Display Order Badge -->
+                    <div class="absolute bottom-14 left-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-md">
+                        Sıra: @(image.DisplayOrder + 1)
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @if (_wrappers == null || !_wrappers.Any())
+    {
+        <div class="flex flex-col items-center justify-center py-16 px-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+            <i class="fas fa-images text-6xl text-gray-300 mb-3"></i>
+            <p class="text-gray-500">Henüz resim yüklenmedi</p>
+            <p class="text-sm text-gray-400">Yukarıdaki alana tıklayarak resim ekleyin</p>
+        </div>
+    }
+</div>
+
+<style>
+    /* SortableJS States */
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #dbeafe; /* bg-blue-100 */
+        border: 2px solid #3b82f6; /* border-blue-500 */
+        transform: scale(0.95);
+    }
+
+    .sortable-drag {
+        opacity: 1;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
+        transform: rotate(2deg) scale(1.05);
+        z-index: 50;
+    }
+
+    .sortable-chosen {
+        --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+        --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+        box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+        --tw-ring-opacity: 1;
+        --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity)); /* ring-blue-500 */
+        --tw-ring-offset-width: 2px;
+    }
+
+    .sortable-fallback {
+        opacity: 0.9;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-xl */
+    }
+</style>
+
+@code {
+    [Parameter] public List<ProductImageDtoForCreation>? Images { get; set; }
+    [Parameter] public EventCallback<List<ProductImageDtoForCreation>> ImagesChanged { get; set; }
+    [Parameter] public int ProductId { get; set; }
+
+    private string InputId = $"image-input-{Guid.NewGuid()}";
+    private string SortableContainerId = $"sortable-container-{Guid.NewGuid()}";
+    private DotNetObjectReference<ImageUploader>? dotNetHelper;
+    private IJSObjectReference? sortableModule;
+
+    private class ImageWrapper
+    {
+        public ProductImageDtoForCreation Image { get; set; } = default!;
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+    }
+
+    private List<ImageWrapper> _wrappers = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Images == null)
+        {
+            _wrappers.Clear();
+            return;
+        }
+
+        // Remove wrappers for removed images
+        _wrappers.RemoveAll(w => !Images.Contains(w.Image));
+
+        // Add wrappers for new images
+        foreach (var img in Images)
+        {
+            if (!_wrappers.Any(w => w.Image == img))
+            {
+                _wrappers.Add(new ImageWrapper { Image = img });
+            }
+        }
+
+        // Sync order with Images list
+        _wrappers.Sort((a, b) => Images.IndexOf(a.Image).CompareTo(Images.IndexOf(b.Image)));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                dotNetHelper = DotNetObjectReference.Create(this);
+                
+                // Wait for SortableJS to load
+                for (int i = 0; i < 10; i++)
+                {
+                    var sortableLoaded = await JSRuntime.InvokeAsync<bool>("eval", "typeof Sortable !== 'undefined'");
+                    if (sortableLoaded) break;
+                    await Task.Delay(50);
+                }
+
+                // Initialize Sortable.js
+                sortableModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                    "initializeImageSortable",
+                    SortableContainerId,
+                    dotNetHelper
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing Sortable: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        const long maxFileSize = 20 * 1024 * 1024; // 20MB
+        Images ??= new List<ProductImageDtoForCreation>();
+
+        foreach (var file in e.GetMultipleFiles(10))
+        {
+            if (file.Size > maxFileSize)
+            {
+                // TODO: Show error to user
+                Console.WriteLine($"File {file.Name} exceeds 20MB");
+                continue;
+            }
+
+            try
+            {
+                var buffer = new byte[file.Size];
+                await file.OpenReadStream(maxFileSize).ReadAsync(buffer);
+                var imageData = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+
+                var newImage = new ProductImageDtoForCreation
+                {
+                    ProductId = ProductId,
+                    ImageUrl = imageData,
+                    Caption = string.Empty,
+                    DisplayOrder = Images.Count,
+                    IsPrimary = Images.Count == 0
+                };
+
+                Images.Add(newImage);
+                // Wrapper will be added in OnParametersSet or manually here? 
+                // Better to let OnParametersSet handle it after we invoke change?
+                // But we need to invoke change with the new list.
+                // It's safe to wait for OnParametersSet via InvokeAsync flow.
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing image {file.Name}: {ex.Message}");
+            }
+        }
+
+        await ImagesChanged.InvokeAsync(Images);
+    }
+
+    private async Task RemoveImage(ProductImageDtoForCreation image)
+    {
+        if (Images == null) return;
+
+        Images.Remove(image);
+        ReorderImages();
+        await ImagesChanged.InvokeAsync(Images);
+    }
+
+    private async Task UpdateCaption(ProductImageDtoForCreation image, string? caption)
+    {
+        image.Caption = caption;
+        await ImagesChanged.InvokeAsync(Images);
+    }
+
+    [JSInvokable]
+    public async Task OnImagesReordered(string[] wrapperIds)
+    {
+        if (Images == null) return;
+
+        var newWrapperOrder = new List<ImageWrapper>();
+
+        for (int i = 0; i < wrapperIds.Length; i++)
+        {
+            var wrapper = _wrappers.FirstOrDefault(w => w.Id == wrapperIds[i]);
+            if (wrapper != null)
+            {
+                newWrapperOrder.Add(wrapper);
+            }
+        }
+
+        // Add any missing wrappers (safety fallback)
+        foreach (var w in _wrappers)
+        {
+            if (!newWrapperOrder.Contains(w))
+            {
+                newWrapperOrder.Add(w);
+            }
+        }
+
+        _wrappers = newWrapperOrder;
+        
+        // Strictly enforce DisplayOrder and IsPrimary based on the new list order
+        for (int i = 0; i < _wrappers.Count; i++)
+        {
+            var img = _wrappers[i].Image;
+            img.DisplayOrder = i;
+            img.IsPrimary = (i == 0);
+        }
+        
+        // Update the source list
+        Images = _wrappers.Select(w => w.Image).ToList();
+        
+        // Notify parent
+        await ImagesChanged.InvokeAsync(Images);
+        StateHasChanged();
+    }
+
+    private void ReorderImages()
+    {
+        if (Images == null) return;
+
+        for (int i = 0; i < Images.Count; i++)
+        {
+            Images[i].DisplayOrder = i;
+            Images[i].IsPrimary = (i == 0);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (sortableModule != null)
+        {
+            try
+            {
+                await sortableModule.DisposeAsync();
+            }
+            catch { }
+        }
+
+        dotNetHelper?.Dispose();
+    }
+}

@@ -5,8 +5,9 @@ namespace Application.DTOs
     public class CartDto
     {
         public int CartId { get; set; }
-        public string? UserId { get; set; }  
-        public List<CartLineDto> Lines { get; set; } = new();
+        public string? UserId { get; set; }
+        public List<CartLineDto> Lines { get; set; } = [];
+        public int Version { get; set; }
         public bool IsUpdated { get; set; } = true;    
 
         public virtual void AddItem(Product product, int quantity)
@@ -19,9 +20,9 @@ namespace Application.DTOs
                 {
                     ProductId = product.ProductId,
                     ProductName = product.ProductName ?? "",
-                    ImageUrl = product.Images?.FirstOrDefault()?.ImageUrl,
-                    ActualPrice = product.ActualPrice,
-                    DiscountPrice = product.DiscountPrice ?? 0,
+                    ImageUrl = product.Variants?.FirstOrDefault()?.Images?.FirstOrDefault()?.ImageUrl,
+                    ActualPrice = product.MinPrice,
+                    DiscountPrice = null,
                     CartId = CartId,
                     Cart = this,
                     Quantity = quantity

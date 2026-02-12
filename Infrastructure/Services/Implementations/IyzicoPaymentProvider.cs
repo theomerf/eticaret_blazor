@@ -88,7 +88,7 @@ namespace Infrastructure.Services.Implementations
 
         #region Checkout Form Integration
 
-        public async Task<OperationResult<IyzicoCheckoutFormInitResponse>> CreatePaymentAsync(IyzicoCheckoutFormInitRequest request)
+        public async Task<OperationResult<IyzicoCheckoutFormInitResponse>> CreateAsync(IyzicoCheckoutFormInitRequest request)
         {
             var userId = GetUserId();
             var userName = GetUserName();
@@ -96,7 +96,7 @@ namespace Infrastructure.Services.Implementations
 
             try
             {
-                var recentAttempts = await _securityLogService.GetPaymentAttemptsFromIpAsync(ipAddress, TimeSpan.FromMinutes(15));
+                var recentAttempts = await _securityLogService.CountOfPaymentAttemptsFromIpAsync(ipAddress, TimeSpan.FromMinutes(15));
                 if (recentAttempts > 10)
                 {
                     await _securityLogService.LogRateLimitViolationAsync(userId, ipAddress, "payment-initiate", recentAttempts);
@@ -131,7 +131,7 @@ namespace Infrastructure.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<IyzicoCheckoutFormRetrieveResponse>> VerifyPaymentAsync(string token)
+        public async Task<OperationResult<IyzicoCheckoutFormRetrieveResponse>> VerifyAsync(string token)
         {
             var userId = GetUserId();
 
@@ -181,7 +181,7 @@ namespace Infrastructure.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<IyzicoRefundResponse>> RefundPaymentAsync(IyzicoRefundRequest request)
+        public async Task<OperationResult<IyzicoRefundResponse>> RefundAsync(IyzicoRefundRequest request)
         {
             var userId = GetUserId();
             var userName = GetUserName();

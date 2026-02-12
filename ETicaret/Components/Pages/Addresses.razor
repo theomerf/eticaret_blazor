@@ -374,7 +374,7 @@
 
         if (!string.IsNullOrEmpty(userId))
         {
-            addresses = await AddressService.GetAllAddressesOfOneUserAsync(userId);
+            addresses = await AddressService.GetByUserIdAsync(userId);
         }
 
         isLoading = false;
@@ -404,7 +404,7 @@
             addressDto.IsDefault = true;
         }
 
-        var result = await AddressService.CreateAddressAsync(addressDto);
+        var result = await AddressService.CreateAsync(addressDto);
 
         if (result.IsSuccess)
         {
@@ -412,7 +412,7 @@
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
             if (!string.IsNullOrEmpty(userId))
             {
-                addresses = await AddressService.GetAllAddressesOfOneUserAsync(userId);
+                addresses = await AddressService.GetByUserIdAsync(userId);
             }
         }
         else
@@ -429,7 +429,7 @@
             addressDto.IsDefault = true;
         }
 
-        var result = await AddressService.UpdateAddressAsync(addressDto);
+        var result = await AddressService.UpdateAsync(addressDto);
 
         if (result.IsSuccess)
         {
@@ -437,7 +437,7 @@
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
             if (!string.IsNullOrEmpty(userId))
             {
-                addresses = await AddressService.GetAllAddressesOfOneUserAsync(userId);
+                addresses = await AddressService.GetByUserIdAsync(userId);
             }
         }
         else
@@ -480,13 +480,13 @@
 
     private async Task HandleMakeDefaultAddress(int addressId)
     {
-        var result = await AddressService.MakeAddressDefaultAsync(addressId);
+        var result = await AddressService.MakeDefaultAsync(addressId);
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
             if (!string.IsNullOrEmpty(userId))
             {
-                addresses = await AddressService.GetAllAddressesOfOneUserAsync(userId);
+                addresses = await AddressService.GetByUserIdAsync(userId);
             }
         }
         else
@@ -497,13 +497,13 @@
 
     private async Task HandleDeleteAddress(int addressId)
     {
-        var result = await AddressService.DeleteAddressAsync(addressId);
+        var result = await AddressService.DeleteAsync(addressId);
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
             if (!string.IsNullOrEmpty(userId))
             {
-                addresses = await AddressService.GetAllAddressesOfOneUserAsync(userId);
+                addresses = await AddressService.GetByUserIdAsync(userId);
             }
         }
         else

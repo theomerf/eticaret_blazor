@@ -27,7 +27,7 @@ namespace Infrastructure.Services.Implementations
             _fromName = _configuration["EmailSettings:FromName"] ?? "E-Ticaret";
         }
 
-        public async Task SendEmailAsync(string to, string subject, string body)
+        public async Task SendAsync(string to, string subject, string body)
         {
             try
             {
@@ -63,7 +63,7 @@ namespace Infrastructure.Services.Implementations
             }
         }
 
-        public async Task SendEmailConfirmationAsync(string email, string confirmationLink)
+        public async Task SendConfirmationEmailAsync(string email, string confirmationLink)
         {
             var subject = "E-posta Adresinizi Doğrulayın";
             var body = $@"
@@ -105,7 +105,7 @@ namespace Infrastructure.Services.Implementations
 
             try
             {
-                await SendEmailAsync(email, subject, body);
+                await SendAsync(email, subject, body);
                 Log.Information("Email confirmation sent to {Email}", email);
             }
             catch (Exception ex)
@@ -157,7 +157,7 @@ namespace Infrastructure.Services.Implementations
 
             try
             {
-                await SendEmailAsync(email, subject, body);
+                await SendAsync(email, subject, body);
                 Log.Information("Password reset email sent to {Email}", email);
             }
             catch (Exception ex)
@@ -206,7 +206,7 @@ namespace Infrastructure.Services.Implementations
 
             try
             {
-                await SendEmailAsync(email, subject, body);
+                await SendAsync(email, subject, body);
                 Log.Information("Welcome email sent to {Email}", email);
             }
             catch (Exception ex)

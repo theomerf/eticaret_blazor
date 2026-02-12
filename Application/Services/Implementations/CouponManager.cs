@@ -46,9 +46,9 @@ namespace Application.Services.Implementations
         private string GetCurrentUserName() =>
             _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-        public async Task<OperationResult<CouponDto>> GetCouponByIdAsync(int couponId)
+        public async Task<OperationResult<CouponDto>> GetByIdAsync(int couponId)
         {
-            var coupon = await _manager.Coupon.GetCouponByIdAsync(couponId, false);
+            var coupon = await _manager.Coupon.GetByIdAsync(couponId, false);
             if (coupon == null)
             {
                 return OperationResult<CouponDto>.Failure("Kupon bulunamadı.", ResultType.NotFound);
@@ -58,9 +58,9 @@ namespace Application.Services.Implementations
             return OperationResult<CouponDto>.Success(couponDto);
         }
 
-        public async Task<OperationResult<CouponDto>> GetCouponByCodeAsync(string code)
+        public async Task<OperationResult<CouponDto>> GetByCodeAsync(string code)
         {
-            var coupon = await _manager.Coupon.GetCouponByCodeAsync(code, false);
+            var coupon = await _manager.Coupon.GetByCodeAsync(code, false);
             if (coupon == null)
             {
                 return OperationResult<CouponDto>.Failure("Kupon bulunamadı.", ResultType.NotFound);
@@ -70,14 +70,14 @@ namespace Application.Services.Implementations
             return OperationResult<CouponDto>.Success(couponDto);
         }
 
-        public async Task<OperationResult<IEnumerable<CouponDto>>> GetAllCouponsAsync()
+        public async Task<OperationResult<IEnumerable<CouponDto>>> GetAllAsync()
         {
-            var coupons = await _manager.Coupon.GetAllCouponsAsync(false);
+            var coupons = await _manager.Coupon.GetAllAsync(false);
             var couponsDto = _mapper.Map<IEnumerable<CouponDto>>(coupons);
             return OperationResult<IEnumerable<CouponDto>>.Success(couponsDto);
         }
 
-        public async Task<OperationResult<int>> CreateCouponAsync(CouponDtoForCreation couponDto)
+        public async Task<OperationResult<int>> CreateAsync(CouponDtoForCreation couponDto)
         {
             try
             {
@@ -100,7 +100,7 @@ namespace Application.Services.Implementations
                 coupon.CreatedByUserId = userId;
                 coupon.UpdatedByUserId = userId;
 
-                _manager.Coupon.CreateCoupon(coupon);
+                _manager.Coupon.Create(coupon);
                 await _manager.SaveAsync();
 
                 // Audit log
@@ -122,7 +122,7 @@ namespace Application.Services.Implementations
                     }
                 );
 
-                await _activityService.LogActivityAsync(
+                await _activityService.LogAsync(
                     "Yeni Kupon",
                     $"{coupon.Code} kuponu oluşturuldu.",
                     "fa-ticket-alt",
@@ -143,12 +143,12 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<CouponDto>> UpdateCouponAsync(CouponDtoForUpdate couponDto)
+        public async Task<OperationResult<CouponDto>> UpdateAsync(CouponDtoForUpdate couponDto)
         {
             try
             {
                 _manager.ClearTracker();
-                var coupon = await _manager.Coupon.GetCouponByIdAsync(couponDto.CouponId, true);
+                var coupon = await _manager.Coupon.GetByIdAsync(couponDto.CouponId, true);
                 if (coupon == null)
                 {
                     return OperationResult<CouponDto>.Failure("Kupon bulunamadı.", ResultType.NotFound);
@@ -225,9 +225,9 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<CouponDto>> DeleteCouponAsync(int couponId)
+        public async Task<OperationResult<CouponDto>> DeleteAsync(int couponId)
         {
-            var coupon = await _manager.Coupon.GetCouponByIdAsync(couponId, true);
+            var coupon = await _manager.Coupon.GetByIdAsync(couponId, true);
             if (coupon == null)
             {
                 return OperationResult<CouponDto>.Failure("Kupon bulunamadı.", ResultType.NotFound);
@@ -255,10 +255,10 @@ namespace Application.Services.Implementations
             return OperationResult<CouponDto>.Success("Kupon başarıyla silindi.");
         }
 
-        public async Task<OperationResult<CouponDto>> ActivateCouponAsync(int couponId)
+        public async Task<OperationResult<CouponDto>> ActivateAsync(int couponId)
         {
             _manager.ClearTracker();
-            var coupon = await _manager.Coupon.GetCouponByIdAsync(couponId, true);
+            var coupon = await _manager.Coupon.GetByIdAsync(couponId, true);
             if (coupon == null)
             {
                 return OperationResult<CouponDto>.Failure("Kupon bulunamadı.", ResultType.NotFound);
@@ -291,10 +291,10 @@ namespace Application.Services.Implementations
             return OperationResult<CouponDto>.Success(couponDto, "Kupon aktif edildi.");
         }
 
-        public async Task<OperationResult<CouponDto>> DeactivateCouponAsync(int couponId)
+        public async Task<OperationResult<CouponDto>> DeactivateAsync(int couponId)
         {
             _manager.ClearTracker();
-            var coupon = await _manager.Coupon.GetCouponByIdAsync(couponId, true);
+            var coupon = await _manager.Coupon.GetByIdAsync(couponId, true);
             if (coupon == null)
             {
                 return OperationResult<CouponDto>.Failure("Kupon bulunamadı.", ResultType.NotFound);
@@ -329,7 +329,7 @@ namespace Application.Services.Implementations
 
         public async Task<OperationResult<decimal>> ValidateAndCalculateDiscountAsync(string code, decimal orderAmount, string userId)
         {
-            var coupon = await _manager.Coupon.GetCouponByCodeAsync(code, false);
+            var coupon = await _manager.Coupon.GetByCodeAsync(code, false);
             if (coupon == null)
             {
                 await _securityLogService.LogUnauthorizedAccessAsync(
@@ -357,9 +357,9 @@ namespace Application.Services.Implementations
             return OperationResult<decimal>.Success(discount);
         }
 
-        public async Task<OperationResult<Coupon>> ValidateCouponForOrderAsync(string code, decimal orderAmount, string userId)
+        public async Task<OperationResult<Coupon>> ValidateForOrderAsync(string code, decimal orderAmount, string userId)
         {
-            var coupon = await _manager.Coupon.GetCouponByCodeAsync(code, false);
+            var coupon = await _manager.Coupon.GetByCodeAsync(code, false);
             if (coupon == null)
             {
                 await _securityLogService.LogUnauthorizedAccessAsync(

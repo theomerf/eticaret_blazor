@@ -10,17 +10,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public void CreateCart(Cart cart)
-        {
-            Create(cart);
-        }
-
-        public void UpdateCart(Cart cart)
-        {
-            Update(cart);
-        }
-
-        public async Task<Cart?> GetCartByUserIdAsync(string? userId, bool trackChanges)
+        public async Task<Cart?> GetByUserIdAsync(string? userId, bool trackChanges)
         {
             var cart = await FindByCondition(c => c.UserId == userId, trackChanges)
                 .OfType<Cart>()
@@ -30,15 +20,25 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return cart;
         }
 
-        public async Task<int> GetCartLinesCountAsync(string userId) => await _context.CartLines.Where(cl => cl.Cart.UserId == userId).CountAsync();
+        public async Task<int> CountOfLinesAsync(string userId) => await _context.CartLines.Where(cl => cl.Cart.UserId == userId).CountAsync();
 
-        public async Task<int?> GetCartVersionAsync(string userId) 
+        public async Task<int?> GetVersionAsync(string userId) 
         {
             var version = await FindByCondition(c => c.UserId == userId, false)
                 .Select(c => c.Version)
                 .FirstOrDefaultAsync();
 
             return version;
-        } 
+        }
+
+        public void Create(Cart cart)
+        {
+            CreateEntity(cart);
+        }
+
+        public void Update(Cart cart)
+        {
+            UpdateEntity(cart);
+        }
     }
 }

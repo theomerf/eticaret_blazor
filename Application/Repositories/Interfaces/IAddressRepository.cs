@@ -4,11 +4,11 @@ namespace Application.Repositories.Interfaces
 {
     public interface IAddressRepository : IRepositoryBase<Address>
     {
-        Task<IEnumerable<Address>> GetAllAddressesAsync(bool trackChanges);
-        Task<Address?> GetOneAddressAsync(int addressId, bool trackChanges);
-        Task<IEnumerable<Address>> GetAllUserAddressesOfOneUserAsync(string userId, bool trackChanges);
-        void CreateAddress(Address address);
-        void UpdateAddress(Address address);
-        void DeleteAddress(Address address);
+        Task<IEnumerable<Address>> GetAllAsync(bool trackChanges);
+        Task<Address?> GetByIdAsync(int addressId, bool trackChanges);
+        Task<IEnumerable<Address>> GetByUserIdAsync(string userId, bool trackChanges);
+        void Create(Address address);
+        void Update(Address address);
+        void Delete(Address address);
     }
 }

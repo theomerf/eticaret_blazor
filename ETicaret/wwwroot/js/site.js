@@ -380,3 +380,62 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+// Scroll to element helper
+window.scrollToElement = (elementId) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+};
+
+// Custom alert helper
+window.showConfirm = function (message, title = "Onay") {
+    return new Promise(resolve => {
+        const modal = document.getElementById("confirmModal");
+        if (!modal) {
+            resolve(confirm(message));
+            return;
+        }
+
+        const box = modal.querySelector("div");
+
+        document.getElementById("confirmTitle").innerText = title;
+        document.getElementById("confirmMessage").innerText = message;
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+
+        requestAnimationFrame(() => {
+            box.classList.remove("scale-95", "opacity-0");
+        });
+
+        const okBtn = document.getElementById("confirmOk");
+        const cancelBtn = document.getElementById("confirmCancel");
+
+        const cleanup = (result) => {
+            box.classList.add("scale-95", "opacity-0");
+
+            okBtn.onclick = null;
+            cancelBtn.onclick = null;
+            modal.onclick = null;
+
+            setTimeout(() => {
+                modal.classList.add("hidden");
+                modal.classList.remove("flex");
+                resolve(result);
+            }, 200);
+        };
+
+        okBtn.onclick = () => cleanup(true);
+        cancelBtn.onclick = () => cleanup(false);
+
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                cleanup(false);
+            }
+        };
+    });
+};
+
+

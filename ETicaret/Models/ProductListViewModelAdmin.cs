@@ -20,6 +20,22 @@ namespace ETicaret.Models
             !string.IsNullOrEmpty(Brand) ||
             IsShowCase.HasValue ||
             IsDiscount.HasValue;
+
+        public ProductFilterParametersAdmin Clone()
+        {
+            return new ProductFilterParametersAdmin
+            {
+                SearchTerm = this.SearchTerm,
+                MinPrice = this.MinPrice,
+                MaxPrice = this.MaxPrice,
+                Brand = this.Brand,
+                IsShowCase = this.IsShowCase,
+                IsDiscount = this.IsDiscount,
+                SortBy = this.SortBy,
+                PageNumber = this.PageNumber,
+                PageSize = this.PageSize
+            };
+        }
     }
 
 

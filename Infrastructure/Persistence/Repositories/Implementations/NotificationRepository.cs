@@ -10,7 +10,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<IEnumerable<Notification>> GetAllNotificationsOfOneUserAsync(string userId, bool trackChanges)
+        public async Task<IEnumerable<Notification>> GetAllAsync(string userId, bool trackChanges)
         {
             var notifications = await FindAllByCondition(n => n.UserId == userId, false)
                 .OrderByDescending(n => n.CreatedAt)
@@ -19,7 +19,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return notifications;
         }
 
-        public async Task<Notification?> GetOneNotificationAsync(int notificationId, bool trackChanges)
+        public async Task<Notification?> GetByIdAsync(int notificationId, bool trackChanges)
         {
             var notification = await FindByCondition(n => n.NotificationId == notificationId, false)
                 .FirstOrDefaultAsync();
@@ -27,28 +27,28 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return notification;
         }
 
-        public void RemoveNotifications(IEnumerable<Notification> notifications)
+        public void RemoveMultiple(IEnumerable<Notification> notifications)
         {
             RemoveRange(notifications);
         }
 
-        public void UpdateNotifications(IEnumerable<Notification> notifications)
+        public void UpdateMultiple(IEnumerable<Notification> notifications)
         {
             UpdateRange(notifications);
         }
 
-        public void CreateNotification(Notification notification) 
+        public void Create(Notification notification) 
         {
-            Create(notification);
+            CreateEntity(notification);
         }
 
-        public void RemoveNotification(Notification notification) 
+        public void Remove(Notification notification) 
         {
-            Remove(notification);
+            RemoveEntity(notification);
         }
-        public void UpdateNotification(Notification notification) 
+        public void Update(Notification notification) 
         {
-            Update(notification);
+            UpdateEntity(notification);
         } 
     }
 }

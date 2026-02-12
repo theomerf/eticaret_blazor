@@ -25,7 +25,7 @@ namespace ETicaret.ViewComponents
                 return View(cachedCategories);
             }
 
-            var categories = await _categoryService.GetAllCategoriesAsync(false);
+            var categories = await _categoryService.GetAllAsync(false);
 
             var cacheOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromMinutes(30));

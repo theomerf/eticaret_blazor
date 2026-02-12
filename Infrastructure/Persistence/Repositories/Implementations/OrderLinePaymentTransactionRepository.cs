@@ -29,20 +29,20 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return orderLinePaymentTransactions;
         }
 
-        public void CreateOrderLinePaymentTransaction(OrderLinePaymentTransaction transaction)
-        {
-            Create(transaction);
-        }
-
-        public void UpdateOrderLinePaymentTransaction(OrderLinePaymentTransaction transaction)
-        {
-            Update(transaction);
-        }
-
         public async Task<bool> ExistsAsync(int orderLineId)
         {
             return await _context.OrderLinePaymentTransactions
                 .AnyAsync(t => t.OrderLineId == orderLineId);
+        }
+
+        public void Create(OrderLinePaymentTransaction transaction)
+        {
+            CreateEntity(transaction);
+        }
+
+        public void Update(OrderLinePaymentTransaction transaction)
+        {
+            UpdateEntity(transaction);
         }
     }
 }

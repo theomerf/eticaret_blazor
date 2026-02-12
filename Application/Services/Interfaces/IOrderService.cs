@@ -6,24 +6,24 @@ namespace Application.Services.Interfaces
 {
     public interface IOrderService
     {
-        Task<IEnumerable<OrderDto>> GetUserOrdersAsync(string userId);
-        Task<OrderWithDetailsDto> GetOrderByIdAsync(int orderId);
-        Task<OrderWithDetailsDto> GetOrderByNumberAsync(string orderNumber);
-        Task<OperationResult<int>> CreateOrderAsync(OrderDtoForCreation orderDto);
-        Task<OperationResult<OrderWithDetailsDto>> UpdateOrderStatusAsync(OrderDtoForUpdate orderDto);
+        Task<IEnumerable<OrderDto>> GetByUserIdAsync(string userId);
+        Task<OrderWithDetailsDto> GetByIdAsync(int orderId);
+        Task<OrderWithDetailsDto> GetByNumberAsync(string orderNumber);
+        Task<OperationResult<int>> CreateAsync(OrderDtoForCreation orderDto);
+        Task<OperationResult<OrderWithDetailsDto>> UpdateStatusAsync(OrderDtoForUpdate orderDto);
 
-        Task<OperationResult<OrderWithDetailsDto>> CancelOrderAsync(int orderId, string reason);
+        Task<OperationResult<OrderWithDetailsDto>> CancelAsync(int orderId, string reason);
         Task<OperationResult<OrderWithDetailsDto>> MarkAsShippedAsync(int orderId, string trackingNumber, string? companyName, string? serviceName);
         Task<OperationResult<OrderWithDetailsDto>> MarkAsDeliveredAsync(int orderId);
 
         // Payment
         Task<OperationResult<OrderWithDetailsDto>> HandlePaymentCallbackAsync(PaymentCallbackDto callback);
-        Task<OperationResult<OrderWithDetailsDto>> RefundOrderAsync(int orderId);
+        Task<OperationResult<OrderWithDetailsDto>> RefundAsync(int orderId);
 
-        Task<int> GetUserOrdersCountAsync(string userId);
+        Task<int> CountByUserIdAsync(string userId);
         Task<decimal> GetUserTotalSpentAsync(string userId);
-        Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN);
+        Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default);
 
-        Task<int> GetOrdersInProcessCountAsync();
+        Task<int> CountOfInProcessAsync(CancellationToken ct = default);
     }
 }

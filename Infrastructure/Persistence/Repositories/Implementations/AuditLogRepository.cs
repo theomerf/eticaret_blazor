@@ -10,11 +10,6 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public void Add(AuditLog auditLog)
-        {
-            Create(auditLog);
-        }
-
         public async Task<IEnumerable<AuditLog>> GetByUserIdAsync(string userId, int pageNumber, int pageSize)
         {
             var logs = await FindAll(false)
@@ -45,6 +40,11 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .ToListAsync();
 
             return logs;
+        }
+
+        public void Create(AuditLog auditLog)
+        {
+            CreateEntity(auditLog);
         }
     }
 }

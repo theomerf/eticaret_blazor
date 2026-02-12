@@ -2,6 +2,7 @@ namespace Application.Repositories.Interfaces
 {
     public interface IRepositoryManager{
         IProductRepository Product {get; }
+        IProductVariantRepository ProductVariant {get; }
         ICategoryRepository Category {get; }
         IOrderRepository Order { get; }
         IUserReviewRepository UserReview { get; }
@@ -16,6 +17,7 @@ namespace Application.Repositories.Interfaces
         ICouponUsageRepository CouponUsage { get; }
         IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction { get; }
         IActivityRepository Activity { get; }
+        ICategoryVariantAttributeRepository CategoryVariantAttribute { get; }
 
         void Save();
         Task SaveAsync();

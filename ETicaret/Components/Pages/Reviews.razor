@@ -269,7 +269,7 @@
 
         if (!string.IsNullOrEmpty(userId))
         {
-            userReviews = await UserReviewService.GetAllUserReviewsOfOneUserAsync(userId);
+            userReviews = await UserReviewService.GetByUserIdAsync(userId);
         }
 
         isLoading = false;
@@ -325,7 +325,7 @@
             reviewToUpdate.ReviewPictureUrl = uploadResult.Data;
         }
 
-        var result = await UserReviewService.UpdateUserReviewAsync(reviewToUpdate);
+        var result = await UserReviewService.UpdateAsync(reviewToUpdate);
 
         if (!result.IsSuccess)
         {
@@ -335,7 +335,7 @@
 
         if (!string.IsNullOrEmpty(userId))
         {
-            userReviews = await UserReviewService.GetAllUserReviewsOfOneUserAsync(userId);
+            userReviews = await UserReviewService.GetByUserIdAsync(userId);
         }
 
         CloseReviewModal();
@@ -359,13 +359,13 @@
 
     private async Task HandleDeleteComment(int id)
     {
-        var result = await UserReviewService.DeleteUserReviewAsync(id);
+        var result = await UserReviewService.DeleteAsync(id);
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
             if (!string.IsNullOrEmpty(userId))
             {
-                userReviews = await UserReviewService.GetAllUserReviewsOfOneUserAsync(userId);
+                userReviews = await UserReviewService.GetByUserIdAsync(userId);
             }
         }
         else

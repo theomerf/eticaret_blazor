@@ -4,14 +4,14 @@ namespace Application.Repositories.Interfaces
 {
     public interface ICategoryRepository : IRepositoryBase<Category>
     {
-        Task<IEnumerable<Category>> GetAllCategoriesAsync(bool trackChanges);
-        Task<Category?> GetOneCategoryAsync(int id, bool trackChanges);
-        Task<int> GetCategoriesCountAsync();
-        Task<IEnumerable<Category>> GetParentCategoriesAsync(bool trackChanges);
-        Task<IEnumerable<Category>> GetChildsOfOneCategoryAsync(int parentId, bool trackChanges);
+        Task<IEnumerable<Category>> GetAllAsync(bool trackChanges);
+        Task<Category?> GetByIdAsync(int categoryId, bool trackChanges);
+        Task<int> CountAsync(CancellationToken ct = default);
         Task<int> CountBySlugAsync(string slug);
-        void CreateCategory(Category category);
-        void UpdateOneCategory(Category category);
-        void DeleteOneCategory(Category category);
+        Task<IEnumerable<Category>> GetParentsAsync(bool trackChanges);
+        Task<IEnumerable<Category>> GetChildrenByIdAsync(int parentCategoryId, bool trackChanges);
+        void Create(Category category);
+        void Update(Category category);
+        void Delete(Category category);
     }
 }

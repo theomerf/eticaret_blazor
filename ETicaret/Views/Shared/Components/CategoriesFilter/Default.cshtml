@@ -18,8 +18,8 @@
                 class="main-category-card @(string.IsNullOrEmpty(categoryIdFromUrl) ? "active cursor-not-allowed" : "")"
                 onclick="selectMainCategory(event, null, 'Tüm Kategoriler')"
                 disabled>
-                <div title="Tüm Kategoriler"
-                    class="flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
+                <div data-tooltip="Tüm Kategoriler"
+                    class="tooltip flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
                     <div
                         class="w-10 h-10 bg-gradient-to-br from-slate-50 to-slate-200 rounded-2xl sm:rounded-[20px] flex items-center justify-center relative overflow-hidden transition-all duration-300 mb-1 sm:mb-2 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
                         <i
@@ -40,9 +40,9 @@
                     class="main-category-card @(isActive ? "active cursor-not-allowed" : "")"
                     onclick="selectMainCategory(event, '@parentCategory.CategoryId', '@parentCategory.CategoryName')"
                     data-category-id="@parentCategory.CategoryId" data-category-name="@parentCategory.CategoryName"
-                    title="@parentCategory.CategoryName"
+                    data-tooltip="@parentCategory.CategoryName"
                     disabled="@(isActive ? "disabled" : null)">
-                    <div class="flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
+                    <div data-tooltip="@parentCategory.CategoryName" class="tooltip flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5">
                         <div
                             class="w-10 h-10 bg-gradient-to-br from-slate-50 to-slate-200 rounded-2xl sm:rounded-[20px] flex items-center justify-center relative overflow-hidden transition-all duration-300 mb-1 sm:mb-2 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">
                             <i
@@ -81,8 +81,8 @@
                     onclick="selectSubCategory(event, '@childCategory.CategoryId', '@childCategory.ParentId')"
                     data-category-id="@childCategory.CategoryId" data-parent-id="@childCategory.ParentId"
                     disabled="@(isChildActive ? "disabled" : null)">
-                    <div title="@childCategory.CategoryName"
-                        class="category-link flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5"
+                    <div data-tooltip="@childCategory.CategoryName"
+                        class="tooltip category-link flex flex-col items-center justify-center no-underline text-inherit p-1 sm:p-1.5 h-full text-center gap-1 sm:gap-1.5"
                         data-sub-category-id="@childCategory.CategoryId">
                         <div
                             class="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:bg-primary before:opacity-0 before:transition-opacity before:duration-300 group-hover:before:opacity-100">

@@ -10,7 +10,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<IEnumerable<CouponUsage>> GetCouponUsagesAsync(int couponId, bool trackChanges)
+        public async Task<IEnumerable<CouponUsage>> GetAllAsync(int couponId, bool trackChanges)
         {
             var couponUsages = await FindAllByCondition(cu => cu.CouponId == couponId, trackChanges)
                 .Include(cu => cu.User)
@@ -21,7 +21,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return couponUsages;
         }
 
-        public async Task<IEnumerable<CouponUsage>> GetUserCouponUsagesAsync(string userId, bool trackChanges)
+        public async Task<IEnumerable<CouponUsage>> GetByUserIdAsync(string userId, bool trackChanges)
         {
             var couponUsages = await FindAllByCondition(cu => cu.UserId == userId, trackChanges)
                 .Include(cu => cu.Coupon)
@@ -32,7 +32,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return couponUsages;
         }
 
-        public async Task<CouponUsage?> GetUserCouponUsageAsync(int couponId, string userId, bool trackChanges)
+        public async Task<CouponUsage?> GetByUserIdForCouponAsync(int couponId, string userId, bool trackChanges)
         {
             var couponUsage = await FindByCondition(
                 cu => cu.CouponId == couponId && cu.UserId == userId,
@@ -42,6 +42,6 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return couponUsage;
         }
 
-        public void CreateCouponUsage(CouponUsage couponUsage) => Create(couponUsage);
+        public void Create(CouponUsage couponUsage) => CreateEntity(couponUsage);
     }
 }

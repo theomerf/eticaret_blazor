@@ -22,6 +22,7 @@ namespace Application.Services.Implementations
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
         private readonly INotificationService _notificationService;
+        private readonly IActivityService _activityService;
         private readonly ILogger<AuthManager> _logger;
 
         public AuthManager(
@@ -32,6 +33,7 @@ namespace Application.Services.Implementations
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
             INotificationService notificationService,
+            IActivityService activityService,
             ILogger<AuthManager> logger)
         {
             _roleManager = roleManager;
@@ -41,6 +43,7 @@ namespace Application.Services.Implementations
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
             _notificationService = notificationService;
+            _activityService = activityService;
             _logger = logger;
         }
 
@@ -55,9 +58,25 @@ namespace Application.Services.Implementations
             return userDto;
         }
 
-        public IEnumerable<IdentityRole> Roles => _roleManager.Roles;
+        public async Task<IEnumerable<IdentityRole>> GetRolesAsync(CancellationToken ct = default)
+        {
+            var roles = await _roleManager.Roles
+                .AsNoTracking()
+                .ToListAsync(ct);
 
-        public async Task<int> GetUsersCountAsync()
+            return roles;
+        }
+
+        public async Task<int> GetRolesCountAsync(CancellationToken ct = default)
+        {
+            var count = await _roleManager.Roles
+                .AsNoTracking()
+                .CountAsync(ct);
+
+            return count;
+        }
+
+        public async Task<int> GetUsersCountAsync(CancellationToken ct = default)
         {
             string cacheKey = "usersCount";
 
@@ -152,7 +171,7 @@ namespace Application.Services.Implementations
                 return OperationResult<UserDto>.Failure("Yeni şifre ve onay şifresi eşleşmiyor.", ResultType.ValidationError);
             }
 
-            await _notificationService.CreateNotificationAsync(new NotificationDtoForCreation
+            await _notificationService.CreateAsync(new NotificationDtoForCreation
             {
                 NotificationType = NotificationType.Settings,
                 Title = "Şifreniz güncellendi",
@@ -220,6 +239,14 @@ namespace Application.Services.Implementations
                     }
                 );
 
+                await _activityService.LogAsync(
+                    "Yeni Üye", 
+                    $"{user.FirstName} {user.LastName} siteye kayıt oldu.", 
+                    "fa-user-plus", 
+                    "text-green-500 bg-green-100", 
+                    $"/admin/users/edit/{user.Id}"
+                );
+
                 _logger.LogInformation("User created successfully. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
                 return OperationResult<UserDto>.Success("Kullanıcı başarıyla oluşturuldu.");
             }
@@ -248,7 +275,6 @@ namespace Application.Services.Implementations
 
                 _mapper.Map(userDtoForUpdate, user);
 
-                // ✅ Domain validation
                 user.ValidateForUpdate();
 
                 var result = await _userManager.UpdateAsync(user);
@@ -260,7 +286,7 @@ namespace Application.Services.Implementations
                     return OperationResult<UserDto>.Failure($"Kullanıcı güncellenemedi: {errors}", ResultType.ValidationError);
                 }
 
-                await _notificationService.CreateNotificationAsync(new NotificationDtoForCreation
+                await _notificationService.CreateAsync(new NotificationDtoForCreation
                 {
                     NotificationType = NotificationType.Settings,
                     Title = "Profil bilgileriniz güncellendi",
@@ -331,7 +357,7 @@ namespace Application.Services.Implementations
                     }
                 }
 
-                await _notificationService.CreateNotificationAsync(new NotificationDtoForCreation
+                await _notificationService.CreateAsync(new NotificationDtoForCreation
                 {
                     NotificationType = NotificationType.Settings,
                     Title = "Profil bilgileriniz güncellendi",
@@ -407,28 +433,28 @@ namespace Application.Services.Implementations
         {
             var favourites = await _userManager.Users
                 .Where(u => u.Id == userId)
-                .Select(u => u.FavouriteProductsId)
+                .Select(u => u.FavouriteProductVariantsId)
                 .FirstOrDefaultAsync();
 
             var favouritesDto = new FavouriteResultDto
             {
-                FavouriteProductsId = favourites ?? new List<int>()
+                FavouriteProductVariantsId = favourites?.ToList() ?? []
             };
 
             return favouritesDto;
         }
 
-        public async Task<OperationResult<FavouriteResultDto>> AddToFavouritesAsync(int productId)
+        public async Task<OperationResult<FavouriteResultDto>> AddToFavouritesAsync(int productVariantId)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var user = await GetOneUserForServiceAsync(userId);
 
-            if (user.FavouriteProductsId!.Contains(productId))
+            if (user.FavouriteProductVariantsId.Contains(productVariantId))
             {
                 return OperationResult<FavouriteResultDto>.Failure("Ürün zaten favorilerde.", ResultType.ValidationError);
             }
 
-            user.FavouriteProductsId.Add(productId);
+            user.FavouriteProductVariantsId.Add(productVariantId);
             var result = await _userManager.UpdateAsync(user);
 
             if (!result.Succeeded)
@@ -438,20 +464,20 @@ namespace Application.Services.Implementations
             }
             _logger.LogInformation("Product added to favourites successfully for user {UserId}", userId);
 
-            return OperationResult<FavouriteResultDto>.Success(new FavouriteResultDto { FavouriteProductsId = user.FavouriteProductsId }, "Ürün favorilere eklendi.");
+            return OperationResult<FavouriteResultDto>.Success(new FavouriteResultDto { FavouriteProductVariantsId = user.FavouriteProductVariantsId?.ToList() ?? [] }, "Ürün favorilere eklendi.");
         }
 
-        public async Task<OperationResult<FavouriteResultDto>> RemoveFromFavouritesAsync(int productId)
+        public async Task<OperationResult<FavouriteResultDto>> RemoveFromFavouritesAsync(int productVariantId)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var user = await GetOneUserForServiceAsync(userId);
 
-            if (!user.FavouriteProductsId!.Contains(productId))
+            if (!user.FavouriteProductVariantsId!.Contains(productVariantId))
             {
                 return OperationResult<FavouriteResultDto>.Failure("Ürün favorilerde bulunamadı.", ResultType.ValidationError);
             }
 
-            user.FavouriteProductsId.Remove(productId);
+            user.FavouriteProductVariantsId.Remove(productVariantId);
             var result = await _userManager.UpdateAsync(user);
 
             if (!result.Succeeded)
@@ -461,15 +487,15 @@ namespace Application.Services.Implementations
             }
             _logger.LogInformation("Product removed from favourites successfully for user {UserId}", userId);
 
-            return OperationResult<FavouriteResultDto>.Success(new FavouriteResultDto { FavouriteProductsId = user.FavouriteProductsId }, "Ürün favorilerden kaldırıldı.");
+            return OperationResult<FavouriteResultDto>.Success(new FavouriteResultDto { FavouriteProductVariantsId = user.FavouriteProductVariantsId?.ToList() ?? [] }, "Ürün favorilerden kaldırıldı.");
         }
 
-        public async Task<OperationResult<FavouriteResultDto>> UpdateUserFavouritesAsync(List<int> favouriteProductIds)
+        public async Task<OperationResult<FavouriteResultDto>> UpdateUserFavouritesAsync(List<int> favouriteProductVariantIds)
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
 
             var user = await GetOneUserForServiceAsync(userId);
-            user.FavouriteProductsId = favouriteProductIds;
+            user.FavouriteProductVariantsId = favouriteProductVariantIds;
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
@@ -478,7 +504,7 @@ namespace Application.Services.Implementations
                 return OperationResult<FavouriteResultDto>.Failure("Favoriler güncellenemedi.", ResultType.ValidationError);
             }
             _logger.LogInformation("Favourites updated successfully for user {UserId}", userId);
-            return OperationResult<FavouriteResultDto>.Success(new FavouriteResultDto { FavouriteProductsId = user.FavouriteProductsId }, "Favoriler başarıyla güncellendi.");
+            return OperationResult<FavouriteResultDto>.Success(new FavouriteResultDto { FavouriteProductVariantsId = user.FavouriteProductVariantsId?.ToList() ?? [] }, "Favoriler başarıyla güncellendi.");
         }
     }
 }

@@ -90,14 +90,18 @@ async function initProductFilters() {
         const mobileDiscountedItems = document.getElementById('mobileDiscountedItems');
 
         // Desktop
-        if (searchTerm) searchTerm.value = currentFilters.searchTerm;
-        if (minPrice) minPrice.value = currentFilters.minPrice !== null ? currentFilters.minPrice : '';
-        if (maxPrice) maxPrice.value = currentFilters.maxPrice !== null ? currentFilters.maxPrice : '';
+        if (searchTerm && searchTerm.value !== currentFilters.searchTerm) searchTerm.value = currentFilters.searchTerm;
+
+        const minVal = currentFilters.minPrice !== null ? String(currentFilters.minPrice) : '';
+        if (minPrice && minPrice.value !== minVal) minPrice.value = minVal;
+
+        const maxVal = currentFilters.maxPrice !== null ? String(currentFilters.maxPrice) : '';
+        if (maxPrice && maxPrice.value !== maxVal) maxPrice.value = maxVal;
 
         // Mobile
-        if (mobileSearchTerm) mobileSearchTerm.value = currentFilters.searchTerm;
-        if (mobileMinPrice) mobileMinPrice.value = currentFilters.minPrice !== null ? currentFilters.minPrice : '';
-        if (mobileMaxPrice) mobileMaxPrice.value = currentFilters.maxPrice !== null ? currentFilters.maxPrice : '';
+        if (mobileSearchTerm && mobileSearchTerm.value !== currentFilters.searchTerm) mobileSearchTerm.value = currentFilters.searchTerm;
+        if (mobileMinPrice && mobileMinPrice.value !== minVal) mobileMinPrice.value = minVal;
+        if (mobileMaxPrice && mobileMaxPrice.value !== maxVal) mobileMaxPrice.value = maxVal;
 
         if (currentFilters.brand) {
             const brandRadio = document.querySelector(`input[name="Brand"][value="${currentFilters.brand}"]`);
@@ -210,10 +214,15 @@ async function initProductFilters() {
 
             const result = await response.text();
 
-            const productContainer = document.getElementById('productContainer');
             if (productContainer) {
                 productContainer.innerHTML = result;
             }
+
+            // URL üzerindeki güncel filtreleri form elemanlarına yansıt ve 
+            // bu durumu "başlangıç durumu" (uygulanmış durum) olarak kaydet.
+            // Bu sayede buton "Disable" durumuna geçer (Form == Initial/Applied).
+            initializeFiltersFromURL();
+            captureInitialStates();
 
             window.dispatchEvent(new CustomEvent('filtersApplied', {
                 detail: { filters: params.toString() }
