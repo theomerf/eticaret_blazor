@@ -106,7 +106,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        model = await CategoryService.GetAllAsync(false);
+        model = await CategoryService.GetAllAsync();
     }
 
     private async Task SelectMainCategory(int? mainCategoryId)

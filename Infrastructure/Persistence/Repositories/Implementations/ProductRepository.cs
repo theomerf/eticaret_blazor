@@ -52,6 +52,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             }
 
             var filteredProducts = await filteredProductsQuery
+                .AsSplitQuery()
                 .Select(p => new Product
                 {
                     ProductId = p.ProductId,
@@ -94,6 +95,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             var filteredProducts = await filteredProductsQuery
                 .SortAdmin(p.SortEnum)
                 .ToPaginate(p.PageNumber, p.PageSize)
+                .AsSplitQuery()
                 .Select(p => new Product
                 {
                     ProductId = p.ProductId,
@@ -129,13 +131,33 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return await FindByCondition(p => p.Slug == slug, false).CountAsync();
         }
 
-        public async Task<Product?> GetByIdAsync(int productId, bool trackChanges)
+        public async Task<Product?> GetByIdAsync(int productId, bool forUpdate, bool trackChanges)
         {
-            var product = await FindByCondition(p => p.ProductId == productId, trackChanges)
-                .Include(p => p.Variants)
-                .FirstOrDefaultAsync();
+            if (forUpdate)
+            {
+                return await FindByCondition(p => p.ProductId == productId, trackChanges)
+                    .Include(p => p.Variants)
+                        .ThenInclude(v => v.Images)
+                    .FirstOrDefaultAsync();
+            }
 
-            return product;
+            return await FindByCondition(p => p.ProductId == productId, trackChanges)
+                    .Select(p => new Product
+                    {
+                        ProductId = p.ProductId,
+                        ProductName = p.ProductName,
+                        Slug = p.Slug,
+                        CategoryId = p.CategoryId,
+                        AverageRating = p.AverageRating,
+                        ReviewCount = p.ReviewCount,
+                        Brand = p.Brand,
+                        Variants = p.Variants.Select(pv => new ProductVariant
+                        {
+                            ProductVariantId = pv.ProductVariantId,
+                        }).ToList(),
+                        ShowCase = p.ShowCase
+                    })
+                    .FirstOrDefaultAsync();
         }
 
         public async Task<ProductWithDetailsDto?> GetBySlugAsync(string slug, bool trackChanges)
@@ -232,6 +254,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .Where(p => placeholderIds.Contains(p.ProductId));
 
             var products = await productsQuery
+                .AsSplitQuery()
                 .Select(p => new Product
                 {
                     ProductId = p.ProductId,
@@ -261,6 +284,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public async Task<IEnumerable<Product>> GetFavouritesAsync(ICollection<int> favouriteProductIds, bool trackChanges)
         {
             var products = await FindAllByCondition(p => favouriteProductIds.Contains(p.ProductId), trackChanges)
+                .AsSplitQuery()
                 .Select(p => new Product
                 {
                     ProductId = p.ProductId,
@@ -291,8 +315,9 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public async Task<IEnumerable<Product>> GetShowcaseListAsync(bool trackChanges, CancellationToken ct = default)
         {
             var products = await FindAll(trackChanges)
-               .Where(p => p.ShowCase.Equals(true))
-               .OrderBy(p => p.ProductId)
+                .Where(p => p.ShowCase.Equals(true))
+                .OrderBy(p => p.ProductId)
+                .AsSplitQuery()
                 .Select(p => new Product
                 {
                     ProductId = p.ProductId,

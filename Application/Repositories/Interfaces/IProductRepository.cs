@@ -10,7 +10,7 @@ namespace Application.Repositories.Interfaces
         Task<(IEnumerable<Product> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
         Task<int> CountAsync(CancellationToken ct = default);
         Task<int> CountBySlugAsync(string slug);
-        Task<Product?> GetByIdAsync(int productId, bool trackChanges);
+        Task<Product?> GetByIdAsync(int productId, bool forUpdate, bool trackChanges);
         Task<ProductWithDetailsDto?> GetBySlugAsync(string slug, bool trackChanges);
         Task<IEnumerable<Product>> GetRecommendationsAsync(bool trackChanges);
         Task<IEnumerable<Product>> GetFavouritesAsync(ICollection<int> favouriteProductIds, bool trackChanges);

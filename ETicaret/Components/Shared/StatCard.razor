@@ -6,7 +6,16 @@
         <div class="flex justify-between items-start relative z-10">
             <div class="space-y-1">
                 <span class="text-xs font-bold uppercase tracking-wider opacity-90">@Title</span>
-                <h2 class="text-3xl font-bold tracking-tight">@Value</h2>
+                @if (IsLoading)
+                {
+                    <div class="flex items-center mt-2">
+                        <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                }
+                else
+                {
+                    <h2 class="text-3xl font-bold tracking-tight">@Value</h2>
+                }
             </div>
             <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-[inset_0_0_10px_rgba(255,255,255,0.2)] group-hover:scale-110 group-hover:bg-white/30 transition-all duration-300">
                 <i class="fas @Icon"></i>
@@ -50,17 +59,28 @@
 </div>
 
 @code {
-    [Parameter] public string Title { get; set; } = "";
-    [Parameter] public string Value { get; set; } = "";
-    [Parameter] public string Icon { get; set; } = "fa-circle";
-    [Parameter] public string Color { get; set; } = "blue";
-    
-    // Weekly Data for Chart (e.g., [10, 5, 8, 12])
-    [Parameter] public int[] WeeklyData { get; set; } = new int[] { 5, 5, 5, 5 };
+    [Parameter] 
+    public string Title { get; set; } = "";
+    [Parameter] 
+    public string Value { get; set; } = "";
+    [Parameter] 
+    public string Icon { get; set; } = "fa-circle";
+    [Parameter] 
+    public string Color { get; set; } = "blue";
 
-    [Parameter] public string Description { get; set; } = "";
-    [Parameter] public string ManageLink { get; set; } = "#";
-    [Parameter] public string CreateLink { get; set; } = "";
+    // Weekly Data for Chart (e.g., [10, 5, 8, 12])
+    [Parameter] 
+    public int[] WeeklyData { get; set; } = new int[] { 5, 5, 5, 5 };
+
+    [Parameter] 
+    public string Description { get; set; } = "";
+    [Parameter] 
+    public string ManageLink { get; set; } = "#";
+    [Parameter] 
+    public string CreateLink { get; set; } = "";
+
+    [Parameter]
+    public bool IsLoading { get; set; }
 
     private string GetChartPolygon(int offsetY = 0)
     {

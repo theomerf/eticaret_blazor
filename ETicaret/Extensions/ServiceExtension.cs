@@ -21,7 +21,7 @@ namespace ETicaret.Extensions
     {
         public static void ConfigureDbContext(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
         {
-            services.AddDbContext<RepositoryContext>(options =>
+            services.AddDbContextFactory<RepositoryContext>(options =>
             {
                 options.UseNpgsql(
                     configuration.GetConnectionString("postgresqlconnection"),
@@ -31,6 +31,9 @@ namespace ETicaret.Extensions
                 if (environment.IsDevelopment())
                     options.EnableSensitiveDataLogging();
             });
+
+            services.AddScoped<RepositoryContext>(sp =>
+                sp.GetRequiredService<IDbContextFactory<RepositoryContext>>().CreateDbContext());
         }
 
         public static void ConfigureIdentity(this IServiceCollection services)
@@ -136,6 +139,7 @@ namespace ETicaret.Extensions
             services.AddScoped<IActivityService, ActivityManager>();
             services.AddScoped<ISystemService, SystemManager>();
             services.AddScoped<IDatabaseHealthService, DatabaseHealthService>();
+            services.AddSingleton<ICacheService, CacheManager>();
         }
 		
         public static void ConfigureApplicationCookie(this IServiceCollection services)

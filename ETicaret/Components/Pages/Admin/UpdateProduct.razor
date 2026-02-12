@@ -1,9 +1,8 @@
 ﻿@page "/admin/products/update/{ProductId:int}"
 @using Application.DTOs
+@attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager NavigationManager
-@inject ICategoryService CategoryService
-@inject IProductService ProductService
-@inject IFileService FileService
+@inherits OwningComponentBase
 @inject IJSRuntime JSRuntime
 
 <HeadContent>
@@ -472,11 +471,9 @@ else
                             Ürün varyantları kısmında eğer ürün varyanta sahip olmayacaksa tek bir varyant bilgilerini doldurmanız yeterlidir.
                         </p>
                         
-                        </div> <!-- End of blurred wrapper -->
+                        </div>
                     </AdminFormSection>
 
-                    <!-- Product Images (Per Variant) -->
-                    <!-- Product Images (Per Variant) -->
                     <AdminFormSection Title="Ürün Görselleri" Icon="fas fa-images">
                         <div class="mb-4 flex items-center gap-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
                             <InputCheckbox @bind-Value="useCommonImages"
@@ -535,7 +532,6 @@ else
                         }
                     </AdminFormSection>
 
-                    <!-- SEO Settings -->
                     <AdminFormSection Title="SEO Ayarları" Icon="fas fa-search">
                         <div class="space-y-4">
                             <div>
@@ -570,9 +566,7 @@ else
                     </AdminFormSection>
                 </div>
 
-                <!-- Right Column - Sidebar -->
                 <div class="space-y-6">
-                    <!-- Category Selection -->
                     <AdminFormSection Title="Kategori" Icon="fas fa-folder-tree">
                         <CategorySelector Value="@model.CategoryId"
                                           ValueChanged="@((int? id) => model.CategoryId = id ?? 0)"
@@ -584,7 +578,6 @@ else
                         </p>
                     </AdminFormSection>
 
-                    <!-- Brand -->
                     <AdminFormSection Title="Marka" Icon="fas fa-tag">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Marka</label>
@@ -595,7 +588,6 @@ else
                         </div>
                     </AdminFormSection>
 
-                    <!-- Options -->
                     <AdminFormSection Title="Seçenekler" Icon="fas fa-sliders-h">
                         <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
                             <InputCheckbox @bind-Value="model.ShowCase"
@@ -608,7 +600,6 @@ else
                         </div>
                     </AdminFormSection>
 
-                    <!-- Action Buttons -->
                     <div class="sticky bottom-0 bg-white rounded-2xl shadow-lg border border-gray-200 p-6 space-y-3">
                         <button type="submit"
                                 disabled="@isSubmitting"
@@ -643,6 +634,10 @@ else
 @code {
     [Parameter] public int ProductId { get; set; }
 
+    private ICategoryService _categoryService = null!;
+    private IProductService _productService = null!;
+    private IFileService _fileService = null!;
+
     private ProductDtoForUpdate model = new();
 
     private bool useCommonImages = false;
@@ -675,7 +670,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        categories = await CategoryService.GetAllAsync(false);
+        _productService = ScopedServices.GetRequiredService<IProductService>();
+        _categoryService = ScopedServices.GetRequiredService<ICategoryService>();
+        _fileService = ScopedServices.GetRequiredService<IFileService>();
+
+        categories = await _categoryService.GetAllAsync();
         await LoadProduct();
     }
 
@@ -683,7 +682,7 @@ else
     {
         isLoading = true;
 
-        var product = await ProductService.GetByIdAsync(ProductId);
+        var product = await _productService.GetByIdAsync(ProductId, true);
 
         model = new ProductDtoForUpdate
         {
@@ -840,7 +839,7 @@ else
     
     private async Task LoadCategoryAttributes(int categoryId)
     {
-        categoryAttributes = (await CategoryService.GetAttributesAsync(categoryId)).ToList();
+        categoryAttributes = (await _categoryService.GetAttributesAsync(categoryId)).ToList();
         StateHasChanged();
     }
     
@@ -939,7 +938,7 @@ else
         isSubmitting = true;
         StateHasChanged();
 
-        var result = await ProductService.UpdateAsync(model);
+        var result = await _productService.UpdateAsync(model);
 
         if (result.IsSuccess)
         {
@@ -958,7 +957,7 @@ else
                                 var bytes = Convert.FromBase64String(base64Data);
                                 using var stream = new MemoryStream(bytes);
 
-                                var uploadResult = await FileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
+                                var uploadResult = await _fileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
 
                                 if (uploadResult.IsSuccess)
                                 {
@@ -1018,7 +1017,7 @@ else
                                         var bytes = Convert.FromBase64String(base64Data);
                                         using var stream = new MemoryStream(bytes);
     
-                                        var uploadResult = await FileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
+                                        var uploadResult = await _fileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
     
                                         if (uploadResult.IsSuccess)
                                         {
@@ -1038,7 +1037,7 @@ else
                                 }
                              }
 
-                            var imageResult = await ProductService.UpdateImagesAsync(uiVariant.Images);
+                            var imageResult = await _productService.UpdateImagesAsync(uiVariant.Images);
                             
                             if (!imageResult.IsSuccess)
                             {

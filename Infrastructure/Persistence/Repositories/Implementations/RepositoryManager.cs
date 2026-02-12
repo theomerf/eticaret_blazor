@@ -23,7 +23,25 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         private readonly IActivityRepository _activityRepository;
         private readonly ICategoryVariantAttributeRepository _categoryVariantAttributeRepository;
 
-        public RepositoryManager(IProductRepository productRepository, IProductVariantRepository productVariantRepository, RepositoryContext context, ICategoryRepository categoryRepository, IOrderRepository orderRepository, IUserReviewRepository userReviewRepository, ICartRepository cartRepository, INotificationRepository notificationRepository, IAuditLogRepository auditLogRepository, ISecurityLogRepository securityLogRepository, IAddressRepository addressRepository, ICouponRepository couponRepository, ICampaignRepository campaignRepository, IOrderHistoryRepository orderHistoryRepository, ICouponUsageRepository couponUsageRepository, IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository, IActivityRepository activityRepository, ICategoryVariantAttributeRepository categoryVariantAttributeRepository)
+        public RepositoryManager(
+            IProductRepository productRepository,
+            IProductVariantRepository productVariantRepository,
+            RepositoryContext context,
+            ICategoryRepository categoryRepository,
+            IOrderRepository orderRepository,
+            IUserReviewRepository userReviewRepository,
+            ICartRepository cartRepository,
+            INotificationRepository notificationRepository,
+            IAuditLogRepository auditLogRepository,
+            ISecurityLogRepository securityLogRepository,
+            IAddressRepository addressRepository,
+            ICouponRepository couponRepository,
+            ICampaignRepository campaignRepository,
+            IOrderHistoryRepository orderHistoryRepository,
+            ICouponUsageRepository couponUsageRepository,
+            IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository,
+            IActivityRepository activityRepository,
+            ICategoryVariantAttributeRepository categoryVariantAttributeRepository)
         {
             _context = context;
             _productRepository = productRepository;
@@ -63,24 +81,9 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public IActivityRepository Activity => _activityRepository;
         public ICategoryVariantAttributeRepository CategoryVariantAttribute => _categoryVariantAttributeRepository;
 
-        public void Save()
-        {
-            _context.SaveChanges();
-        }
-
-        public async Task SaveAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
-
-        public void ClearTracker()
-        {
-            _context.ChangeTracker.Clear();
-        }
-
-        public async Task CanConnectAsync()
-        {
-            await _context.Database.CanConnectAsync();
-        }
+        public void Save() => _context.SaveChanges();
+        public async Task SaveAsync() => await _context.SaveChangesAsync();
+        public void ClearTracker() => _context.ChangeTracker.Clear();
+        public async Task CanConnectAsync() => await _context.Database.CanConnectAsync();
     }
 }

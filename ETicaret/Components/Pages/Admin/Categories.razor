@@ -1,129 +1,356 @@
 ﻿@page "/admin/categories"
 @using Application.DTOs
-@inject ICategoryService CategoryService
-@inject ILogger<Categories> _logger
+@using Application.Queries.RequestParameters
+@using ETicaret.Extensions
+@using ETicaret.Models
+@inherits OwningComponentBase<ICategoryService>
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
-<HeadContent>
-    <link rel="stylesheet" href="/css/categories-admin.css" />
-</HeadContent>
+<div class="min-h-screen bg-gray-50 flex flex-col font-sans">
 
-<div class="admin-header mt-4">
-    <h1><i class="fa-solid fa-gears"></i> Kategori Yönetimi</h1>
-    <a asp-action="MainCategoryCreate" class="admin-btn admin-btn-create">
-        <i class="fas fa-plus"></i> Yeni Kategori Ekle
-    </a>
-</div>
+    <!-- Mobil Header / Toolbar -->
+    <div class="lg:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30 px-4 py-3 flex justify-between items-center">
+        <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <i class="fa-solid fa-box text-primary"></i> Kategoriler
+        </h1>
+        @if (!isLoading)
+        {
+            <a href="/admin/products/create" class="bg-button text-sm text-white px-2 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-1">
+                <i class="fas fa-plus"></i> Yeni Kategori
+            </a>
+        }
+    </div>
 
-<div class="col-lg-12 my-4">
-    <div class="admin-card shadow-sm">
-        <div class="admin-card-header d-flex justify-content-between align-items-center">
-            <div>
-                <i class="fas fa-th-list me-2"></i> Kategori Listesi
+    <div class="flex-1 max-w-full">
+        <div class="flex flex-col">
+            <div class="hidden lg:grid lg:grid-cols-5 gap-x-2">
+                <div class="col-span-1 grid grid-cols-2 gap-3 mb-6">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="text-xs text-gray-500 font-medium">Toplam</div>
+                        @if (isLoading)
+                        {
+                            <div class="flex items-center mt-2">
+                                <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-lg font-bold text-gray-800">@model.TotalCount</div>
+                        }
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <div class="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center mb-2">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="text-xs text-gray-500 font-medium">Öne Çıkarılan</div>
+                        @if (isLoading)
+                        {
+                            <div class="flex items-center mt-2">
+                                <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-lg font-bold text-gray-800">@model.Categories?.Count(p => p.IsFeatured)</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="lg:col-span-4 lg:flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 text-secondary flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-gears"></i>
+                            </div>
+                            Kategori Yönetimi
+                        </h1>
+                        <p class="text-gray-500 text-sm mt-1 ml-[52px]">Mağaza ürünlerini listeleyin, düzenleyin ve yönetin.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        @if (!isLoading)
+                        {
+                            <a href="/admin/categories/create" class="bg-button hover:bg-button-hover text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                                <i class="fas fa-plus"></i> Yeni Kategori
+                            </a>
+                        }
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                @if (model.Any())
+
+            <div>
+                @if (isLoading)
                 {
-                    @foreach (var parentCategory in model.Where(c => c.ParentId == null))
-                    {
-                        <li class="list-group-item admincat-category-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    <span class="category-name fw-bold">@parentCategory.CategoryName</span>
-                                    <span class="badge bg-info rounded-pill ms-2">@(model.Count(c => c.ParentId == parentCategory.CategoryId))</span>
-                                </div>
-                                <div class="action-buttons">
-                                    <button @onclick="() => ToggleSubcategories(parentCategory.CategoryId)" class="admin-action-btn p-0 admincat-toggle-subcategories">
-                                        (@subcategoryVisibility.Where(c => c.Key == parentCategory.CategoryId && c.Value).Any() ? <i class="fas fa-chevron-up"></i> : <i class="fas fa-chevron-down"></i>)
-                                    </button>
-                                    <a class="admin-action-btn admin-btn-edit" href="/admin/categories/update/@parentCategory.CategoryId" title="Düzenle">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a class="admin-action-btn admin-btn-delete" href="/admin/categories/delete/@parentCategory.CategoryId" title="Sil" onclick="return confirm('Bu kategoriyi silmek istediğinize emin misiniz?');">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="collapse mt-3" id="subcategories-@parentCategory.CategoryId">
-                                <div class="subcategory-container px-4">
-                                    <div class="subcategory-header d-flex justify-content-between align-items-center mt-4 mb-2">
-                                        <h6 class="mb-2 fw-bold">Alt Kategoriler</h6>
-                                        <a href="/admin/categories/add/@parentCategory.CategoryId" class="admin-btn admin-btn-create">
-                                            <i class="fas fa-plus-circle"></i> Alt Kategori Ekle
-                                        </a>
-                                    </div>
-                                    <ul class="list-group list-group-flush subcategory-list">
-                                        @if (model.Any(c => c.ParentId == parentCategory.CategoryId))
-                                        {
-                                            @foreach (var childCategory in model.Where(c => c.ParentId == parentCategory.CategoryId))
-                                            {
-                                                <li class="list-group-item admincat-subcategory-item">
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <span class="subcategory-name">@childCategory.CategoryName</span>
-                                                        <div class="action-buttons">
-                                                            <a class="admin-action-btn admin-btn-edit" title="Düzenle" href="/admin/categories/update/@childCategory.CategoryId">
-                                                                <i class="fas fa-edit"></i>
-                                                            </a>
-                                                            <a class="admin-action-btn admin-btn-delete" href="/admin/categories/delete/@childCategory.CategoryId" title="Sil" onclick="return confirm('Bu alt kategoriyi silmek istediğinize emin misiniz?');">
-                                                                <i class="fas fa-trash"></i>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                            }
-                                        }
-                                        else
-                                        {
-                                        <li class="list-group-item text-center text-muted">Alt kategori bulunamadı.</li>
-                                        }
-                                    </ul>
-                                </div>
-                            </div>
-                        </li>
-                    }
+                    <div class="flex justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-100">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <span class="text-gray-500 font-medium">Yükleniyor...</span>
+                        </div>
+                    </div>
                 }
                 else
                 {
-                    <li class="list-group-item text-center">Henüz kategori bulunmamaktadır.</li>
+                    <div id="products-list-top"></div>
+                    <AdminTable Items="model.Categories" Pagination="model.Pagination" OnPageChange="HandlePageChange" PageSize="@(model?.FilterParams.PageSize ?? 10)" OnPageSizeChange="HandlePageSizeChange">
+                        <ToolbarContent>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <!-- Search -->
+                                <div class="relative flex-1 sm:max-w-md">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-search text-gray-400"></i>
+                                    </div>
+                                    <input type="text"
+                                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                           placeholder="Ürün ara..."
+                                           value="@searchTerm"
+                                           @oninput="OnSearchInput">
+                                </div>
+                            </div>
+                        </ToolbarContent>
+                        <HeaderTemplate>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">İkon</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ürün Adı</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Gösterim Sırası</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Öne Çıkarılma</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">İşlemler</th>
+                            </tr>
+                        </HeaderTemplate>
+                        <RowTemplate Context="cat">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                #@cat.CategoryId
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative group">
+                                    <img class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                         src="@(cat?.IconUrl ?? "placeholder.png")"
+                                         alt="@cat?.CategoryName" />
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-sm font-semibold text-gray-900 line-clamp-1">@cat?.CategoryName</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <span class="text-sm font-semibold text-gray-900 line-clamp-1">@cat?.DisplayOrder</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <label data-tooltip="@(cat != null && cat.IsFeatured ? "Öne çıkar" : "Öne çıkarmayı geri al")" class="tooltip relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" checked="@(cat != null && cat.IsFeatured)"
+                                           @onclick="async () => await HandleFeaturedUpdate(cat!.CategoryId)">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="/admin/categories/update/@cat?.CategoryId" class="tooltip p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" data-tooltip="Düzenle">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="/products?categoryId=@(cat?.CategoryId)" target="_blank" class="tooltip p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" data-tooltip="Görüntüle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button @onclick="async () => await HandleDeleteProduct(cat!.CategoryId)" class="tooltip p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" data-tooltip="Sil">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </RowTemplate>
+                    </AdminTable>
                 }
-            </ul>
+            </div>
         </div>
     </div>
 </div>
+
 @code {
-    private IEnumerable<CategoryDto> model { get; set; } = new List<CategoryDto>();
-    private bool isLoading = false;
-    private string? errorMessage;
-    private Dictionary<int, bool> subcategoryVisibility = new Dictionary<int, bool>();
+    private CategoriesListViewModelAdmin model { get; set; } = new();
+    private bool isLoading = true;
+
+    private CancellationTokenSource? _cts;
+    private bool _isDisposed;
 
     protected override async Task OnInitializedAsync()
     {
+        isLoading = true;
+        model.FilterParams = Navigation.BindFromQuery<RequestParametersAdmin>();
+
+        _cts = new CancellationTokenSource();
+        await LoadAndBuildModel(_cts.Token);
+
+        isLoading = false;
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        await InvokeAsync(async () =>
+        {
+            if (_isDisposed) return;
+
+            var newParams = Navigation.BindFromQuery<RequestParametersAdmin>();
+            model.FilterParams = newParams;
+
+            StateHasChanged();
+
+            await LoadAndBuildModel(token);
+
+            if (_isDisposed || token.IsCancellationRequested) return;
+
+            StateHasChanged();
+
+            await JSRuntime.InvokeVoidAsync("scrollToElement", "products-list-top");
+        });
+    }
+
+    private async Task LoadAndBuildModel(CancellationToken ct)
+    {
+        if (_isDisposed) return;
+
         try
         {
-            isLoading = true;
-            model = await CategoryService.GetAllAsync(false);
+            if (model?.FilterParams.PageSize == 0)
+            {
+                model.FilterParams.PageSize = 12;
+            }
+
+            var result = await Service.GetAllAdminAsync(model?.FilterParams!, ct);
+
+            if (ct.IsCancellationRequested) return;
+
+            var pagination = new Pagination()
+            {
+                CurrentPage = model?.FilterParams.PageNumber ?? 1,
+                ItemsPerPage = model?.FilterParams.PageSize ?? 12,
+                TotalItems = result.count
+            };
+
+            model = new CategoriesListViewModelAdmin()
+            {
+                Categories = result.categories,
+                Pagination = pagination,
+                TotalCount = result.count,
+                FilterParams = model?.FilterParams ?? new()
+            };
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            errorMessage = ex.Message;
-            _logger.LogError($"Kategori verileri alınırken hata oluştu: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
         }
     }
 
-    private void ToggleSubcategories(int mainCategoryId)
+    private async Task HandlePageChange(int newPage)
     {
-        if (subcategoryVisibility.ContainsKey(mainCategoryId))
+        model.FilterParams.PageNumber = newPage;
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private void UpdateUrl()
+    {
+        if (_isDisposed) return;
+        var url = model.FilterParams.ToQueryString("/admin/categories");
+        Navigation.NavigateTo(url!);
+    }
+
+    private void HandlePageSizeChange(int pageSize)
+    {
+        model.FilterParams.PageSize = pageSize;
+        model.FilterParams.PageNumber = 1;
+        UpdateUrl();
+    }
+
+    private async Task HandleFeaturedUpdate(int categoryId)
+    {
+        if (_isDisposed) return;
+
+        var result = await Service.UpdateFeaturedStatus(categoryId);
+
+        if (_isDisposed) return;
+
+        if (result.IsSuccess)
         {
-            subcategoryVisibility[mainCategoryId] = !subcategoryVisibility[mainCategoryId];
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            var p = model.Categories?.FirstOrDefault(x => x.CategoryId == categoryId);
+            if (p != null) p.IsFeatured = !p.IsFeatured;
+            StateHasChanged();
         }
         else
         {
-            subcategoryVisibility[mainCategoryId] = true;
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
         }
+    }
+
+    private async Task HandleDeleteProduct(int categoryId)
+    {
+        if (_isDisposed) return;
+
+        if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu kategoriyi silmek istediğinize emin misiniz?")) return;
+
+        try
+        {
+            var result = await Service.DeleteAsync(categoryId);
+
+            if (_isDisposed) return;
+
+            if (result.IsSuccess)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+
+                _cts?.Cancel();
+                _cts?.Dispose();
+                _cts = new CancellationTokenSource();
+                await LoadAndBuildModel(_cts.Token);
+                StateHasChanged();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private string searchTerm = "";
+    private Timer? _debounceTimer;
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(async _ =>
+        {
+            if (!_isDisposed)
+            {
+                await InvokeAsync(() =>
+                {
+                    model.FilterParams.SearchTerm = searchTerm;
+                    model.FilterParams.PageNumber = 1;
+                    UpdateUrl();
+                });
+            }
+        }, null, 500, Timeout.Infinite);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+
+        Navigation.LocationChanged -= OnLocationChanged;
+
+        _debounceTimer?.Dispose();
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
     }
 }

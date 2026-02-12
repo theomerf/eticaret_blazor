@@ -10,19 +10,27 @@ namespace Application.Services.Implementations
     {
         private readonly IRepositoryManager _manager;
         private readonly IMapper _mapper;
+        private readonly ICacheService _cache;
 
-        public ActivityManager(IRepositoryManager manager, IMapper mapper)
+        public ActivityManager(IRepositoryManager manager, IMapper mapper, ICacheService cache)
         {
             _manager = manager;
             _mapper = mapper;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<ActivityDto>> GetRecentAsync(int count = 5, CancellationToken ct = default)
         {
-            var activities = await _manager.Activity.GetRecentAsync(count, false);
-            var activiesDto = _mapper.Map<IEnumerable<ActivityDto>>(activities);
-
-            return activiesDto;
+            return await _cache.GetOrCreateAsync("activities:recent",
+                async () =>
+                {
+                    var activities = await _manager.Activity.GetRecentAsync(count, false);
+                    return _mapper.Map<IEnumerable<ActivityDto>>(activities);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
         }
 
         public async Task LogAsync(string title, string description, string icon, string colorClass, string? link = null)
@@ -39,6 +47,7 @@ namespace Application.Services.Implementations
 
             _manager.Activity.Create(activity);
             await _manager.SaveAsync();
+            await _cache.RemoveByPrefixAsync("activities:");
         }
     }
 }

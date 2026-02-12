@@ -271,8 +271,12 @@ namespace ETicaret.Services
                     return;
                 }
 
-                // Find variant in DTO list
-                var variantDto = product!.Variants?.FirstOrDefault(v => v.ProductVariantId == variantId);
+                if (product.Variants.FirstOrDefault(v => v.ProductVariantId == variantId) == null)
+                {
+                    SetError("Geçersiz ürün varyantı");
+                }
+
+                var variantDto = await _productService.GetVariantByIdAsync(variantId);
 
                 if (variantDto == null)
                 {

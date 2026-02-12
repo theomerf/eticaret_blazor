@@ -17,7 +17,14 @@
         </p>
     </div>
 
-    @if (Products.Any())
+    @if (IsLoading)
+    {
+        <div class="flex flex-col items-center justify-center p-8 md:p-12">
+             <div class="w-12 h-12 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
+             <p class="mt-4 text-gray-500 font-medium animate-pulse">Vitrin yükleniyor...</p>
+        </div>
+    }
+    else if (Products.Any())
     {
         <!-- Grid Layout -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-4">

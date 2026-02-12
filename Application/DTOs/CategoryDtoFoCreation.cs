@@ -10,6 +10,9 @@ namespace Application.DTOs
         [MinLength(2, ErrorMessage = "Kategori adı en az 2 karakter olabilir.")]
         [NoXss]
         public string CategoryName { get; set; } = null!;
+        [MaxLength(250, ErrorMessage = "Slug en fazla 250 karakter olabilir.")]
+        [NoXss]
+        public string? Slug { get; set; }
         [MaxLength(60, ErrorMessage = "Meta başlık en fazla 60 karakter olabilir.")]
         [NoXss]
         public string? MetaTitle { get; set; }
@@ -27,5 +30,7 @@ namespace Application.DTOs
         public int DisplayOrder { get; set; }
         public bool IsVisible { get; set; } = true;
         public bool IsFeatured { get; set; }
+
+        public List<CategoryVariantAttributeDtoForCreation> NewAttributes { get; set; } = new();
     }
 }

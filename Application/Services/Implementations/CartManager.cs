@@ -148,7 +148,7 @@ namespace Application.Services.Implementations
         {
             ValidateUserAccess(userId);
 
-            var dbProduct = await _manager.Product.GetByIdAsync(productId, false);
+            var dbProduct = await _manager.Product.GetByIdAsync(productId, false, false);
             var dbProductVariant = await _manager.ProductVariant.GetByIdAsync(productVariantId, false);
 
             if (dbProduct == null)
@@ -366,7 +366,7 @@ namespace Application.Services.Implementations
 
             foreach (var line in cart.Lines)
             {
-                var product = await _manager.Product.GetByIdAsync(line.ProductId, false);
+                var product = await _manager.Product.GetByIdAsync(line.ProductId, false, false);
 
                 if (product == null)
                 {

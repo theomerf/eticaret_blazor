@@ -23,6 +23,7 @@ namespace Application.Services.Implementations
         private readonly IActivityService _activityService;
         private readonly ILogger<UserReviewManager> _logger;
         private readonly IFileService _fileService;
+        private readonly ICacheService _cache;
 
         public UserReviewManager(
             IRepositoryManager manager,
@@ -34,7 +35,8 @@ namespace Application.Services.Implementations
             ISecurityLogService securityLogService,
             IActivityService activityService,
             ILogger<UserReviewManager> logger,
-            IFileService fileService)
+            IFileService fileService,
+            ICacheService cache)
         {
             _manager = manager;
             _authService = authService;
@@ -46,6 +48,7 @@ namespace Application.Services.Implementations
             _activityService = activityService;
             _logger = logger;
             _fileService = fileService;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<UserReviewDto>> GetAllAsync()
@@ -56,7 +59,18 @@ namespace Application.Services.Implementations
             return reviewsDto;
         }
 
-        public async Task<int> CountAsync(CancellationToken ct = default) => await _manager.UserReview.CountAsync(false, ct);
+        public async Task<int> CountAsync(CancellationToken ct = default) 
+        {
+            return await _cache.GetOrCreateAsync("userReviews:count",
+                async () =>
+                {
+                    return await _manager.UserReview.CountAsync(false, ct);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
+        } 
 
         public async Task<UserReview> GetOneUserReviewForServiceAsync(int id, bool trackChanges)
         {
@@ -129,6 +143,7 @@ namespace Application.Services.Implementations
                     "User review created. ReviewId: {ReviewId}, ProductId: {ProductId}, UserId: {UserId}",
                     userReview.UserReviewId, userReview.ProductId, userId);
 
+                await _cache.RemoveByPrefixAsync("userReviews:");
                 return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla oluşturuldu.");
             }
             catch (UserReviewValidationException ex)
@@ -312,6 +327,7 @@ namespace Application.Services.Implementations
                 "User review soft deleted. ReviewId: {ReviewId}, UserId: {UserId}",
                 userReviewId, userId);
 
+            await _cache.RemoveByPrefixAsync("userReviews:");
             return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
         }
 
@@ -360,6 +376,7 @@ namespace Application.Services.Implementations
                 "User review deleted by admin. ReviewId: {ReviewId}, AdminId: {AdminId}",
                 userReviewId, userId);
 
+            await _cache.RemoveByPrefixAsync("userReviews:");
             return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
         }
     }

@@ -1,12 +1,12 @@
 ﻿using Application.Common.Helpers;
 using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
 using Application.Services.Interfaces;
 using AutoMapper;
 using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
@@ -16,7 +16,7 @@ namespace Application.Services.Implementations
     {
         private readonly IRepositoryManager _manager;
         private readonly IMapper _mapper;
-        private readonly IMemoryCache _cache;
+        private readonly ICacheService _cache;
         private readonly IAuditLogService _auditLogService;
         private readonly IActivityService _activityService;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -25,7 +25,7 @@ namespace Application.Services.Implementations
         public CategoryManager(
             IRepositoryManager manager,
             IMapper mapper,
-            IMemoryCache cache,
+            ICacheService cache,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
             IActivityService activityService,
@@ -40,52 +40,41 @@ namespace Application.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<IEnumerable<CategoryDto>> GetAllAsync(bool trackChanges)
+        public async Task<IEnumerable<CategoryDto>> GetAllAsync()
         {
-            string cacheKey = "allCategories";
-
-            if (_cache.TryGetValue(cacheKey, out List<CategoryDto>? cachedCategories))
-            {
-                return cachedCategories ?? new List<CategoryDto>();
-            }
-
-            var categories = await _manager.Category.GetAllAsync(trackChanges);
-            var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(categories).ToList();
-
-            _cache.Set(cacheKey, categoriesDto,
-                new MemoryCacheEntryOptions
+            return await _cache.GetOrCreateAsync("categories:list",
+                async () =>
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                    SlidingExpiration = TimeSpan.FromMinutes(2)
-                }
+                    var categories = await _manager.Category.GetAllAsync(false);
+                    return _mapper.Map<IEnumerable<CategoryDto>>(categories).ToList();
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2)
             );
+        }
 
-            return categoriesDto;
+        public async Task<(IEnumerable<CategoryDto> categories, int count)> GetAllAdminAsync(RequestParametersAdmin p, CancellationToken ct)
+        {
+            var result = await _manager.Category.GetAllAdminAsync(p, false, ct);
+            var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(result.categories);
+
+            return (categoriesDto, result.count);
         }
 
         public async Task<int> CountAsync(CancellationToken ct = default)
         {
-            string cacheKey = "categoriesCount";
-
-            if (_cache.TryGetValue(cacheKey, out int cachedCount))
-            {
-                return cachedCount;
-            }
-
-            var count = await _manager.Category.CountAsync();
-
-            _cache.Set(cacheKey, count,
-                new MemoryCacheEntryOptions
+            return await _cache.GetOrCreateAsync("categories:count",
+                async () =>
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                    SlidingExpiration = TimeSpan.FromMinutes(2)
-                }
+                    return await _manager.Category.CountAsync();
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
             );
-
-            return count;
         }
 
-        private async Task<Category> GetOneCategoryForServiceAsync(int id, bool trackChanges)
+        private async Task<Category> GetByIdForServiceAsync(int id, bool trackChanges)
         {
             var category = await _manager.Category.GetByIdAsync(id, trackChanges);
             if (category == null)
@@ -96,7 +85,7 @@ namespace Application.Services.Implementations
 
         public async Task<CategoryWithDetailsDto> GetByIdAsync(int id)
         {
-            var category = await GetOneCategoryForServiceAsync(id, false);
+            var category = await GetByIdForServiceAsync(id, false);
             var categoryDto = _mapper.Map<CategoryWithDetailsDto>(category);
 
             return categoryDto;
@@ -159,10 +148,55 @@ namespace Application.Services.Implementations
                 var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
                 _manager.Category.Create(category);
+
+                // Create Attributes
+                if (categoryDto.NewAttributes != null && categoryDto.NewAttributes.Any())
+                {
+                    foreach (var attrDto in categoryDto.NewAttributes)
+                    {
+                        var attribute = _mapper.Map<CategoryVariantAttribute>(attrDto);
+                        // CategoryId will be set by EF Core when adding to collection, 
+                        // but since we are not adding to category.Attributes collection directly (maybe?), 
+                        // we can rely on EF Core navigation fixup if we were adding to list.
+                        // However, standard Repository Create method adds entity to context.
+                        // Let's add them via valid repository method for Attributes or add to Category's collection if it exists.
+                        // Category entity doesn't seem to have Attributes collection exposed in what I read?
+                        // Let's check repository. 
+                        // Actually better to add them explicitly if we can, or add to category.
+                        
+                        // We will assume we need to set CategoryId after SaveAsync if we don't have navigation property set up heavily.
+                        // But wait, if we add to context before SaveAsync, CategoryId is not generated yet (it's 0).
+                        // So we must save Category FIRST to get ID, then save attributes.
+                    }
+                }
+                
+                // Saving Category first to get ID
+                await _manager.SaveAsync();
+
+                // Now save attributes
+                if (categoryDto.NewAttributes != null && categoryDto.NewAttributes.Any())
+                {
+                    foreach (var attrDto in categoryDto.NewAttributes)
+                    {
+                        var exists = await _manager.CategoryVariantAttribute.ExistsByKeyAsync(attrDto.Key, category.CategoryId);
+                        if (!exists)
+                        {
+                            var attribute = _mapper.Map<CategoryVariantAttribute>(attrDto);
+                            attribute.CategoryId = category.CategoryId;
+                            _manager.CategoryVariantAttribute.Create(attribute);
+                        }
+                    }
+                    await _manager.SaveAsync();
+                }
+                
                 category.CreatedByUserId = userId;
                 category.UpdatedByUserId = userId;
+                
+                // Update user tracking columns on initial save? 
+                // We saved once already. Let's just make sure we save correct info.
+                // The first SaveAsync saved category with CreatedByUserId = null if we didn't set it.
+                // Re-ordering to be safe.
 
-                await _manager.SaveAsync();
 
                 await _auditLogService.LogAsync(
                     userId: userId,
@@ -191,6 +225,7 @@ namespace Application.Services.Implementations
                     "Category created successfully. CategoryId: {CategoryId}, Name: {CategoryName}, User: {UserId}",
                     category.CategoryId, category.CategoryName, userId);
 
+                await _cache.RemoveByPrefixAsync("categories:");
                 return OperationResult<CategoryWithDetailsDto>.Success("Kategori başarıyla oluşturuldu.");
             }
             catch (CategoryValidationException ex)
@@ -200,11 +235,48 @@ namespace Application.Services.Implementations
             }
         }
 
+        public async Task<OperationResult<CategoryDto>> UpdateFeaturedStatus(int categoryId)
+        {
+            _manager.ClearTracker();
+            var category = await GetByIdForServiceAsync(categoryId, true);
+            var oldFeatured = category.IsFeatured;
+
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+
+            category.IsFeatured = !category.IsFeatured;
+            category.UpdatedAt = DateTime.UtcNow;
+            category.UpdatedByUserId = userId;
+
+            await _manager.SaveAsync();
+
+            await _auditLogService.LogAsync(
+                userId: userId,
+                userName: userName,
+                action: "Update",
+                entityName: "Category",
+                entityId: category.CategoryId.ToString(),
+                oldValues: new { IsFeatured = oldFeatured },
+                newValues: new { category.IsFeatured }
+            );
+
+            _logger.LogInformation(
+                "Category featured status updated. CategoryId: {CategoryId}, Featured: {Featured}",
+                category.IsFeatured, category.IsFeatured);
+
+            var categoryDto = _mapper.Map<CategoryDto>(category);
+
+            await _cache.RemoveAsync("products:showcase");
+            return OperationResult<CategoryDto>.Success(
+                categoryDto,
+                category.IsFeatured ? "Kategori öne çıkarıldı." : "Kategori artık öne çıkarılmıyor.");
+        }
+
         public async Task<OperationResult<CategoryWithDetailsDto>> UpdateAsync(CategoryDtoForUpdate categoryDto)
         {
             try
             {
-                var category = await GetOneCategoryForServiceAsync(categoryDto.CategoryId, true);
+                var category = await GetByIdForServiceAsync(categoryDto.CategoryId, true);
 
                 var oldValues = new
                 {
@@ -253,6 +325,47 @@ namespace Application.Services.Implementations
                 category.UpdatedAt = DateTime.UtcNow;
                 category.UpdatedByUserId = userId;
 
+                // Handle Attributes
+                if (categoryDto.Attributes != null)
+                {
+                    // 1. Get existing attributes
+                    var existingAttributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(category.CategoryId, true);
+                    
+                    // 2. Identify attributes to delete
+                    // Attributes present in DB but NOT in the incoming list (by ID)
+                    var incomingIds = categoryDto.Attributes.Where(a => a.VariantAttributeId > 0).Select(a => a.VariantAttributeId).ToList();
+                    var attributesToDelete = existingAttributes.Where(e => !incomingIds.Contains(e.VariantAttributeId)).ToList();
+                    
+                    foreach(var attr in attributesToDelete)
+                    {
+                        _manager.CategoryVariantAttribute.Delete(attr);
+                    }
+
+                    // 3. Identify attributes to update
+                    var attributesToUpdate = categoryDto.Attributes.Where(a => a.VariantAttributeId > 0).ToList();
+                    foreach (var updateDto in attributesToUpdate)
+                    {
+                        var existingAttr = existingAttributes.FirstOrDefault(e => e.VariantAttributeId == updateDto.VariantAttributeId);
+                        if (existingAttr != null)
+                        {
+                            _mapper.Map(updateDto, existingAttr);
+                        }
+                    }
+
+                    // 4. Identify attributes to add
+                    var attributesToAdd = categoryDto.Attributes.Where(a => a.VariantAttributeId == 0).ToList();
+                    foreach (var addDto in attributesToAdd)
+                    {
+                        var exists = await _manager.CategoryVariantAttribute.ExistsByKeyAsync(addDto.Key, category.CategoryId);
+                        if (!exists)
+                        {
+                            var newAttr = _mapper.Map<CategoryVariantAttribute>(addDto);
+                            newAttr.CategoryId = category.CategoryId;
+                            _manager.CategoryVariantAttribute.Create(newAttr);
+                        }
+                    }
+                }
+
                 await _manager.SaveAsync();
 
                 await _auditLogService.LogAsync(
@@ -275,6 +388,7 @@ namespace Application.Services.Implementations
                     "Category updated successfully. CategoryId: {CategoryId}, User: {UserId}",
                     category.CategoryId, userId);
 
+                await _cache.RemoveAsync("categories:list");
                 return OperationResult<CategoryWithDetailsDto>.Success("Kategori başarıyla güncellendi.");
             }
             catch (CategoryValidationException ex)
@@ -286,7 +400,7 @@ namespace Application.Services.Implementations
 
         public async Task<OperationResult<CategoryWithDetailsDto>> DeleteAsync(int id)
         {
-            var category = await GetOneCategoryForServiceAsync(id, true);
+            var category = await GetByIdForServiceAsync(id, true);
 
             var childCategories = await _manager.Category.GetChildrenByIdAsync(id, false);
             if (childCategories.Any())
@@ -316,6 +430,7 @@ namespace Application.Services.Implementations
                 "Category soft deleted. CategoryId: {CategoryId}, User: {UserId}",
                 id, userId);
 
+            await _cache.RemoveByPrefixAsync("categories:");
             return OperationResult<CategoryWithDetailsDto>.Success("Kategori başarıyla silindi.");
         }
 

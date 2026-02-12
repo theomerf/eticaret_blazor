@@ -1,5 +1,7 @@
-﻿using Application.Repositories.Interfaces;
+﻿using Application.Queries.RequestParameters;
+using Application.Repositories.Interfaces;
 using Domain.Entities;
+using Infrastructure.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories.Implementations
@@ -14,9 +16,44 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public async Task<IEnumerable<Category>> GetAllAsync(bool trackChanges)
         {
             var categories = await FindAll(trackChanges)
+                .Select(c => new Category
+                {
+                    CategoryId = c.CategoryId,
+                    CategoryName = c.CategoryName,
+                    Slug = c.Slug,
+                    ParentId = c.ParentId,
+                    DisplayOrder = c.DisplayOrder,
+                    IsFeatured = c.IsFeatured,
+                })
+                .OrderBy(c => c.DisplayOrder)
                 .ToListAsync();
 
             return categories;  
+        }
+
+        public async Task<(IEnumerable<Category> categories, int count)> GetAllAdminAsync(RequestParametersAdmin p, bool trackChanges, CancellationToken ct)
+        {
+            var filteredCategoriesQuery = FindAll(trackChanges)
+                .FilterBy(p.SearchTerm, c => c.CategoryName, FilterOperator.Contains);
+
+            var count = await filteredCategoriesQuery.CountAsync(ct);
+
+            var filteredCategories = await filteredCategoriesQuery
+                .ToPaginate(p.PageNumber, p.PageSize)
+                .OrderBy(c => c.CategoryId)
+                .Select(c => new Category
+                {
+                    CategoryId = c.CategoryId,
+                    CategoryName = c.CategoryName,
+                    Slug = c.Slug,
+                    ParentId = c.ParentId,
+                    IconUrl = c.IconUrl,
+                    DisplayOrder = c.DisplayOrder,
+                    IsFeatured = c.IsFeatured,
+                })
+                .ToListAsync(ct);
+
+            return (filteredCategories, count);
         }
 
         public async Task<int> CountAsync(CancellationToken ct = default) => await CountAsync(false, ct);

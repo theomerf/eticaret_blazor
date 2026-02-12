@@ -6,5 +6,7 @@ namespace Application.DTOs
     {
         [Required(ErrorMessage = "Kategori ID gereklidir.")]
         public int CategoryId { get; set; }
+
+        public List<CategoryVariantAttributeDtoForUpdate> Attributes { get; set; } = new();
     }
 }

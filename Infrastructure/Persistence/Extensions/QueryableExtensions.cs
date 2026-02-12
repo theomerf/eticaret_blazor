@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Infrastructure.Persistence.Extensions
 {
@@ -13,5 +14,15 @@ namespace Infrastructure.Persistence.Extensions
                 ? source.Where(predicate)
                 : source;
         }
+
+        public static IQueryable<T> IncludeIf<T, TProperty>(
+            this IQueryable<T> source,
+            bool condition,
+            Expression<Func<T, TProperty>> path)
+            where T : class
+        {
+            return condition ? source.Include(path) : source;
+        }
+
     }
 }

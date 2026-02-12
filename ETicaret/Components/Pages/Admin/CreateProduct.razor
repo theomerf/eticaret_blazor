@@ -1,10 +1,9 @@
 ﻿@page "/admin/products/create"
 @using Application.DTOs
 @using Domain.Entities
+@attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager NavigationManager
-@inject ICategoryService CategoryService
-@inject IProductService ProductService
-@inject IFileService FileService
+@inherits OwningComponentBase
 @inject IJSRuntime JSRuntime
 
 <HeadContent>
@@ -626,6 +625,10 @@
 @code {
     private ProductDtoForCreation model = new();
 
+    private ICategoryService _categoryService = null!;
+    private IProductService _productService = null!;
+    private IFileService _fileService = null!;
+
     private bool useCommonImages = false;
     private List<ProductImageDtoForCreation> commonImages = new();
     
@@ -642,7 +645,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        categories = await CategoryService.GetAllAsync(false);
+        _productService = ScopedServices.GetRequiredService<IProductService>();
+        _categoryService = ScopedServices.GetRequiredService<ICategoryService>();
+        _fileService = ScopedServices.GetRequiredService<IFileService>();
+
+        categories = await _categoryService.GetAllAsync();
         AddVariant();
     }
 
@@ -694,7 +701,7 @@
         isSubmitting = true;
         StateHasChanged();
 
-        var result = await ProductService.CreateAsync(model);
+        var result = await _productService.CreateAsync(model);
 
         if (result.IsSuccess)
         {
@@ -712,7 +719,7 @@
                               var bytes = Convert.FromBase64String(base64Data);
                               using var stream = new MemoryStream(bytes);
 
-                              var uploadResult = await FileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
+                              var uploadResult = await _fileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
 
                               if (uploadResult.IsSuccess)
                               {
@@ -764,7 +771,7 @@
                                     var bytes = Convert.FromBase64String(base64Data);
                                     using var stream = new MemoryStream(bytes);
 
-                                    var uploadResult = await FileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
+                                    var uploadResult = await _fileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
 
                                     if (uploadResult.IsSuccess)
                                     {
@@ -793,7 +800,7 @@
                             }
                         }
 
-                        var imageResult = await ProductService.UpdateImagesAsync(uiVariant.Images);
+                        var imageResult = await _productService.UpdateImagesAsync(uiVariant.Images);
 
                         if (!imageResult.IsSuccess)
                         {
@@ -837,7 +844,7 @@
 
     private async Task LoadCategoryAttributes(int categoryId)
     {
-        categoryAttributes = (await CategoryService.GetAttributesAsync(categoryId)).ToList();
+        categoryAttributes = (await _categoryService.GetAttributesAsync(categoryId)).ToList();
 
         activeAttributeKeys.Clear();
 

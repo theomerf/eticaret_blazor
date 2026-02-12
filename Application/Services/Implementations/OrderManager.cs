@@ -28,6 +28,7 @@ namespace Application.Services.Implementations
         private readonly ICartService _cartService;
         private readonly IActivityService _activityService;
         private readonly ResiliencePipeline _retryPipeline;
+        private readonly ICacheService _cache;
 
         public OrderManager(
             IRepositoryManager manager,
@@ -39,7 +40,8 @@ namespace Application.Services.Implementations
             ICouponService couponService,
             ICampaignService campaignService,
             ICartService cartService,
-            IActivityService activityService)
+            IActivityService activityService,
+            ICacheService cache)
         {
             _manager = manager;
             _mapper = mapper;
@@ -73,6 +75,7 @@ namespace Application.Services.Implementations
                     }
                 })
                 .Build();
+            _cache = cache;
         }
 
         private string GetCurrentUserId() =>
@@ -138,7 +141,7 @@ namespace Application.Services.Implementations
 
                     foreach (var cartLine in orderDto.CartLines)
                     {
-                        var product = await _manager.Product.GetByIdAsync(cartLine.ProductId, false);
+                        var product = await _manager.Product.GetByIdAsync(cartLine.ProductId, false, false);
                         if (product == null)
                         {
                             return OperationResult<int>.Failure($"Ürün bulunamadı: {cartLine.ProductName}", ResultType.NotFound);
@@ -590,7 +593,7 @@ namespace Application.Services.Implementations
 
             foreach (var line in order.Lines)
             {
-                var product = await _manager.Product.GetByIdAsync(line.ProductId, true);
+                var product = await _manager.Product.GetByIdAsync(line.ProductId, true, true);
                 if (product != null)
                 {
                     var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
@@ -796,7 +799,7 @@ namespace Application.Services.Implementations
 
                 foreach (var line in order.Lines)
                 {
-                    var product = await _manager.Product.GetByIdAsync(line.ProductId, true);
+                    var product = await _manager.Product.GetByIdAsync(line.ProductId, true, true);
                     if (product != null)
                     {
                         var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
@@ -907,7 +910,7 @@ namespace Application.Services.Implementations
             _manager.OrderHistory.Create(historyEntry);
             foreach (var line in order.Lines)
             {
-                var product = await _manager.Product.GetByIdAsync(line.ProductId, true);
+                var product = await _manager.Product.GetByIdAsync(line.ProductId, true, true);
                 if (product != null)
                 {
                     var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
@@ -931,12 +934,16 @@ namespace Application.Services.Implementations
 
         public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default)
         {
-            var products = await _manager.Order.GetTopSellingProductsAsync(topN, ct);
-
-            return products;
+            return await _cache.GetOrCreateAsync("orders:topSelling",
+                async () =>
+                {
+                    return await _manager.Order.GetTopSellingProductsAsync(topN, ct);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
         }
-
-
 
         public async Task<int> CountByUserIdAsync(string userId)
         {

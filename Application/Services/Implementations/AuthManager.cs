@@ -7,7 +7,6 @@ using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
@@ -18,7 +17,7 @@ namespace Application.Services.Implementations
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly UserManager<User> _userManager;
         private readonly IMapper _mapper;
-        private readonly IMemoryCache _cache;
+        private readonly ICacheService _cache;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
         private readonly INotificationService _notificationService;
@@ -29,7 +28,7 @@ namespace Application.Services.Implementations
             RoleManager<IdentityRole> roleManager,
             UserManager<User> userManager,
             IMapper mapper,
-            IMemoryCache cache,
+            ICacheService cache,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
             INotificationService notificationService,
@@ -69,32 +68,30 @@ namespace Application.Services.Implementations
 
         public async Task<int> GetRolesCountAsync(CancellationToken ct = default)
         {
-            var count = await _roleManager.Roles
-                .AsNoTracking()
-                .CountAsync(ct);
-
-            return count;
+            return await _cache.GetOrCreateAsync("users:rolesCount",
+                async () =>
+                {
+                    return await _roleManager.Roles
+                        .AsNoTracking()
+                        .CountAsync(ct);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
         }
 
         public async Task<int> GetUsersCountAsync(CancellationToken ct = default)
         {
-            string cacheKey = "usersCount";
-
-            if (_cache.TryGetValue(cacheKey, out int cachedCount))
-            {
-                return cachedCount;
-            }
-
-            var count = await _userManager.Users.CountAsync();
-
-            _cache.Set(cacheKey, count,
-                new MemoryCacheEntryOptions
+            return await _cache.GetOrCreateAsync("users:count",
+                async () =>
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                    SlidingExpiration = TimeSpan.FromMinutes(2)
-                });
-
-            return count;
+                    return await _userManager.Users.CountAsync();
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
         }
 
         public async Task<User> GetOneUserForServiceAsync(string userId)
@@ -247,6 +244,7 @@ namespace Application.Services.Implementations
                     $"/admin/users/edit/{user.Id}"
                 );
 
+                await _cache.RemoveByPrefixAsync("users:");
                 _logger.LogInformation("User created successfully. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
                 return OperationResult<UserDto>.Success("Kullanıcı başarıyla oluşturuldu.");
             }
@@ -425,6 +423,7 @@ namespace Application.Services.Implementations
                 entityId: user.Id
             );
 
+            await _cache.RemoveByPrefixAsync("users:");
             _logger.LogInformation("User soft deleted. UserId: {UserId}, DeletedBy: {DeletedBy}", userId, userIdForLog);
             return OperationResult<UserDto>.Success("Kullanıcı başarıyla silindi.");
         }

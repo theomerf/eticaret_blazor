@@ -31,6 +31,12 @@
                         <i class="fa-solid fa-box text-primary"></i> Ürünler
                     </h1>
                     <div class="flex gap-2">
+                        @if (!isLoading)
+                        {
+                            <a href="/admin/products/create" class="bg-button text-sm text-white px-2 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-1">
+                                <i class="fas fa-plus"></i> Yeni Ürün
+                            </a>
+                        }
                         <button data-blazor-sort-open class="p-2 text-gray-600 hover:text-primary active:scale-95 transition-all">
                             <i class="fa-solid fa-sort text-xl"></i>
                         </button>
@@ -54,14 +60,32 @@
                                         <i class="fas fa-box"></i>
                                     </div>
                                     <div class="text-xs text-gray-500 font-medium">Toplam</div>
-                                    <div class="text-lg font-bold text-gray-800">@model.TotalCount</div>
+                                    @if (isLoading)
+                                    {
+                                        <div class="flex items-center mt-2">
+                                            <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-lg font-bold text-gray-800">@model.TotalCount</div>
+                                    }
                                 </div>
                                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
                                     <div class="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center mb-2">
                                         <i class="fas fa-star"></i>
                                     </div>
                                     <div class="text-xs text-gray-500 font-medium">Vitrin</div>
-                                    <div class="text-lg font-bold text-gray-800">@model.Products?.Count(p => p.ShowCase)</div>
+                                    @if (isLoading)
+                                    {
+                                        <div class="flex items-center mt-2">
+                                            <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-lg font-bold text-gray-800">@model.Products?.Count(p => p.ShowCase)</div>
+                                    }
                                 </div>
                             </div>
 
@@ -81,13 +105,16 @@
                                     <p class="text-gray-500 text-sm mt-1 ml-[52px]">Mağaza ürünlerini listeleyin, düzenleyin ve yönetin.</p>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <a href="/admin/products/create" class="bg-button hover:bg-button-hover text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
-                                        <i class="fas fa-plus"></i> Yeni Ürün
-                                    </a>
+                                    @if (!isLoading)
+                                    {
+                                        <a href="/admin/products/create" class="bg-button hover:bg-button-hover text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                                            <i class="fas fa-plus"></i> Yeni Ürün
+                                        </a>
+                                    }
                                 </div>
                             </div>
 
-                            @if (isLoading && model.Products == null)
+                            @if (isLoading)
                             {
                                 <div class="flex justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-100">
                                     <div class="flex flex-col items-center gap-3">
@@ -146,7 +173,7 @@
                                     </div>
                                 }
 
-                                <AdminTable Items="model.Products" Pagination="model.Pagination" OnPageChange="HandlePageChange" PageSize="@(model?.FilterParams.PageSize ?? 12)" OnPageSizeChange="HandlePageSizeChange">
+                                <AdminTable Items="model.Products" Pagination="model.Pagination" OnPageChange="HandlePageChange" PageSize="@(model?.FilterParams.PageSize ?? 10)" OnPageSizeChange="HandlePageSizeChange">
                                     <ToolbarContent>
                                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                             <!-- Search -->
@@ -281,14 +308,16 @@
     private bool isLoading = true;
     private bool showLoadingOverlay = false;
 
-    private SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private CancellationTokenSource? _cts;
+    private bool _isDisposed;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
         model.FilterParams = Navigation.BindFromQuery<ProductFilterParametersAdmin>();
-        await LoadAndBuildModel();
+
+        _cts = new CancellationTokenSource();
+        await LoadAndBuildModel(_cts.Token);
 
         isLoading = false;
         Navigation.LocationChanged += OnLocationChanged;
@@ -296,6 +325,11 @@
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
         await InvokeAsync(async () =>
         {
             if (_isDisposed) return;
@@ -306,9 +340,9 @@
             showLoadingOverlay = true;
             StateHasChanged();
 
-            await LoadAndBuildModel();
+            await LoadAndBuildModel(token);
 
-            if (_isDisposed) return;
+            if (_isDisposed || token.IsCancellationRequested) return;
 
             showLoadingOverlay = false;
             StateHasChanged();
@@ -317,29 +351,20 @@
         });
     }
 
-    private bool _isDisposed;
-
-    private async Task LoadAndBuildModel()
+    private async Task LoadAndBuildModel(CancellationToken ct)
     {
         if (_isDisposed) return;
 
-        _cts?.Cancel();
-        _cts?.Dispose();
-
-        _cts = new CancellationTokenSource();
-        var token = _cts.Token;
-
         try
         {
-            await _semaphore.WaitAsync(token);
-            if (_isDisposed) return;
-
             if (model?.FilterParams.PageSize == 0)
             {
                 model.FilterParams.PageSize = 12;
             }
 
-            var result = await Service.GetAllAdminAsync(model?.FilterParams!, token);
+            var result = await Service.GetAllAdminAsync(model?.FilterParams!, ct);
+
+            if (ct.IsCancellationRequested) return;
 
             var pagination = new Pagination()
             {
@@ -356,12 +381,8 @@
                 FilterParams = model?.FilterParams ?? new()
             };
         }
-        finally
+        catch (OperationCanceledException)
         {
-            if (!_isDisposed)
-            {
-                _semaphore.Release();
-            }
         }
     }
 
@@ -398,7 +419,7 @@
         if (_isDisposed) return;
 
         var result = await Service.UpdateShowcaseStatus(productId);
-        
+
         if (_isDisposed) return;
 
         if (result.IsSuccess)
@@ -420,18 +441,29 @@
 
         if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu ürünü silmek istediğinize emin misiniz?")) return;
 
-        var result = await Service.DeleteAsync(productId);
-        
-        if (_isDisposed) return;
+        try
+        {
+            var result = await Service.DeleteAsync(productId);
 
-        if (result.IsSuccess)
-        {
-            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
-            await LoadAndBuildModel();
+            if (_isDisposed) return;
+
+            if (result.IsSuccess)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+
+                _cts?.Cancel();
+                _cts?.Dispose();
+                _cts = new CancellationTokenSource();
+                await LoadAndBuildModel(_cts.Token);
+                StateHasChanged();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            }
         }
-        else
+        catch (OperationCanceledException)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
         }
     }
 

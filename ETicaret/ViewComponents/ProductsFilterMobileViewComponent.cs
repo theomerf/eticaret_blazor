@@ -14,7 +14,7 @@ namespace ETicaret.ViewComponents
 
         public async Task<IViewComponentResult> InvokeAsync()
         {
-            var categories = await _categoryService.GetAllAsync(false);
+            var categories = await _categoryService.GetAllAsync();
 
             return View(categories);
         }

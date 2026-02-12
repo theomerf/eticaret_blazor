@@ -9,7 +9,6 @@ using AutoMapper;
 using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.Text.Json;
@@ -20,7 +19,7 @@ namespace Application.Services.Implementations
     {
         private readonly IRepositoryManager _manager;
         private readonly IMapper _mapper;
-        private readonly IMemoryCache _cache;
+        private readonly ICacheService _cache;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
         private readonly IActivityService _activityService;
@@ -30,7 +29,7 @@ namespace Application.Services.Implementations
         public ProductManager(
             IRepositoryManager manager,
             IMapper mapper,
-            IMemoryCache cache,
+            ICacheService cache,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
             IActivityService activityService,
@@ -66,37 +65,26 @@ namespace Application.Services.Implementations
 
         public async Task<int> CountAsync(CancellationToken ct = default)
         {
-            string cacheKey = "productsCount";
-
-            if (_cache.TryGetValue(cacheKey, out int cachedCount))
-            {
-                return cachedCount;
-            }
-
-            var count = await _manager.Product.CountAsync(ct);
-
-            _cache.Set(cacheKey, count,
-                new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                    SlidingExpiration = TimeSpan.FromMinutes(2)
-                });
-
-            return count;
+            return await _cache.GetOrCreateAsync("products:count", 
+                () => _manager.Product.CountAsync(ct),
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
         }
 
-        private async Task<Product> GetByIdForServiceAsync(int productId, bool trackChanges)
+        private async Task<Product> GetByIdForServiceAsync(int productId, bool forUpdate, bool trackChanges)
         {
-            var product = await _manager.Product.GetByIdAsync(productId, trackChanges);
+            var product = await _manager.Product.GetByIdAsync(productId, forUpdate, trackChanges);
             if (product == null)
                 throw new ProductNotFoundException(productId);
 
             return product;
         }
 
-        public async Task<ProductWithDetailsDto> GetByIdAsync(int productId)
+        public async Task<ProductWithDetailsDto> GetByIdAsync(int productId, bool forUpdate = false)
         {
-            var product = await GetByIdForServiceAsync(productId, false);
+            var product = await GetByIdForServiceAsync(productId, forUpdate, false);
             var productDto = _mapper.Map<ProductWithDetailsDto>(product);
 
             return productDto;
@@ -205,10 +193,15 @@ namespace Application.Services.Implementations
 
         public async Task<IEnumerable<ProductDto>> GetShowcaseListAsync(CancellationToken ct = default)
         {
-            var products = await _manager.Product.GetShowcaseListAsync(false);
-            var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
-
-            return productsDto;
+            return await _cache.GetOrCreateAsync("products:showcase",
+                async () =>
+                {
+                    var products = await _manager.Product.GetShowcaseListAsync(false);
+                    return _mapper.Map<IEnumerable<ProductDto>>(products);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(3),
+                ct: ct
+            );
         }
 
         public async Task<OperationResult<ProductWithDetailsDto>> CreateAsync(ProductDtoForCreation productDto)
@@ -311,6 +304,7 @@ namespace Application.Services.Implementations
 
                 var productWithDetailsDto = _mapper.Map<ProductWithDetailsDto>(product);
 
+                await _cache.RemoveByPrefixAsync("products:");
                 return OperationResult<ProductWithDetailsDto>.Success(productWithDetailsDto, "Ürün başarıyla oluşturuldu.");
             }
             catch (ProductValidationException ex)
@@ -384,7 +378,7 @@ namespace Application.Services.Implementations
         public async Task<OperationResult<ProductWithDetailsDto>> UpdateShowcaseStatus(int productId)
         {
             _manager.ClearTracker();
-            var product = await GetByIdForServiceAsync(productId, true);
+            var product = await GetByIdForServiceAsync(productId, true, true);
             var oldShowCase = product.ShowCase;
 
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
@@ -412,6 +406,7 @@ namespace Application.Services.Implementations
 
             var productDto = _mapper.Map<ProductWithDetailsDto>(product);
 
+            await _cache.RemoveAsync("products:showcase");
             return OperationResult<ProductWithDetailsDto>.Success(
                 productDto,
                 product.ShowCase ? "Ürün vitrine eklendi." : "Ürün vitrinden kaldırıldı.");
@@ -422,7 +417,7 @@ namespace Application.Services.Implementations
             try
             {
                 _manager.ClearTracker();
-                var product = await GetByIdForServiceAsync(productDto.ProductId, true);
+                var product = await GetByIdForServiceAsync(productDto.ProductId, true, true);
 
                 var oldValues = new
                 {
@@ -609,6 +604,7 @@ namespace Application.Services.Implementations
                     "Product updated successfully. ProductId: {ProductId}, User: {UserId}",
                     product.ProductId, userId);
 
+                await _cache.RemoveAsync("products:showcase");
                 return OperationResult<ProductWithDetailsDto>.Success("Ürün başarıyla güncellendi.");
             }
             catch (ProductValidationException ex)
@@ -625,7 +621,7 @@ namespace Application.Services.Implementations
 
         public async Task<OperationResult<ProductWithDetailsDto>> DeleteAsync(int productId)
         {
-            var product = await GetByIdForServiceAsync(productId, true);
+            var product = await GetByIdForServiceAsync(productId, true, true);
 
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
@@ -646,6 +642,7 @@ namespace Application.Services.Implementations
                 "Product soft deleted. ProductId: {ProductId}, User: {UserId}",
                 productId, userId);
 
+            await _cache.RemoveByPrefixAsync("products:");
             return OperationResult<ProductWithDetailsDto>.Success("Ürün başarıyla silindi.");
         }
 

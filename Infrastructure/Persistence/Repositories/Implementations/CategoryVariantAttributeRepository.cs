@@ -1,6 +1,5 @@
 using Application.Repositories.Interfaces;
 using Domain.Entities;
-using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories.Implementations
@@ -24,15 +23,14 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .FirstOrDefaultAsync();
         }
 
-        public void Create(CategoryVariantAttribute categoryVariantAttribute)
-        {
-            CreateEntity(categoryVariantAttribute);
-        }
-
         public async Task<bool> ExistsByKeyAsync(string key, int categoryId)
         {
             return await FindByCondition(a => a.Key == key && a.CategoryId == categoryId, false)
                 .AnyAsync();
         }
+
+        public void Create(CategoryVariantAttribute categoryVariantAttribute) => CreateEntity(categoryVariantAttribute);
+
+        public void Delete(CategoryVariantAttribute categoryVariantAttribute) => RemoveEntity(categoryVariantAttribute);
     }
 }
