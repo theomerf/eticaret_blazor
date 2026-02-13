@@ -8,33 +8,41 @@ using Serilog.Sinks.PostgreSQL.ColumnWriters;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var columnWriters = new Dictionary<string, ColumnWriterBase>
-{
-    { "message", new RenderedMessageColumnWriter(NpgsqlDbType.Text) },
-    { "message_template", new MessageTemplateColumnWriter(NpgsqlDbType.Text) },
-    { "level", new LevelColumnWriter(true, NpgsqlDbType.Varchar) },
-    { "time_stamp", new TimestampColumnWriter(NpgsqlDbType.Timestamp) },
-    { "exception", new ExceptionColumnWriter(NpgsqlDbType.Text) },
-    { "properties", new LogEventSerializedColumnWriter(NpgsqlDbType.Jsonb) }
-};
-
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.PostgreSQL(
-        connectionString: builder.Configuration.GetConnectionString("logdb")!,
-        tableName: "serilog_logs",
-        columnOptions: columnWriters,
-        needAutoCreateTable: true,
-        restrictedToMinimumLevel: LogEventLevel.Warning,
-        batchSizeLimit: 50,
-        period: TimeSpan.FromSeconds(5)
-    )
-    .CreateLogger();
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 try
 {
     Log.Information("Starting ETicaret web application...");
+
+    var columnWriters = new Dictionary<string, ColumnWriterBase>
+    {
+        { "message", new RenderedMessageColumnWriter(NpgsqlDbType.Text) },
+        { "message_template", new MessageTemplateColumnWriter(NpgsqlDbType.Text) },
+        { "level", new LevelColumnWriter(true, NpgsqlDbType.Varchar) },
+        { "time_stamp", new TimestampColumnWriter(NpgsqlDbType.Timestamp) },
+        { "exception", new ExceptionColumnWriter(NpgsqlDbType.Text) },
+        { "properties", new LogEventSerializedColumnWriter(NpgsqlDbType.Jsonb) }
+    };
+
+    Log.Logger = new LoggerConfiguration()
+        .ReadFrom.Configuration(builder.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.PostgreSQL(
+            connectionString: builder.Configuration.GetConnectionString("logdb")!,
+            tableName: "serilog_logs",
+            columnOptions: columnWriters,
+            needAutoCreateTable: true,
+            restrictedToMinimumLevel: LogEventLevel.Warning,
+            batchSizeLimit: 50,
+            period: TimeSpan.FromSeconds(5)
+        )
+        .CreateLogger();
+
+    builder.Host.UseSerilog();
 
     if (!builder.Environment.IsDevelopment())
     {
