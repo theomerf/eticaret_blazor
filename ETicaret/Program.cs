@@ -30,7 +30,6 @@ try
     Log.Logger = new LoggerConfiguration()
         .ReadFrom.Configuration(builder.Configuration)
         .Enrich.FromLogContext()
-        .WriteTo.Console()
         .WriteTo.PostgreSQL(
             connectionString: builder.Configuration.GetConnectionString("logdb")!,
             tableName: "serilog_logs",
@@ -41,8 +40,6 @@ try
             period: TimeSpan.FromSeconds(5)
         )
         .CreateLogger();
-
-    builder.Host.UseSerilog();
 
     if (!builder.Environment.IsDevelopment())
     {
