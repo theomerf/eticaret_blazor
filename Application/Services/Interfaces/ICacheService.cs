@@ -4,7 +4,7 @@
     {
         Task<T?> GetAsync<T>(string key, CancellationToken ct = default);
 
-        Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory,
+        Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory,
             TimeSpan? absoluteExpiration = null,
             TimeSpan? slidingExpiration = null,
             CancellationToken ct = default);

@@ -19,7 +19,7 @@ namespace ETicaret.Controllers.Api
         {
             try
             {
-                var variant = await _productService.GetVariantByIdAsync(variantId);
+                var variant = await _productService.GetVariantByIdAsync(variantId, true);
                 
                 if (variant == null)
                 {

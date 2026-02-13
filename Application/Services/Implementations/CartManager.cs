@@ -109,7 +109,7 @@ namespace Application.Services.Implementations
 
                 if (newQuantity > 0)
                 {
-                    var productVariant = await _manager.ProductVariant.GetByIdAsync(productVariantId, false);
+                    var productVariant = await _manager.ProductVariant.GetByIdAsync(productVariantId, false, false);
 
                     if (productVariant == null)
                     {
@@ -148,68 +148,71 @@ namespace Application.Services.Implementations
         {
             ValidateUserAccess(userId);
 
-            var dbProduct = await _manager.Product.GetByIdAsync(productId, false, false);
-            var dbProductVariant = await _manager.ProductVariant.GetByIdAsync(productVariantId, false);
-
-            if (dbProduct == null)
+            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
             {
-                return CartOperationResult.Failure("Ürün bulunamadı");
-            }
+                _manager.ClearTracker();
+                var dbProduct = await _manager.Product.GetByIdAsync(productId, false, false);
+                var dbProductVariant = await _manager.ProductVariant.GetByIdAsync(productVariantId, true, false);
 
-            if (dbProductVariant == null)
-            {
-                return CartOperationResult.Failure("Ürün bulunamadı");
-            }
-
-            if (dbProductVariant.ProductId != productId)
-            {
-                return CartOperationResult.Failure("Varyant, belirtilen ürüne ait değil");
-            }
-
-            var availableStock = dbProductVariant.Stock;
-
-            if (availableStock < quantity)
-            {
-                return CartOperationResult.Failure($"Yetersiz stok. Mevcut stok: {availableStock}");
-            }
-
-            if (string.IsNullOrEmpty(userId))
-            {
-                return CartOperationResult.Success("Ürün sepete eklendi", 0, quantity);
-            }
-
-            _manager.ClearTracker();
-            var cart = await GetOrCreateCartAsync(userId, true);
-
-            var existingLine = cart.Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == productVariantId);
-
-            if (existingLine != null)
-            {
-                existingLine.Quantity += quantity;
-                existingLine.Price = dbProductVariant.Price;
-                existingLine.DiscountPrice = dbProductVariant.DiscountPrice;
-            }
-            else
-            {
-                cart.Lines.Add(new CartLine
+                if (dbProduct == null)
                 {
-                    ProductId = productId,
-                    ProductName = dbProduct.ProductName,
-                    ImageUrl = dbProductVariant.Images?.FirstOrDefault()?.ImageUrl,
-                    Price = dbProductVariant.Price,
-                    DiscountPrice = dbProductVariant.DiscountPrice,
-                    Quantity = quantity,
-                    ProductVariantId = productVariantId,
-                    SelectedColor = dbProductVariant.Color,
-                    SelectedSize = dbProductVariant.Size,
-                    SpecificationsJson = dbProductVariant.VariantSpecificationsJson
-                });
-            }
+                    return CartOperationResult.Failure("Ürün bulunamadı");
+                }
 
-            await _manager.SaveAsync();
-            _logger.LogInformation("Ürün eklendi. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+                if (dbProductVariant == null)
+                {
+                    return CartOperationResult.Failure("Ürün bulunamadı");
+                }
 
-            return CartOperationResult.Success("Ürün sepete eklendi", cart.Lines.Count, quantity);
+                if (dbProductVariant.ProductId != productId)
+                {
+                    return CartOperationResult.Failure("Varyant, belirtilen ürüne ait değil");
+                }
+
+                var availableStock = dbProductVariant.Stock;
+
+                if (availableStock < quantity)
+                {
+                    return CartOperationResult.Failure($"Yetersiz stok. Mevcut stok: {availableStock}");
+                }
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return CartOperationResult.Success("Ürün sepete eklendi", 0, quantity);
+                }
+
+                var cart = await GetOrCreateCartAsync(userId, true);
+
+                var existingLine = cart.Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == productVariantId);
+
+                if (existingLine != null)
+                {
+                    existingLine.Quantity += quantity;
+                    existingLine.Price = dbProductVariant.Price;
+                    existingLine.DiscountPrice = dbProductVariant.DiscountPrice;
+                }
+                else
+                {
+                    cart.Lines.Add(new CartLine
+                    {
+                        ProductId = productId,
+                        ProductName = dbProduct.ProductName,
+                        ImageUrl = dbProductVariant.Images?.FirstOrDefault()?.ImageUrl,
+                        Price = dbProductVariant.Price,
+                        DiscountPrice = dbProductVariant.DiscountPrice,
+                        Quantity = quantity,
+                        ProductVariantId = productVariantId,
+                        SelectedColor = dbProductVariant.Color,
+                        SelectedSize = dbProductVariant.Size,
+                        SpecificationsJson = dbProductVariant.VariantSpecificationsJson
+                    });
+                }
+
+                await _manager.SaveAsync();
+                _logger.LogInformation("Ürün eklendi. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+
+                return CartOperationResult.Success("Ürün sepete eklendi", cart.Lines.Count, quantity);
+            }, CancellationToken.None);
         }
 
         public async Task<CartOperationResult> RemoveItemAsync(string? userId, int productId, int productVariantId)
@@ -250,14 +253,17 @@ namespace Application.Services.Implementations
                 return CartOperationResult.Success("Sepet temizlendi");
             }
 
-            _manager.ClearTracker();
-            var cart = await GetOrCreateCartAsync(userId, true);
-            cart.Clear();
+            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            {
+                _manager.ClearTracker();
+                var cart = await GetOrCreateCartAsync(userId, true);
+                cart.Clear();
 
-            await _manager.SaveAsync();
-            _logger.LogInformation("Sepet temizlendi. Kullanıcı: {UserId}", userId);
+                await _manager.SaveAsync();
+                _logger.LogInformation("Sepet temizlendi. Kullanıcı: {UserId}", userId);
 
-            return CartOperationResult.Success("Sepet temizlendi");
+                return CartOperationResult.Success("Sepet temizlendi");
+            }, CancellationToken.None);
         }
 
         public async Task<CartDto> GetByUserIdAsync(string? userId, bool validate = false)
@@ -299,52 +305,55 @@ namespace Application.Services.Implementations
         {
             ValidateUserAccess(userId);
 
-            _manager.ClearTracker();
-
-            if (!sessionCart.Lines.Any())
+            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
             {
-                return await GetByUserIdAsync(userId, false);
-            }
+                _manager.ClearTracker();
 
-            var cart = await GetOrCreateCartAsync(userId, true);
-            bool hasChanges = false;
-
-            foreach (var sessionLine in sessionCart.Lines)
-            {
-                var dbLine = cart.Lines.FirstOrDefault(l => l.ProductId == sessionLine.ProductId && l.ProductVariantId == sessionLine.ProductVariantId);
-
-                if (dbLine != null)
+                if (!sessionCart.Lines.Any())
                 {
-                    dbLine.Quantity += sessionLine.Quantity;
-                    hasChanges = true;
+                    return await GetByUserIdAsync(userId, false);
                 }
-                else
+
+                var cart = await GetOrCreateCartAsync(userId, true);
+                bool hasChanges = false;
+
+                foreach (var sessionLine in sessionCart.Lines)
                 {
-                    cart.Lines.Add(new CartLine
+                    var dbLine = cart.Lines.FirstOrDefault(l => l.ProductId == sessionLine.ProductId && l.ProductVariantId == sessionLine.ProductVariantId);
+
+                    if (dbLine != null)
                     {
-                        ProductId = sessionLine.ProductId,
-                        ProductName = sessionLine.ProductName,
-                        ImageUrl = sessionLine.ImageUrl,
-                        Price = sessionLine.ActualPrice,
-                        DiscountPrice = sessionLine.DiscountPrice,
-                        Quantity = sessionLine.Quantity,
-                        ProductVariantId = sessionLine.ProductVariantId,
-                        SelectedColor = sessionLine.SelectedColor,
-                        SelectedSize = sessionLine.SelectedSize,
-                        SpecificationsJson = JsonSerializer.Serialize(sessionLine.VariantSpecifications.Select(x => new Application.DTOs.ProductSpecificationDto { Key = x.Key, Value = x.Value }), (JsonSerializerOptions?)null)
-                    });
-                    hasChanges = true;
+                        dbLine.Quantity += sessionLine.Quantity;
+                        hasChanges = true;
+                    }
+                    else
+                    {
+                        cart.Lines.Add(new CartLine
+                        {
+                            ProductId = sessionLine.ProductId,
+                            ProductName = sessionLine.ProductName,
+                            ImageUrl = sessionLine.ImageUrl,
+                            Price = sessionLine.ActualPrice,
+                            DiscountPrice = sessionLine.DiscountPrice,
+                            Quantity = sessionLine.Quantity,
+                            ProductVariantId = sessionLine.ProductVariantId,
+                            SelectedColor = sessionLine.SelectedColor,
+                            SelectedSize = sessionLine.SelectedSize,
+                            SpecificationsJson = JsonSerializer.Serialize(sessionLine.VariantSpecifications.Select(x => new Application.DTOs.ProductSpecificationDto { Key = x.Key, Value = x.Value }), (JsonSerializerOptions?)null)
+                        });
+                        hasChanges = true;
+                    }
                 }
-            }
 
-            if (hasChanges)
-            {
-                await _manager.SaveAsync();
-                _logger.LogInformation("Sepetler birleştirildi. Kullanıcı: {UserId}. Toplam ürün sayısı: {Count}",
-                    userId, cart.Lines.Count);
-            }
+                if (hasChanges)
+                {
+                    await _manager.SaveAsync();
+                    _logger.LogInformation("Sepetler birleştirildi. Kullanıcı: {UserId}. Toplam ürün sayısı: {Count}",
+                        userId, cart.Lines.Count);
+                }
 
-            return _mapper.Map<CartDto>(cart);
+                return _mapper.Map<CartDto>(cart);
+            }, CancellationToken.None);
         }
 
         public async Task<bool> ValidateAsync(string? userId)
@@ -353,10 +362,14 @@ namespace Application.Services.Implementations
 
             if (string.IsNullOrEmpty(userId)) return false;
 
-            var cart = await _manager.Cart.GetByUserIdAsync(userId, true);
-            if (cart == null) return true;
+            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            {
+                _manager.ClearTracker();
+                var cart = await _manager.Cart.GetByUserIdAsync(userId, true);
+                if (cart == null) return true;
 
-            return await ValidateCartItemsAsync(cart);
+                return await ValidateCartItemsAsync(cart);
+            }, CancellationToken.None);
         }
 
         public async Task<bool> ValidateCartItemsAsync(Cart cart)
@@ -375,7 +388,7 @@ namespace Application.Services.Implementations
                     continue;
                 }
 
-                var variant = product.Variants?.FirstOrDefault(v => v.ProductVariantId == line.ProductVariantId);
+                var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, false, false);
 
                 if (variant == null)
                 {

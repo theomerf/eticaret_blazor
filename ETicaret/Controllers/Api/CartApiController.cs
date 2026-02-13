@@ -134,7 +134,7 @@ namespace ETicaret.Controllers.Api
                     return BadRequest(new { success = false, message = "Geçersiz ürün varyantı", type = "danger" });
                 }
 
-                var variantDto = await _productService.GetVariantByIdAsync(request.ProductVariantId);
+                var variantDto = await _productService.GetVariantByIdAsync(request.ProductVariantId, true);
 
                 if (variantDto.Stock < request.Quantity)
                 {
@@ -156,7 +156,7 @@ namespace ETicaret.Controllers.Api
                     Color = variantDto.Color,
                     Size = variantDto.Size,
                     Stock = variantDto.Stock,
-                    Images = variantDto.Images?.Select(i => new ProductImage
+                    Images = variantDto.Images?.Where(i => i.IsPrimary == true).Select(i => new ProductImage
                     {
                         ProductImageId = i.ProductImageId,
                         ProductVariantId = i.ProductVariantId,

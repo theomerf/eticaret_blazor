@@ -36,6 +36,7 @@ namespace ETicaret.Models
             {
                 CartId = cart.CartId,
                 UserId = cart.UserId,
+                Version = cart.Version,
                 Lines = cart.Lines.Select(l => new CartLineDto
                 {
                     CartLineId = l.CartLineId,

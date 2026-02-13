@@ -74,8 +74,6 @@
     private IEnumerable<ProductSalesDto> topSellingProducts = new List<ProductSalesDto>();
     private SystemStatusDto? systemStatus;
 
-    private bool _isDisposed = false;
-
     protected override async Task OnInitializedAsync()
     {
         _productService = ScopedServices.GetRequiredService<IProductService>();
@@ -88,13 +86,6 @@
 
         NotificationService.Clear();
         isLoading = true;
-
-        _cts = new CancellationTokenSource();
-        await LoadDashboardDatasAsync(_cts.Token);
-        
-        if (_isDisposed) return;
-
-        isLoading = false;
 
         if (AuthStateTask != null)
         {
@@ -115,6 +106,19 @@
             await JSRuntime.InvokeVoidAsync("showToast", $"Tekrar Hoşgeldiniz {firstName} {lastName}, Saat: {DateTime.Now.ToShortTimeString()}", "info");
             await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "dashboardWelcomeShown", "true");
         }
+
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            await LoadDashboardDatasAsync(_cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        isLoading = false;
     }
 
     private async Task LoadDashboardDatasAsync(CancellationToken ct)
@@ -151,9 +155,6 @@
 
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _isDisposed = true;
-
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = null;

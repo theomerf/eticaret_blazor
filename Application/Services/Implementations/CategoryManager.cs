@@ -40,20 +40,22 @@ namespace Application.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<IEnumerable<CategoryDto>> GetAllAsync()
+        public async Task<IEnumerable<CategoryDto>> GetAllAsync(CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("categories:list",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "categories:list",
+                async token =>
                 {
-                    var categories = await _manager.Category.GetAllAsync(false);
+                    var categories = await _manager.Category.GetAllAsync(false, token);
                     return _mapper.Map<IEnumerable<CategoryDto>>(categories).ToList();
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),
-                slidingExpiration: TimeSpan.FromMinutes(2)
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
             );
         }
 
-        public async Task<(IEnumerable<CategoryDto> categories, int count)> GetAllAdminAsync(RequestParametersAdmin p, CancellationToken ct)
+        public async Task<(IEnumerable<CategoryDto> categories, int count)> GetAllAdminAsync(RequestParametersAdmin p, CancellationToken ct = default)
         {
             var result = await _manager.Category.GetAllAdminAsync(p, false, ct);
             var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(result.categories);
@@ -63,10 +65,11 @@ namespace Application.Services.Implementations
 
         public async Task<int> CountAsync(CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("categories:count",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "categories:count",
+                async token =>
                 {
-                    return await _manager.Category.CountAsync();
+                    return await _manager.Category.CountAsync(token);
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),
                 slidingExpiration: TimeSpan.FromMinutes(2),

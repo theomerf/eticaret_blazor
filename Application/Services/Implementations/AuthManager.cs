@@ -68,12 +68,13 @@ namespace Application.Services.Implementations
 
         public async Task<int> GetRolesCountAsync(CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("users:rolesCount",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "users:rolesCount",
+                async token =>
                 {
                     return await _roleManager.Roles
                         .AsNoTracking()
-                        .CountAsync(ct);
+                        .CountAsync(token);
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),
                 slidingExpiration: TimeSpan.FromMinutes(2),
@@ -83,10 +84,11 @@ namespace Application.Services.Implementations
 
         public async Task<int> GetUsersCountAsync(CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("users:count",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "users:count",
+                async token =>
                 {
-                    return await _userManager.Users.CountAsync();
+                    return await _userManager.Users.CountAsync(token);
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),
                 slidingExpiration: TimeSpan.FromMinutes(2),

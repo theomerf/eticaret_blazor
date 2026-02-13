@@ -65,8 +65,9 @@ namespace Application.Services.Implementations
 
         public async Task<int> CountAsync(CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("products:count", 
-                () => _manager.Product.CountAsync(ct),
+            return await _cache.GetOrCreateAsync(
+                "products:count",
+                async token => await _manager.Product.CountAsync(token),
                 absoluteExpiration: TimeSpan.FromMinutes(5),
                 slidingExpiration: TimeSpan.FromMinutes(2),
                 ct: ct
@@ -89,18 +90,19 @@ namespace Application.Services.Implementations
 
             return productDto;
         }
-        private async Task<ProductVariant> GetVariantByIdForServiceAsync(int variantId, bool trackChanges)
+
+        private async Task<ProductVariant> GetVariantByIdForServiceAsync(int variantId, bool includeImages, bool trackChanges)
         {
-            var variant = await _manager.ProductVariant.GetByIdAsync(variantId, trackChanges);
+            var variant = await _manager.ProductVariant.GetByIdAsync(variantId, includeImages, trackChanges);
             if (variant == null)
                 throw new ProductVariantNotFoundException(variantId);
 
             return variant;
         }
 
-        public async Task<ProductVariantDto> GetVariantByIdAsync(int variantId)
+        public async Task<ProductVariantDto> GetVariantByIdAsync(int variantId, bool includeImages)
         {
-            var variant = await GetVariantByIdForServiceAsync(variantId, false);
+            var variant = await GetVariantByIdForServiceAsync(variantId, includeImages, false);
             var variantDto = _mapper.Map<ProductVariantDto>(variant);
 
             return variantDto;
@@ -159,7 +161,7 @@ namespace Application.Services.Implementations
             if (defaultVariantId == null)
                 return;
 
-            var defaultVariantFull = await _manager.ProductVariant.GetByIdAsync(defaultVariantId.Value, false);
+            var defaultVariantFull = await _manager.ProductVariant.GetByIdAsync(defaultVariantId.Value, true, false);
             if (defaultVariantFull == null)
                 throw new ProductVariantNotFoundException(defaultVariantId.Value);
 
@@ -193,13 +195,15 @@ namespace Application.Services.Implementations
 
         public async Task<IEnumerable<ProductDto>> GetShowcaseListAsync(CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("products:showcase",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "products:showcase",
+                async token =>
                 {
-                    var products = await _manager.Product.GetShowcaseListAsync(false);
+                    var products = await _manager.Product.GetShowcaseListAsync(false, token);
                     return _mapper.Map<IEnumerable<ProductDto>>(products);
                 },
-                absoluteExpiration: TimeSpan.FromMinutes(3),
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
                 ct: ct
             );
         }
@@ -326,7 +330,7 @@ namespace Application.Services.Implementations
                 if (productImagesDto == null || !productImagesDto.Any()) return OperationResult<ProductWithDetailsDto>.Success("Resim listesi boş.");
 
                 var variantId = productImagesDto.First().ProductVariantId;
-                var productVariant = await GetVariantByIdForServiceAsync(variantId, true);
+                var productVariant = await GetVariantByIdForServiceAsync(variantId, true, true);
 
                 if (productVariant.Images != null && productVariant.Images.Any())
                 {

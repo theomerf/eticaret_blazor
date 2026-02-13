@@ -276,7 +276,7 @@ namespace ETicaret.Services
                     SetError("Geçersiz ürün varyantı");
                 }
 
-                var variantDto = await _productService.GetVariantByIdAsync(variantId);
+                var variantDto = await _productService.GetVariantByIdAsync(variantId, true);
 
                 if (variantDto == null)
                 {
@@ -296,8 +296,14 @@ namespace ETicaret.Services
                         DiscountPrice = variantDto.DiscountPrice,
                         Stock = variantDto.Stock,
                         Color = variantDto.Color,
-                        Size = variantDto.Size
-                        // IsActive etc if needed
+                        Size = variantDto.Size,
+                        Images = variantDto.Images?.Where(i => i.IsPrimary == true).Select(i => new ProductImage
+                        {
+                            ProductImageId = i.ProductImageId,
+                            ProductVariantId = i.ProductVariantId,
+                            ImageUrl = i.ImageUrl,
+                            IsPrimary = i.IsPrimary,
+                        }).ToList()
                     };
                 }
 
@@ -305,8 +311,6 @@ namespace ETicaret.Services
                 {
                         ProductId = product!.ProductId,
                     ProductName = product.ProductName
-                    /*Images = product.Images, */
-                    // MinPrice/MaxPrice are computed read-only, do not assign
                 };
 
                 // For simple products (no variants), we might have variantId=null. 

@@ -1,10 +1,11 @@
 using Application.Mappings;
 using ETicaret.Extensions;
 using ETicaret.Middlewares;
+using NpgsqlTypes;
 using Serilog;
 using Serilog.Events;
-using NpgsqlTypes;
 using Serilog.Sinks.PostgreSQL.ColumnWriters;
+using Serilog.Sinks.SystemConsole.Themes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,10 @@ try
     Log.Logger = new LoggerConfiguration()
         .ReadFrom.Configuration(builder.Configuration)
         .Enrich.FromLogContext()
+        .WriteTo.Console(
+            outputTemplate:
+            "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+        )
         .WriteTo.PostgreSQL(
             connectionString: builder.Configuration.GetConnectionString("logdb")!,
             tableName: "serilog_logs",
@@ -41,13 +46,13 @@ try
         )
         .CreateLogger();
 
+    builder.Host.UseSerilog();
+
     if (!builder.Environment.IsDevelopment())
     {
         var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
         builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
     }
-
-    builder.Host.UseSerilog();
 
     builder.Services.AddHttpContextAccessor();
 

@@ -10,7 +10,7 @@ namespace Application.Services.Interfaces
         Task<(IEnumerable<ProductDto> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, CancellationToken ct = default);
         Task<int> CountAsync(CancellationToken ct = default);
         Task<ProductWithDetailsDto> GetByIdAsync(int productId, bool forUpdate = false);
-        Task<ProductVariantDto> GetVariantByIdAsync(int variantId);
+        Task<ProductVariantDto> GetVariantByIdAsync(int variantId, bool includeImages);
         Task<ProductWithDetailsDto> GetBySlugAsync(string slug);
         Task<IEnumerable<ProductDto>> GetRecommendationsAsync();
         Task<IEnumerable<ProductDto>> GetFavouritesAsync(FavouriteResultDto favouritesDto);

@@ -61,10 +61,11 @@ namespace Application.Services.Implementations
 
         public async Task<int> CountAsync(CancellationToken ct = default) 
         {
-            return await _cache.GetOrCreateAsync("userReviews:count",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "userReviews:count",
+                async token =>
                 {
-                    return await _manager.UserReview.CountAsync(false, ct);
+                    return await _manager.UserReview.CountAsync(false, token);
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),
                 slidingExpiration: TimeSpan.FromMinutes(2),

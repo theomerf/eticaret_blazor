@@ -64,7 +64,7 @@
                     ProductId = product.ProductId,
                     ProductVariantId = variant.ProductVariantId,
                     ProductName = product.ProductName,
-                    ImageUrl = product.Variants.FirstOrDefault(v => v.ProductVariantId == variant.ProductVariantId)?.Images?.FirstOrDefault()?.ImageUrl,
+                    ImageUrl = variant.Images?.FirstOrDefault()?.ImageUrl,
                     Price = variant.Price,
                     DiscountPrice = variant.DiscountPrice,
                     SelectedColor = variant.Color,
@@ -112,10 +112,13 @@
             if (Lines.Count == 0)
                 return;
 
-            Lines.Clear();
+            var linesToRemove = Lines.ToList();
+            foreach (var line in linesToRemove)
+            {
+                RemoveItem(line.ProductId, line.ProductVariantId);
+            }
             Touch();
         }
-
 
         public decimal ComputeTotalValue() =>
             Lines.Sum(e => e.Price * e.Quantity);

@@ -57,15 +57,8 @@
 		var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 		var userName = User.FindFirstValue(ClaimTypes.Name);
 
-		var currentCart = SessionCart.GetCartDto(HttpContext.Session);
-
 		if (userId != null && userName != null)
 		{
-			if (currentCart.Lines.Any())
-			{
-				await CartService.MergeCartsAsync(userId!, currentCart);
-			}
-
 			HttpContext.Response.Cookies.Delete("FavouriteProducts");
 			HttpContext.Session.Clear();
 

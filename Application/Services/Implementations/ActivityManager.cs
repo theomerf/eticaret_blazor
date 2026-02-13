@@ -21,10 +21,11 @@ namespace Application.Services.Implementations
 
         public async Task<IEnumerable<ActivityDto>> GetRecentAsync(int count = 5, CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("activities:recent",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "activities:recent",
+                async token =>
                 {
-                    var activities = await _manager.Activity.GetRecentAsync(count, false);
+                    var activities = await _manager.Activity.GetRecentAsync(count, false, token);
                     return _mapper.Map<IEnumerable<ActivityDto>>(activities);
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),

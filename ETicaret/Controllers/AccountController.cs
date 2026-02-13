@@ -246,11 +246,6 @@ namespace ETicaret.Controllers
 
             if (userId != null && userName != null)
             {
-                if (currentCart.Lines.Any())
-                {
-                    await _cartService.MergeCartsAsync(userId!, currentCart);
-                }
-
                 Response.Cookies.Delete("FavouriteProducts");
                 HttpContext.Session.Clear();
 

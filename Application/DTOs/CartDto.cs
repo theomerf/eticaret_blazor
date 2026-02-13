@@ -7,7 +7,7 @@ namespace Application.DTOs
         public int CartId { get; set; }
         public string? UserId { get; set; }
         public List<CartLineDto> Lines { get; set; } = [];
-        public int Version { get; set; }
+        public int Version { get; init; }
         public bool IsUpdated { get; set; } = true;    
 
         public virtual void AddItem(Product product, int quantity)

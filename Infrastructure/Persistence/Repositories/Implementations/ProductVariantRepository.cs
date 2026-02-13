@@ -1,5 +1,6 @@
 using Application.Repositories.Interfaces;
 using Domain.Entities;
+using Infrastructure.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories.Implementations
@@ -10,10 +11,10 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<ProductVariant?> GetByIdAsync(int productVariantId, bool trackChanges)
+        public async Task<ProductVariant?> GetByIdAsync(int productVariantId, bool includeImages, bool trackChanges)
         {
             return await FindByCondition(v => v.ProductVariantId == productVariantId, trackChanges)
-                .Include(v => v.Images)
+                .IncludeIf(includeImages, v => v.Images)
                 .FirstOrDefaultAsync();
         }
 

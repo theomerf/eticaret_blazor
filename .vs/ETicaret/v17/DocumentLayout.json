@@ -3,52 +3,32 @@
   "WorkspaceRootPath": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\shared\\dashboardpanels.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\shared\\dashboardpanels.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\shared\\showcase.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\shared\\showcase.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\products.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\products.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\categories.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\categories.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\createcategory.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\createcategory.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+      "AbsoluteMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\application\\services\\implementations\\cartmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|solutionrelative:application\\services\\implementations\\cartmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\updatecategory.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\updatecategory.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\application\\services\\implementations\\categorymanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|solutionrelative:application\\services\\implementations\\categorymanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\updateproduct.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\updateproduct.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\categories.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\categories.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\products.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\products.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|c:\\users\\omerf\\onedrive\\masa\u00FCst\u00FC\\projeler\\.net\\eticaret_blazor\\eticaret\\components\\pages\\admin\\createcategory.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{0D211226-402A-5705-C6E8-8BD9A2BCD32F}|ETicaret\\ETicaret.csproj|solutionrelative:eticaret\\components\\pages\\admin\\createcategory.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     }
   ],
   "DocumentGroupContainers": [
@@ -58,7 +38,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -73,96 +53,38 @@
               "Name": "ST:1:0:{e8034f19-ab72-4f06-83fd-f6832b41aa63}"
             },
             {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\appsettings.json",
-              "RelativeDocumentMoniker": "ETicaret\\appsettings.json",
-              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\appsettings.json",
-              "RelativeToolTip": "ETicaret\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-02-13T11:48:42.793Z",
-              "EditorCaption": ""
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "appsettings.Development.json",
-              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\appsettings.Development.json",
-              "RelativeDocumentMoniker": "ETicaret\\appsettings.Development.json",
-              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\appsettings.Development.json",
-              "RelativeToolTip": "ETicaret\\appsettings.Development.json",
-              "ViewState": "AgIAAA0AAAAAAAAAAAAAABMAAAAQAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-02-13T11:41:54.623Z",
+              "DocumentIndex": 0,
+              "Title": "CartManager.cs",
+              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\Application\\Services\\Implementations\\CartManager.cs",
+              "RelativeDocumentMoniker": "Application\\Services\\Implementations\\CartManager.cs",
+              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\Application\\Services\\Implementations\\CartManager.cs",
+              "RelativeToolTip": "Application\\Services\\Implementations\\CartManager.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAACcAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-13T16:58:13.873Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Program.cs",
-              "RelativeDocumentMoniker": "ETicaret\\Program.cs",
-              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Program.cs",
-              "RelativeToolTip": "ETicaret\\Program.cs",
-              "ViewState": "AgIAAHMAAAAAAAAAAAAIwBoAAABQAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-13T11:41:29.655Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "Showcase.razor",
-              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Shared\\Showcase.razor",
-              "RelativeDocumentMoniker": "ETicaret\\Components\\Shared\\Showcase.razor",
-              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Shared\\Showcase.razor",
-              "RelativeToolTip": "ETicaret\\Components\\Shared\\Showcase.razor",
-              "ViewState": "AgIAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-02-12T18:44:11.77Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "DashboardPanels.razor",
-              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Shared\\DashboardPanels.razor",
-              "RelativeDocumentMoniker": "ETicaret\\Components\\Shared\\DashboardPanels.razor",
-              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Shared\\DashboardPanels.razor",
-              "RelativeToolTip": "ETicaret\\Components\\Shared\\DashboardPanels.razor",
-              "ViewState": "AgIAAJMAAAAAAAAAAADwv8oAAAAoAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-02-12T18:29:48.628Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "CategoryManager.cs",
-              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\Application\\Services\\Implementations\\CategoryManager.cs",
-              "RelativeDocumentMoniker": "Application\\Services\\Implementations\\CategoryManager.cs",
-              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\Application\\Services\\Implementations\\CategoryManager.cs",
-              "RelativeToolTip": "Application\\Services\\Implementations\\CategoryManager.cs",
-              "ViewState": "AgIAADgBAAAAAAAAAAD4v1QBAABHAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-12T18:06:05.768Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
               "Title": "UpdateCategory.razor",
               "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\UpdateCategory.razor",
               "RelativeDocumentMoniker": "ETicaret\\Components\\Pages\\Admin\\UpdateCategory.razor",
               "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\UpdateCategory.razor",
               "RelativeToolTip": "ETicaret\\Components\\Pages\\Admin\\UpdateCategory.razor",
-              "ViewState": "AgIAAF0BAAAAAAAAAAD4v2kBAAAjAAAAAAAAAA==",
+              "ViewState": "AgIAAFoBAAAAAAAAAAD4v2cBAABBAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-02-12T16:59:05.61Z"
+              "WhenOpened": "2026-02-12T16:59:05.61Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 6,
               "Title": "CreateCategory.razor",
               "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\CreateCategory.razor",
               "RelativeDocumentMoniker": "ETicaret\\Components\\Pages\\Admin\\CreateCategory.razor",
@@ -174,7 +96,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 3,
               "Title": "UpdateProduct.razor",
               "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\UpdateProduct.razor",
               "RelativeDocumentMoniker": "ETicaret\\Components\\Pages\\Admin\\UpdateProduct.razor",
@@ -182,31 +104,21 @@
               "RelativeToolTip": "ETicaret\\Components\\Pages\\Admin\\UpdateProduct.razor",
               "ViewState": "AgIAAAoCAAAAAAAAAAAAAB0CAAAnAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-02-11T20:56:26.385Z"
+              "WhenOpened": "2026-02-11T20:56:26.385Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 2,
               "Title": "Dashboard.razor",
               "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\Dashboard.razor",
               "RelativeDocumentMoniker": "ETicaret\\Components\\Pages\\Admin\\Dashboard.razor",
               "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\Dashboard.razor",
               "RelativeToolTip": "ETicaret\\Components\\Pages\\Admin\\Dashboard.razor",
-              "ViewState": "AgIAAGYAAAAAAAAAAAAAAJcAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAADMAAAAAAAAAAAAAAG0AAAAtAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-02-12T12:30:38.354Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Categories.razor",
-              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\Categories.razor",
-              "RelativeDocumentMoniker": "ETicaret\\Components\\Pages\\Admin\\Categories.razor",
-              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\Categories.razor",
-              "RelativeToolTip": "ETicaret\\Components\\Pages\\Admin\\Categories.razor",
-              "ViewState": "AgIAAMoAAAAAAAAAAAAIwN8AAAAMAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-02-12T14:47:08.758Z"
+              "WhenOpened": "2026-02-12T12:30:38.354Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -221,8 +133,17 @@
               "WhenOpened": "2026-02-12T11:05:06.482Z"
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Categories.razor",
+              "DocumentMoniker": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\Categories.razor",
+              "RelativeDocumentMoniker": "ETicaret\\Components\\Pages\\Admin\\Categories.razor",
+              "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\ETicaret\\Components\\Pages\\Admin\\Categories.razor",
+              "RelativeToolTip": "ETicaret\\Components\\Pages\\Admin\\Categories.razor",
+              "ViewState": "AgIAAMoAAAAAAAAAAAAIwN8AAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-02-12T14:47:08.758Z",
+              "EditorCaption": ""
             }
           ]
         }

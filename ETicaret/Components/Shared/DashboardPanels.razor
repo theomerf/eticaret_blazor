@@ -410,7 +410,7 @@
             @if (SystemStatus != null)
             {
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <!-- Server -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-emerald-100 group-hover:scale-110 transition-transform">
                             <i class="fas fa-server"></i>
@@ -421,7 +421,7 @@
                         </span>
                         <p class="text-xs text-gray-400">Uptime: @SystemStatus.Uptime</p>
                     </div>
-                    <!-- DB -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-blue-100 text-primary flex items-center justify-center text-2xl mb-3 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
                             <i class="fas fa-database"></i>
@@ -432,7 +432,7 @@
                         </span>
                         <p class="text-xs text-gray-400">Yanıt: @SystemStatus.DbResponseTime</p>
                     </div>
-                    <!-- Memory -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-amber-100 group-hover:scale-110 transition-transform">
                             <i class="fas fa-memory"></i>
@@ -441,7 +441,7 @@
                         <span class="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md my-1">@SystemStatus.MemoryUsageRatio</span>
                         <p class="text-xs text-gray-400">@SystemStatus.MemoryDetails</p>
                     </div>
-                    <!-- Disk -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-indigo-100 text-secondary flex items-center justify-center text-2xl mb-3 shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform">
                             <i class="fas fa-hdd"></i>
@@ -455,7 +455,7 @@
             else
             {
                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <!-- Server -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-gray-100">
                             <i class="fas fa-server"></i>
@@ -464,7 +464,7 @@
                          <div class="my-1"><div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
                         <p class="text-xs text-gray-400">Yükleniyor...</p>
                     </div>
-                    <!-- DB -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-gray-100">
                             <i class="fas fa-database"></i>
@@ -473,7 +473,7 @@
                          <div class="my-1"><div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
                         <p class="text-xs text-gray-400">Yükleniyor...</p>
                     </div>
-                    <!-- Memory -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-gray-100">
                             <i class="fas fa-memory"></i>
@@ -482,7 +482,7 @@
                          <div class="my-1"><div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
                         <p class="text-xs text-gray-400">Yükleniyor...</p>
                     </div>
-                    <!-- Disk -->
+
                     <div class="flex flex-col items-center text-center group">
                         <div class="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-2xl mb-3 shadow-lg shadow-gray-100">
                             <i class="fas fa-hdd"></i>

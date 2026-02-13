@@ -147,7 +147,7 @@ namespace Application.Services.Implementations
                             return OperationResult<int>.Failure($"Ürün bulunamadı: {cartLine.ProductName}", ResultType.NotFound);
                         }
 
-                        var variant = await _manager.ProductVariant.GetByIdAsync(cartLine.ProductVariantId, true);
+                        var variant = await _manager.ProductVariant.GetByIdAsync(cartLine.ProductVariantId, false, true);
                         if (variant == null)
                         {
                             return OperationResult<int>.Failure($"Ürün varyantı bulunamadı: {cartLine.ProductName}", ResultType.NotFound);
@@ -596,7 +596,7 @@ namespace Application.Services.Implementations
                 var product = await _manager.Product.GetByIdAsync(line.ProductId, true, true);
                 if (product != null)
                 {
-                    var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
+                    var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, false, true);
                     if (variant != null)
                     {
                         variant.Stock += line.Quantity;
@@ -802,7 +802,7 @@ namespace Application.Services.Implementations
                     var product = await _manager.Product.GetByIdAsync(line.ProductId, true, true);
                     if (product != null)
                     {
-                        var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
+                        var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, false, true);
                         if (variant != null)
                         {
                             variant.Stock += line.Quantity;
@@ -913,7 +913,7 @@ namespace Application.Services.Implementations
                 var product = await _manager.Product.GetByIdAsync(line.ProductId, true, true);
                 if (product != null)
                 {
-                    var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, true);
+                    var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, false, true);
                     if (variant != null)
                     {
                         variant.Stock += line.Quantity;
@@ -934,10 +934,11 @@ namespace Application.Services.Implementations
 
         public async Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default)
         {
-            return await _cache.GetOrCreateAsync("orders:topSelling",
-                async () =>
+            return await _cache.GetOrCreateAsync(
+                "orders:topSelling",
+                async token =>
                 {
-                    return await _manager.Order.GetTopSellingProductsAsync(topN, ct);
+                    return await _manager.Order.GetTopSellingProductsAsync(topN, token);
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),
                 slidingExpiration: TimeSpan.FromMinutes(2),
@@ -957,7 +958,16 @@ namespace Application.Services.Implementations
 
         public async Task<int> CountOfInProcessAsync(CancellationToken ct = default)
         {
-            return await _manager.Order.CountOfInProcessAsync(ct);
+            return await _cache.GetOrCreateAsync("orders:topSelling",
+                async token =>
+                {
+                    return await _manager.Order.CountOfInProcessAsync(token);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
+
         }
     }
 }

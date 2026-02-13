@@ -13,7 +13,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
 
         }
 
-        public async Task<IEnumerable<Category>> GetAllAsync(bool trackChanges)
+        public async Task<IEnumerable<Category>> GetAllAsync(bool trackChanges, CancellationToken ct = default)
         {
             var categories = await FindAll(trackChanges)
                 .Select(c => new Category
@@ -26,7 +26,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                     IsFeatured = c.IsFeatured,
                 })
                 .OrderBy(c => c.DisplayOrder)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             return categories;  
         }
