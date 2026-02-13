@@ -11,11 +11,6 @@
                 <span>Ürünler (@Cart.Lines.Sum(l => l.Quantity))</span>
                 <span class="text-gray-900 group-hover:text-primary transition-colors">@Cart.ComputeTotalValue().ToString("C")</span>
             </div>
-            
-            <div class="flex justify-between items-center text-gray-600 font-medium hover:translate-x-1 transition-transform">
-                <span>Kargo</span>
-                <span class="text-green-600 font-bold">Ücretsiz</span>
-            </div>
 
             @if (Cart.Lines.Any())
             {

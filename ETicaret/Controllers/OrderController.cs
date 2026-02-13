@@ -116,7 +116,7 @@ namespace ETicaret.Controllers
                     ProductId = l.ProductId,
                     ProductName = l.ProductName,
                     Quantity = l.Quantity,
-                    ActualPrice = l.ActualPrice,
+                    Price = l.Price,
                     DiscountPrice = l.DiscountPrice,
                     ImageUrl = l.ImageUrl,
                     ProductVariantId = l.ProductVariantId,

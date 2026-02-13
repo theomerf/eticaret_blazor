@@ -1,4 +1,5 @@
 ﻿using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Domain.Entities;
 
 namespace Application.Repositories.Interfaces
@@ -21,6 +22,7 @@ namespace Application.Repositories.Interfaces
         Task<decimal> GetUserTotalSpentAsync(string userId);
         Task<IEnumerable<DailySalesDto>> GetDailySalesAsync(DateTime startDate, DateTime endDate);
         Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default);
+        Task<(IEnumerable<Order> orders, int count)> GetAllAdminAsync(OrderFilterParametersAdmin p, bool trackChanges, CancellationToken ct = default);
 
         void Create(Order order);
         void Update(Order order);

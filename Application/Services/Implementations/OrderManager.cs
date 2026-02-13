@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using System.Security.Claims;
+using Application.Queries.RequestParameters;
 
 namespace Application.Services.Implementations
 {
@@ -172,7 +173,7 @@ namespace Application.Services.Implementations
                             CategoryName = category.CategoryName,
                             SubCategoryName = category.ParentCategory != null ? category.ParentCategory.CategoryName : null,
                             Quantity = cartLine.Quantity,
-                            Price = cartLine.ActualPrice,
+                            Price = cartLine.Price,
                             DiscountPrice = cartLine.DiscountPrice,
                             ImageUrl = cartLine.ImageUrl,
                             ProductVariantId = cartLine.ProductVariantId,
@@ -400,6 +401,14 @@ namespace Application.Services.Implementations
             var ordersDto = _mapper.Map<IEnumerable<OrderDto>>(orders);
 
             return ordersDto;
+        }
+
+        public async Task<OperationResult<(IEnumerable<OrderDto> orders, int count)>> GetAllAdminAsync(OrderFilterParametersAdmin p)
+        {
+            var (orders, count) = await _manager.Order.GetAllAdminAsync(p, false);
+            var ordersDto = _mapper.Map<IEnumerable<OrderDto>>(orders);
+
+            return OperationResult<(IEnumerable<OrderDto> orders, int count)>.Success((ordersDto, count), "Siparişler listelendi.");
         }
 
         public async Task<OperationResult<OrderWithDetailsDto>> UpdateStatusAsync(OrderDtoForUpdate orderDto)

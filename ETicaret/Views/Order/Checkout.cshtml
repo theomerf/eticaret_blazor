@@ -237,8 +237,8 @@
                                         <div class="flex-1 min-w-0">
                                             <h4 class="text-sm font-bold text-gray-800 truncate">@line.ProductName</h4>
                                             <div class="flex justify-between items-center text-sm mt-1">
-                                                <span class="text-gray-400">@line.Quantity x @((line.DiscountPrice ?? line.ActualPrice).ToString("N2"))₺</span>
-                                                <span class="font-bold text-gray-800">@((line.Quantity * (line.DiscountPrice ?? line.ActualPrice)).ToString("N2"))₺</span>
+                                                <span class="text-gray-400">@line.Quantity x @((line.DiscountPrice ?? line.Price).ToString("N2"))₺</span>
+                                                <span class="font-bold text-gray-800">@((line.Quantity * (line.DiscountPrice ?? line.Price)).ToString("N2"))₺</span>
                                             </div>
                                         </div>
                                     </div>

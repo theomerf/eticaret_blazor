@@ -43,7 +43,6 @@ else if (model == null)
 else
 {
     <div class="container-fluid px-4 py-6">
-        <!-- Header -->
         <div class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
@@ -60,14 +59,11 @@ else
         <EditForm Model="@model" OnValidSubmit="HandleUpdateProduct">
             <DataAnnotationsValidator />
 
-            <!-- Validation Summary -->
             <ValidationSummary class="mt-6 mb-6 p-4 bg-red-50 rounded-xl border border-red-200 text-red-700" />
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Left Column - Main Content -->
                 <div class="lg:col-span-2 space-y-6">
 
-                    <!-- Basic Information -->
                     <AdminFormSection Title="Temel Bilgiler" Icon="fas fa-info-circle">
                         <div class="space-y-4">
                             <div>
@@ -97,7 +93,6 @@ else
                         </div>
                     </AdminFormSection>
 
-                    <!-- Long Description -->
                     <AdminFormSection Title="Detaylı Açıklama" Icon="fas fa-align-left">
                         <RichTextEditor @bind-Value="model.LongDescription"
                                         Placeholder="Ürün hakkında detaylı bilgi yazın..."
@@ -108,10 +103,7 @@ else
                         </p>
                     </AdminFormSection>
 
-
-                    <!-- Dynamic Specifications -->
                     <AdminFormSection Title="Teknik Özellikler" Icon="fas fa-cogs">
-                        <!-- Predefined Dimensions -->
                         <div class="mb-6 border-b pb-6">
                             <label class="block text-sm font-semibold text-gray-700 mb-4">Fiziksel Özellikler (Varsayılan)</label>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -192,7 +184,6 @@ else
                         </div>
                     </AdminFormSection>
 
-                    <!-- Variants -->
                     <AdminFormSection Title="Ürün Varyantları" Icon="fas fa-layer-group">
                         
                     @if (model.CategoryId <= 0)
@@ -211,13 +202,11 @@ else
                         </div>
                     }
                     
-                    <!-- Overlay/Disable Content -->
                     <div class="@(model.CategoryId <= 0 ? "opacity-50 pointer-events-none select-none filter blur-[1px]" : "")">
                     <div class="mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                         <label class="block text-sm font-bold text-gray-700 mb-2">Varyant Özellikleri Yapılandırması</label>
                         <p class="text-xs text-gray-500 mb-3">Varyantlarınızı oluşturmak için kullanılacak özellikleri seçin veya tanımlayın.</p>
                         
-                        <!-- Existing Category Attributes -->
                         @if (categoryAttributes.Any())
                         {
                             <div class="mb-4">
@@ -236,7 +225,6 @@ else
                             </div>
                         }
 
-                        <!-- Newly Added Attributes -->
                         @if (model.NewAttributeDefinitions.Any())
                         {
                              <div class="mb-4">
@@ -254,7 +242,6 @@ else
                             </div>
                         }
 
-                        <!-- Add New Attribute Form -->
                         <div class="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
                             <div class="flex flex-col gap-3">
                                 <div class="flex items-center justify-between cursor-pointer" @onclick="() => showNewAttrForm = !showNewAttrForm">
@@ -311,7 +298,7 @@ else
                                     <table class="w-full text-sm text-left">
                                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                                             <tr>
-                                                <th class="px-4 py-3 w-8"></th> <!-- Expand Toggle -->
+                                                <th class="px-4 py-3 w-8"></th>
                                                 @foreach (var key in GetActiveDefinerKeys())
                                                 {
                                                     <th class="px-4 py-3">@key</th>
@@ -424,7 +411,6 @@ else
                                                                 </div>
                                                             </div>
                                                             
-                                                            <!-- Non-Definer Technical Specs for this Variant -->
                                                             <div class="mt-2 pt-2 border-t border-gray-200">
                                                                 <p class="text-xs font-semibold text-gray-500 mb-2">Ek Özellikler</p>
                                                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">

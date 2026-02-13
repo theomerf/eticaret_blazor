@@ -17,7 +17,6 @@
 </HeadContent>
 
 <div class="container-fluid px-4 py-6">
-    <!-- Header -->
     <div class="flex justify-between items-center mb-8">
         <div>
             <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
@@ -33,15 +32,11 @@
 
     <EditForm Model="@model" OnValidSubmit="HandleCreateProduct">
         <DataAnnotationsValidator />
-
-        <!-- Validation Summary -->
         <ValidationSummary class="mt-6 mb-6 p-4 bg-red-50 rounded-xl border border-red-200 text-red-700" />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column - Main Content -->
             <div class="lg:col-span-2 space-y-6">
 
-                <!-- Basic Information -->
                 <AdminFormSection Title="Temel Bilgiler" Icon="fas fa-info-circle">
                     <div class="space-y-4">
                         <div>
@@ -71,7 +66,6 @@
                     </div>
                 </AdminFormSection>
 
-                <!-- Long Description -->
                 <AdminFormSection Title="Detaylı Açıklama" Icon="fas fa-align-left">
                     <RichTextEditor @bind-Value="model.LongDescription"
                                     Placeholder="Ürün hakkında detaylı bilgi yazın..."
@@ -82,10 +76,8 @@
                     </p>
                 </AdminFormSection>
 
-                <!-- Technical Specifications -->
                 <AdminFormSection Title="Teknik Özellikler" Icon="fas fa-cogs">
 
-                    <!-- Predefined Dimensions -->
                     <div class="mb-6 border-b pb-6">
                         <label class="block text-sm font-semibold text-gray-700 mb-4">Fiziksel Özellikler (Varsayılan)</label>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -109,7 +101,6 @@
                         <p class="text-xs text-gray-500 mt-2">Bu değerler varyantlarda özelleştirilmediği sürece varsayılan olarak kullanılır.</p>
                     </div>
 
-                    <!-- Dynamic Specifications -->
                     <div class="mb-6 border-b pb-6">
                         <label class="block text-sm font-semibold text-gray-700 mb-4">Özel Teknik Özellikler (Ortak)</label>
 
@@ -167,9 +158,8 @@
                     </div>
                 </AdminFormSection>
 
-                <!-- Variants -->
                 <AdminFormSection Title="Ürün Varyantları" Icon="fas fa-layer-group">
-                    
+
                     @if (model.CategoryId <= 0)
                     {
                         <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r shadow-sm">
@@ -186,283 +176,275 @@
                         </div>
                     }
 
-                    <!-- Overlay/Disable Content -->
                     <div class="@(model.CategoryId <= 0 ? "opacity-50 pointer-events-none select-none filter blur-[1px]" : "")">
-                     
-                     <!-- Original Content Wrapped -->
-                    <div class="mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Varyant Özellikleri Yapılandırması</label>
-                        <p class="text-xs text-gray-500 mb-3">Bu kısımda varyantlara özel teknik özellik ya da varyant seçici oluşturabilecek alanları(Örn. Materyal vb.) oluşturabilirsiniz, bu kategoriye ait mevcut alanları düzenleyebilirsiniz.</p>
 
-                        <!-- Existing Category Attributes -->
-                        @if (categoryAttributes.Any())
-                        {
-                            <div class="mb-4">
-                                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Kategori Özellikleri</label>
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach (var attr in categoryAttributes)
-                                    {
-                                        <button type="button"
-                                                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all border @(activeAttributeKeys.Contains(attr.Key) ? "bg-blue-500 text-white border-blue-600 shadow-md" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300")"
-                                                @onclick="() => ToggleAttribute(attr.Key)">
-                                            @attr.DisplayName
-                                            @if (attr.IsVariantDefiner)
-                                            {
-                                                <span class="ml-1 text-[10px] opacity-75">(Definer)</span>
-                                            }
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        }
+                        <div class="mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Varyant Özellikleri Yapılandırması</label>
+                            <p class="text-xs text-gray-500 mb-3">Bu kısımda varyantlara özel teknik özellik ya da varyant seçici oluşturabilecek alanları(Örn. Materyal vb.) oluşturabilirsiniz, bu kategoriye ait mevcut alanları düzenleyebilirsiniz.</p>
 
-                        <!-- Newly Added Attributes -->
-                        @if (model.NewAttributeDefinitions.Any())
-                        {
-                            <div class="mb-4">
-                                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Yeni Tanımlanan Özellikler</label>
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach (var attr in model.NewAttributeDefinitions)
-                                    {
-                                        <div class="flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-green-500 text-white border border-green-600 shadow-md">
-                                            <span>@attr.DisplayName</span>
-                                            <span class="ml-1 text-[10px] opacity-75">(@(attr.IsVariantDefiner ? "Definer" : "TechSpec"))</span>
-                                            <button type="button" @onclick="() => RemoveNewAttributeDefinition(attr)" class="ml-2 hover:text-red-100"><i class="fas fa-times"></i></button>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        <!-- Add New Attribute Form -->
-                        <div class="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                            <div class="flex flex-col gap-3">
-                                <div class="flex items-center justify-between cursor-pointer" @onclick="() => showNewAttrForm = !showNewAttrForm">
-                                    <span class="text-sm font-medium text-gray-700"><i class="fas fa-plus mr-2"></i>Yeni Özellik Tanımla</span>
-                                    <i class="fas fa-chevron-down transform transition-transform @(showNewAttrForm ? "rotate-180" : "")"></i>
-                                </div>
-
-                                @if (showNewAttrForm)
-                                {
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                                        <div>
-                                            <label class="block text-xs text-gray-500 mb-1">Özellik Adı</label>
-                                            <InputText @bind-Value="tempNewAttr.DisplayName" class="w-full px-2 py-1.5 border rounded text-sm" placeholder="Örn: Materyal" />
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs text-gray-500 mb-1">Tip</label>
-                                            <InputSelect @bind-Value="tempNewAttr.Type" class="w-full px-2 py-1.5 border rounded text-sm">
-                                                <option value="@VariantAttributeType.Select">Seçim (Select)</option>
-                                                <option value="@VariantAttributeType.String">Metin</option>
-                                                <option value="@VariantAttributeType.Number">Sayı</option>
-                                                <option value="@VariantAttributeType.Color">Renk</option>
-                                                <option value="@VariantAttributeType.Boolean">Mantıksal (Var/Yok)</option>
-                                            </InputSelect>
-                                        </div>
-                                        <div class="md:col-span-2 flex items-center gap-4 py-2">
-                                            <label class="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" @bind="tempNewAttr.IsVariantDefiner" class="rounded text-blue-600 focus:ring-blue-500" />
-                                                <span class="text-sm text-gray-700">Varyant Belirleyici (Definer)</span>
-                                            </label>
-                                            <label class="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" @bind="tempNewAttr.IsTechnicalSpec" class="rounded text-blue-600 focus:ring-blue-500" />
-                                                <span class="text-sm text-gray-700">Teknik Özellik</span>
-                                            </label>
-                                            <label class="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" @bind="tempNewAttr.IsRequired" class="rounded text-blue-600 focus:ring-blue-500" />
-                                                <span class="text-sm text-gray-700">Zorunlu</span>
-                                            </label>
-                                        </div>
-                                        <div class="md:col-span-2">
-                                            <button type="button" @onclick="AddNewAttributeDefinition" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm hover:bg-gray-700 w-full md:w-auto">
-                                                Ekle ve Aktif Et
+                            @if (categoryAttributes.Any())
+                            {
+                                <div class="mb-4">
+                                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Kategori Özellikleri</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach (var attr in categoryAttributes)
+                                        {
+                                            <button type="button"
+                                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all border @(activeAttributeKeys.Contains(attr.Key) ? "bg-blue-500 text-white border-blue-600 shadow-md" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300")"
+                                                    @onclick="() => ToggleAttribute(attr.Key)">
+                                                @attr.DisplayName
+                                                @if (attr.IsVariantDefiner)
+                                                {
+                                                    <span class="ml-1 text-[10px] opacity-75">(Definer)</span>
+                                                }
                                             </button>
-                                        </div>
+                                        }
                                     </div>
-                                }
+                                </div>
+                            }
+
+                            @if (model.NewAttributeDefinitions.Any())
+                            {
+                                <div class="mb-4">
+                                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Yeni Tanımlanan Özellikler</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach (var attr in model.NewAttributeDefinitions)
+                                        {
+                                            <div class="flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-green-500 text-white border border-green-600 shadow-md">
+                                                <span>@attr.DisplayName</span>
+                                                <span class="ml-1 text-[10px] opacity-75">(@(attr.IsVariantDefiner ? "Definer" : "TechSpec"))</span>
+                                                <button type="button" @onclick="() => RemoveNewAttributeDefinition(attr)" class="ml-2 hover:text-red-100"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="mt-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                <div class="flex flex-col gap-3">
+                                    <div class="flex items-center justify-between cursor-pointer" @onclick="() => showNewAttrForm = !showNewAttrForm">
+                                        <span class="text-sm font-medium text-gray-700"><i class="fas fa-plus mr-2"></i>Yeni Özellik Tanımla</span>
+                                        <i class="fas fa-chevron-down transform transition-transform @(showNewAttrForm ? "rotate-180" : "")"></i>
+                                    </div>
+
+                                    @if (showNewAttrForm)
+                                    {
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                                            <div>
+                                                <label class="block text-xs text-gray-500 mb-1">Özellik Adı</label>
+                                                <InputText @bind-Value="tempNewAttr.DisplayName" class="w-full px-2 py-1.5 border rounded text-sm" placeholder="Örn: Materyal" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-gray-500 mb-1">Tip</label>
+                                                <InputSelect @bind-Value="tempNewAttr.Type" class="w-full px-2 py-1.5 border rounded text-sm">
+                                                    <option value="@VariantAttributeType.Select">Seçim (Select)</option>
+                                                    <option value="@VariantAttributeType.String">Metin</option>
+                                                    <option value="@VariantAttributeType.Number">Sayı</option>
+                                                    <option value="@VariantAttributeType.Color">Renk</option>
+                                                    <option value="@VariantAttributeType.Boolean">Mantıksal (Var/Yok)</option>
+                                                </InputSelect>
+                                            </div>
+                                            <div class="md:col-span-2 flex items-center gap-4 py-2">
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="checkbox" @bind="tempNewAttr.IsVariantDefiner" class="rounded text-blue-600 focus:ring-blue-500" />
+                                                    <span class="text-sm text-gray-700">Varyant Belirleyici (Definer)</span>
+                                                </label>
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="checkbox" @bind="tempNewAttr.IsTechnicalSpec" class="rounded text-blue-600 focus:ring-blue-500" />
+                                                    <span class="text-sm text-gray-700">Teknik Özellik</span>
+                                                </label>
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="checkbox" @bind="tempNewAttr.IsRequired" class="rounded text-blue-600 focus:ring-blue-500" />
+                                                    <span class="text-sm text-gray-700">Zorunlu</span>
+                                                </label>
+                                            </div>
+                                            <div class="md:col-span-2">
+                                                <button type="button" @onclick="AddNewAttributeDefinition" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm hover:bg-gray-700 w-full md:w-auto">
+                                                    Ekle ve Aktif Et
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
-                    </div>
 
 
-                    <div class="space-y-4">
-                        @if (model.Variants.Any())
-                        {
-                            <div class="overflow-x-auto border border-gray-200 rounded-xl">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                                        <tr>
-                                            <th class="px-4 py-3 w-8"></th> <!-- Expand Toggle -->
-                                            @foreach (var key in GetActiveDefinerKeys())
-                                            {
-                                                <th class="px-4 py-3">@key</th>
-                                            }
-                                            <th class="px-4 py-3">Fiyat</th>
-                                            <th class="px-4 py-3">Stok</th>
-                                            <th class="px-4 py-3">SKU</th>
-                                            <th class="px-4 py-3 w-16 text-center">Aktif</th>
-                                            <th class="px-4 py-3 w-16 text-center">Varsayılan</th>
-                                            <th class="px-4 py-3 w-8"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        @foreach (var variant in model.Variants)
-                                        {
-                                            <tr class="bg-white hover:bg-gray-50">
-                                                <td class="px-2 py-3 text-center">
-                                                    <button type="button" @onclick="() => ToggleVariantDetails(variant)" class="text-gray-400 hover:text-blue-600 transition-colors">
-                                                        <i class="fas @(expandedVariants.Contains(variant) ? "fa-chevron-down" : "fa-chevron-right")"></i>
-                                                    </button>
-                                                </td>
-
+                        <div class="space-y-4">
+                            @if (model.Variants.Any())
+                            {
+                                <div class="overflow-x-auto border border-gray-200 rounded-xl">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                                            <tr>
+                                                <th class="px-4 py-3 w-8"></th>
                                                 @foreach (var key in GetActiveDefinerKeys())
                                                 {
-                                                    <td class="p-2 align-top">
-                                                        @if (key == "Renk")
-                                                        {
-                                                            <div class="relative">
-                                                                <InputText @bind-Value="variant.Color" class="w-full px-2 py-1 border rounded text-sm" placeholder="Renk" list="colorsList" />
-                                                                <datalist id="colorsList">
-                                                                    @foreach (var color in predefinedColors)
-                                                                    {
-                                                                        <option value="@color"></option>
-                                                                    }
-                                                                </datalist>
-                                                            </div>
-                                                        }
-                                                        else if (key == "Beden")
-                                                        {
-                                                            <InputText @bind-Value="variant.Size" class="w-full px-2 py-1 border rounded text-sm" placeholder="Beden" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <InputText Value="@GetSpecificationValue(variant, key)"
-                                                                       ValueChanged="@((string s) => SetSpecificationValue(variant, key, s))"
-                                                                       ValueExpression="@(() => variant.Size)"
-                                                                       class="w-full px-2 py-1 border rounded text-sm"
-                                                                       placeholder="@key" />
-                                                        }
-                                                    </td>
+                                                    <th class="px-4 py-3">@key</th>
                                                 }
-                                                <td class="p-2 align-top">
-                                                    <InputNumber @bind-Value="variant.Price" class="w-full px-2 py-1 border rounded text-sm" placeholder="Fiyat" />
-                                                </td>
-                                                <td class="p-2 align-top">
-                                                    <InputNumber @bind-Value="variant.Stock" class="w-full px-2 py-1 border rounded text-sm" placeholder="Stok" />
-                                                </td>
-                                                <td class="p-2 align-top">
-                                                    <InputText @bind-Value="variant.Sku" class="w-full px-2 py-1 border rounded text-sm" placeholder="SKU" />
-                                                </td>
-                                                <td class="p-2 text-center align-top">
-                                                    <div class="flex justify-center">
-                                                        <label class="relative inline-flex items-center cursor-pointer" title="Aktif/Pasif">
-                                                            <input type="checkbox" @bind="variant.IsActive" class="sr-only peer">
-                                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                                        </label>
-                                                    </div>
-                                                </td>
-                                                <td class="p-2 text-center align-top">
-                                                    <div class="flex justify-center">
-                                                        <label class="relative inline-flex items-center cursor-pointer" title="Varsayılan Varyant">
-                                                            <input type="checkbox" checked="@variant.IsDefault" @onchange="@(() => SetAsDefault(variant))" class="sr-only peer">
-                                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-yellow-500"></div>
-                                                        </label>
-                                                    </div>
-                                                </td>
-                                                <td class="p-2 text-center align-top">
-                                                    <button type="button" @onclick="@(() => RemoveVariant(variant))" class="text-red-500 hover:text-red-700">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </button>
-                                                </td>
+                                                <th class="px-4 py-3">Fiyat</th>
+                                                <th class="px-4 py-3">Stok</th>
+                                                <th class="px-4 py-3">SKU</th>
+                                                <th class="px-4 py-3 w-16 text-center">Aktif</th>
+                                                <th class="px-4 py-3 w-16 text-center">Varsayılan</th>
+                                                <th class="px-4 py-3 w-8"></th>
                                             </tr>
-                                            @if (expandedVariants.Contains(variant))
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200">
+                                            @foreach (var variant in model.Variants)
                                             {
-                                                <tr class="bg-gray-50/50">
-                                                    <td colspan="10" class="px-4 py-3 border-b">
-                                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-2">
-                                                            <div>
-                                                                <label class="block text-xs text-gray-500 mb-1">İndirimli Fiyat</label>
-                                                                <InputNumber @bind-Value="variant.DiscountPrice" class="w-full px-2 py-1 border rounded text-sm" placeholder="Opsiyonel" />
-                                                            </div>
-                                                            <div>
-                                                                <label class="block text-xs text-gray-500 mb-1">GTIN</label>
-                                                                <InputText @bind-Value="variant.Gtin" class="w-full px-2 py-1 border rounded text-sm" placeholder="Barkod" />
-                                                            </div>
-                                                            <div class="md:col-span-2 grid grid-cols-4 gap-2 border-l pl-4 border-gray-200">
-                                                                <div>
-                                                                    <label class="block text-[10px] text-gray-500 mb-1">Ağırlık (Opsiyonel)</label>
-                                                                    <InputNumber @bind-Value="variant.WeightOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="Örn: 1.5" />
-                                                                </div>
-                                                                <div>
-                                                                    <label class="block text-[10px] text-gray-500 mb-1">Uzunluk (Opsiyonel)</label>
-                                                                    <InputNumber @bind-Value="variant.LengthOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="cm" />
-                                                                </div>
-                                                                <div>
-                                                                    <label class="block text-[10px] text-gray-500 mb-1">Genişlik (Opsiyonel)</label>
-                                                                    <InputNumber @bind-Value="variant.WidthOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="cm" />
-                                                                </div>
-                                                                <div>
-                                                                    <label class="block text-[10px] text-gray-500 mb-1">Yükseklik (Opsiyonel)</label>
-                                                                    <InputNumber @bind-Value="variant.HeightOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="cm" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                <tr class="bg-white hover:bg-gray-50">
+                                                    <td class="px-2 py-3 text-center">
+                                                        <button type="button" @onclick="() => ToggleVariantDetails(variant)" class="text-gray-400 hover:text-blue-600 transition-colors">
+                                                            <i class="fas @(expandedVariants.Contains(variant) ? "fa-chevron-down" : "fa-chevron-right")"></i>
+                                                        </button>
+                                                    </td>
 
-                                                        <!-- Non-Definer Technical Specs for this Variant -->
-                                                        <div class="mt-2 pt-2 border-t border-gray-200">
-                                                            <p class="text-xs font-semibold text-gray-500 mb-2">Ek Özellikler</p>
-                                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                                                @foreach (var key in GetActiveNonDefinerKeys())
-                                                                {
-                                                                    <div>
-                                                                        <label class="block text-xs text-gray-500 mb-1">@key</label>
-                                                                        <InputText Value="@GetSpecificationValue(variant, key)"
-                                                                                   ValueChanged="@((string s) => SetSpecificationValue(variant, key, s))"
-                                                                                   ValueExpression="@(() => variant.Size)"
-                                                                                   class="w-full px-2 py-1 border rounded text-sm"
-                                                                                   placeholder="Değer girin..." />
-                                                                    </div>
-                                                                }
-                                                                @if (!GetActiveNonDefinerKeys().Any())
-                                                                {
-                                                                    <p class="text-xs text-gray-400 italic">Varyant bazlı teknik özellik tanımlanmamış. Yukarıdan ekleyebilirsiniz.</p>
-                                                                }
-                                                            </div>
+                                                    @foreach (var key in GetActiveDefinerKeys())
+                                                    {
+                                                        <td class="p-2 align-top">
+                                                            @if (key == "Renk")
+                                                            {
+                                                                <div class="relative">
+                                                                    <InputText @bind-Value="variant.Color" class="w-full px-2 py-1 border rounded text-sm" placeholder="Renk" list="colorsList" />
+                                                                    <datalist id="colorsList">
+                                                                        @foreach (var color in predefinedColors)
+                                                                        {
+                                                                            <option value="@color"></option>
+                                                                        }
+                                                                    </datalist>
+                                                                </div>
+                                                            }
+                                                            else if (key == "Beden")
+                                                            {
+                                                                <InputText @bind-Value="variant.Size" class="w-full px-2 py-1 border rounded text-sm" placeholder="Beden" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <InputText Value="@GetSpecificationValue(variant, key)"
+                                                                           ValueChanged="@((string s) => SetSpecificationValue(variant, key, s))"
+                                                                           ValueExpression="@(() => variant.Size)"
+                                                                           class="w-full px-2 py-1 border rounded text-sm"
+                                                                           placeholder="@key" />
+                                                            }
+                                                        </td>
+                                                    }
+                                                    <td class="p-2 align-top">
+                                                        <InputNumber @bind-Value="variant.Price" class="w-full px-2 py-1 border rounded text-sm" placeholder="Fiyat" />
+                                                    </td>
+                                                    <td class="p-2 align-top">
+                                                        <InputNumber @bind-Value="variant.Stock" class="w-full px-2 py-1 border rounded text-sm" placeholder="Stok" />
+                                                    </td>
+                                                    <td class="p-2 align-top">
+                                                        <InputText @bind-Value="variant.Sku" class="w-full px-2 py-1 border rounded text-sm" placeholder="SKU" />
+                                                    </td>
+                                                    <td class="p-2 text-center align-top">
+                                                        <div class="flex justify-center">
+                                                            <label class="relative inline-flex items-center cursor-pointer" title="Aktif/Pasif">
+                                                                <input type="checkbox" @bind="variant.IsActive" class="sr-only peer">
+                                                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                            </label>
                                                         </div>
+                                                    </td>
+                                                    <td class="p-2 text-center align-top">
+                                                        <div class="flex justify-center">
+                                                            <label class="relative inline-flex items-center cursor-pointer" title="Varsayılan Varyant">
+                                                                <input type="checkbox" checked="@variant.IsDefault" @onchange="@(() => SetAsDefault(variant))" class="sr-only peer">
+                                                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-yellow-500"></div>
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                    <td class="p-2 text-center align-top">
+                                                        <button type="button" @onclick="@(() => RemoveVariant(variant))" class="text-red-500 hover:text-red-700">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
                                                     </td>
                                                 </tr>
+                                                @if (expandedVariants.Contains(variant))
+                                                {
+                                                    <tr class="bg-gray-50/50">
+                                                        <td colspan="10" class="px-4 py-3 border-b">
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-2">
+                                                                <div>
+                                                                    <label class="block text-xs text-gray-500 mb-1">İndirimli Fiyat</label>
+                                                                    <InputNumber @bind-Value="variant.DiscountPrice" class="w-full px-2 py-1 border rounded text-sm" placeholder="Opsiyonel" />
+                                                                </div>
+                                                                <div>
+                                                                    <label class="block text-xs text-gray-500 mb-1">GTIN</label>
+                                                                    <InputText @bind-Value="variant.Gtin" class="w-full px-2 py-1 border rounded text-sm" placeholder="Barkod" />
+                                                                </div>
+                                                                <div class="md:col-span-2 grid grid-cols-4 gap-2 border-l pl-4 border-gray-200">
+                                                                    <div>
+                                                                        <label class="block text-[10px] text-gray-500 mb-1">Ağırlık (Opsiyonel)</label>
+                                                                        <InputNumber @bind-Value="variant.WeightOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="Örn: 1.5" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="block text-[10px] text-gray-500 mb-1">Uzunluk (Opsiyonel)</label>
+                                                                        <InputNumber @bind-Value="variant.LengthOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="cm" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="block text-[10px] text-gray-500 mb-1">Genişlik (Opsiyonel)</label>
+                                                                        <InputNumber @bind-Value="variant.WidthOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="cm" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="block text-[10px] text-gray-500 mb-1">Yükseklik (Opsiyonel)</label>
+                                                                        <InputNumber @bind-Value="variant.HeightOverride" class="w-full px-2 py-1 border rounded text-xs" placeholder="cm" />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="mt-2 pt-2 border-t border-gray-200">
+                                                                <p class="text-xs font-semibold text-gray-500 mb-2">Ek Özellikler</p>
+                                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                                    @foreach (var key in GetActiveNonDefinerKeys())
+                                                                    {
+                                                                        <div>
+                                                                            <label class="block text-xs text-gray-500 mb-1">@key</label>
+                                                                            <InputText Value="@GetSpecificationValue(variant, key)"
+                                                                                       ValueChanged="@((string s) => SetSpecificationValue(variant, key, s))"
+                                                                                       ValueExpression="@(() => variant.Size)"
+                                                                                       class="w-full px-2 py-1 border rounded text-sm"
+                                                                                       placeholder="Değer girin..." />
+                                                                        </div>
+                                                                    }
+                                                                    @if (!GetActiveNonDefinerKeys().Any())
+                                                                    {
+                                                                        <p class="text-xs text-gray-400 italic">Varyant bazlı teknik özellik tanımlanmamış. Yukarıdan ekleyebilirsiniz.</p>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
                                             }
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="p-6 text-center text-gray-500 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                                <i class="fas fa-box-open text-3xl mb-2 text-gray-400"></i>
-                                <p>Henüz varyant eklenmedi. En az bir varyant eklemelisiniz.</p>
-                            </div>
-                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-6 text-center text-gray-500 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                    <i class="fas fa-box-open text-3xl mb-2 text-gray-400"></i>
+                                    <p>Henüz varyant eklenmedi. En az bir varyant eklemelisiniz.</p>
+                                </div>
+                            }
 
-                        <button type="button" @onclick="AddVariant" class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl hover:bg-blue-50 transition-colors font-semibold flex items-center justify-center gap-2">
-                            <i class="fas fa-plus-circle"></i>
-                            Yeni Varyant Ekle
-                        </button>
+                            <button type="button" @onclick="AddVariant" class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl hover:bg-blue-50 transition-colors font-semibold flex items-center justify-center gap-2">
+                                <i class="fas fa-plus-circle"></i>
+                                Yeni Varyant Ekle
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-gray-500 mt-3">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Ürün varyantları kısmında eğer ürün varyanta sahip olmayacaksa tek bir varyant bilgilerini doldurmanız yeterlidir.
+                        </p>
+
                     </div>
-
-                    <p class="text-xs text-gray-500 mt-3">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Ürün varyantları kısmında eğer ürün varyanta sahip olmayacaksa tek bir varyant bilgilerini doldurmanız yeterlidir.
-                    </p>
-                    
-                    </div> <!-- End of blurred wrapper -->
                 </AdminFormSection>
 
-                <!-- Product Images -->
-                <!-- Product Images (Per Variant) -->
                 <AdminFormSection Title="Ürün Görselleri" Icon="fas fa-images">
-                    
+
                     <div class="mb-4 flex items-center gap-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
                         <InputCheckbox @bind-Value="useCommonImages"
                                        id="useCommonImagesCheck"
@@ -481,7 +463,7 @@
                                 Ortak Görseller
                             </h3>
                             <ImageUploader @bind-Images="commonImages" ProductId="0" />
-                             <p class="text-xs text-gray-500 mt-2">
+                            <p class="text-xs text-gray-500 mt-2">
                                 <i class="fas fa-info-circle mr-1"></i>
                                 Bu görseller oluşturulan tüm varyantlara kopyalanacaktır.
                             </p>
@@ -501,7 +483,7 @@
                                             <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">@index</span>
                                             @(string.IsNullOrWhiteSpace(variant.Color) && string.IsNullOrWhiteSpace(variant.Size) ? $"{index}. Varyant" : $"{variant.Color} {variant.Size}".Trim()) Görselleri
                                         </h3>
-                                        
+
                                         <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
                                             <ImageUploader @bind-Images="variant.Images" ProductId="0" />
                                         </div>
@@ -513,7 +495,7 @@
                         {
                             <p class="text-gray-500 text-sm">Görsel yüklemek için önce varyant oluşturunuz.</p>
                         }
-                        
+
                         <p class="text-xs text-gray-500 mt-4 border-t pt-3">
                             <i class="fas fa-info-circle mr-1"></i>
                             Her varyant için ayrı görseller yükleyebilirsiniz. İlk resim o varyantın varsayılan resmi olacaktır.
@@ -521,7 +503,6 @@
                     }
                 </AdminFormSection>
 
-                <!-- SEO Settings -->
                 <AdminFormSection Title="SEO Ayarları" Icon="fas fa-search">
                     <div class="space-y-4">
                         <div>
@@ -556,9 +537,7 @@
                 </AdminFormSection>
             </div>
 
-            <!-- Right Column - Sidebar -->
             <div class="space-y-6">
-                <!-- Category Selection -->
                 <AdminFormSection Title="Kategori" Icon="fas fa-folder-tree">
                     <CategorySelector Value="@model.CategoryId"
                                       ValueChanged="@OnCategoryChanged"
@@ -580,7 +559,6 @@
                     </div>
                 </AdminFormSection>
 
-                <!-- Options -->
                 <AdminFormSection Title="Seçenekler" Icon="fas fa-sliders-h">
                     <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
                         <InputCheckbox @bind-Value="model.ShowCase"
@@ -593,7 +571,6 @@
                     </div>
                 </AdminFormSection>
 
-                <!-- Action Buttons -->
                 <div class="sticky bottom-0 bg-white rounded-2xl shadow-lg border border-gray-200 p-6 space-y-3">
                     <button type="submit"
                             disabled="@isSubmitting"
@@ -631,7 +608,7 @@
 
     private bool useCommonImages = false;
     private List<ProductImageDtoForCreation> commonImages = new();
-    
+
     private IEnumerable<CategoryDto> categories = new List<CategoryDto>();
     private bool isSubmitting = false;
 
@@ -708,60 +685,60 @@
             if (model.Variants != null && model.Variants.Any())
             {
                 var createdVariants = result.Data!.Variants.ToList();
-                
+
                 if (useCommonImages && commonImages.Any())
                 {
-                     foreach (var image in commonImages)
-                     {
-                         if (image.ImageUrl.StartsWith("data:"))
-                         {
-                              var base64Data = image.ImageUrl.Split(',')[1];
-                              var bytes = Convert.FromBase64String(base64Data);
-                              using var stream = new MemoryStream(bytes);
+                    foreach (var image in commonImages)
+                    {
+                        if (image.ImageUrl.StartsWith("data:"))
+                        {
+                            var base64Data = image.ImageUrl.Split(',')[1];
+                            var bytes = Convert.FromBase64String(base64Data);
+                            using var stream = new MemoryStream(bytes);
 
-                              var uploadResult = await _fileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
+                            var uploadResult = await _fileService.UploadAsync(stream, $"product-{Guid.NewGuid()}.jpg", "image/jpeg", "products");
 
-                              if (uploadResult.IsSuccess)
-                              {
-                                  image.ImageUrl = uploadResult.Data!;
-                                  image.ProductId = result.Data!.ProductId;
-                              }
-                              else
-                              {
-                                   await JSRuntime.InvokeVoidAsync("showToast", $"Ortak resim yükleme hatası: {uploadResult.Message}", "error");
-                                   return;
-                              }
-                         }
-                         else
-                         {
-                             image.ProductId = result.Data!.ProductId;
-                         }
-                     }
-                     
-                     foreach (var v in model.Variants)
-                     {
-                         v.Images = commonImages.Select(img => new ProductImageDtoForCreation 
-                         {
-                             ProductId = img.ProductId,
-                             ImageUrl = img.ImageUrl,
-                             Caption = img.Caption,
-                             DisplayOrder = img.DisplayOrder,
-                             IsPrimary = img.IsPrimary
-                         }).ToList();
-                     }
+                            if (uploadResult.IsSuccess)
+                            {
+                                image.ImageUrl = uploadResult.Data!;
+                                image.ProductId = result.Data!.ProductId;
+                            }
+                            else
+                            {
+                                await JSRuntime.InvokeVoidAsync("showToast", $"Ortak resim yükleme hatası: {uploadResult.Message}", "error");
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            image.ProductId = result.Data!.ProductId;
+                        }
+                    }
+
+                    foreach (var v in model.Variants)
+                    {
+                        v.Images = commonImages.Select(img => new ProductImageDtoForCreation
+                        {
+                            ProductId = img.ProductId,
+                            ImageUrl = img.ImageUrl,
+                            Caption = img.Caption,
+                            DisplayOrder = img.DisplayOrder,
+                            IsPrimary = img.IsPrimary
+                        }).ToList();
+                    }
                 }
 
-                
+
                 for (int i = 0; i < model.Variants.Count; i++)
                 {
                     var uiVariant = model.Variants[i];
-                    
+
                     if (uiVariant.Images != null && uiVariant.Images.Any())
                     {
-                        if (i >= createdVariants.Count) break; 
+                        if (i >= createdVariants.Count) break;
                         var createdVariantId = createdVariants[i].ProductVariantId;
-                        
-                        if (!useCommonImages) 
+
+                        if (!useCommonImages)
                         {
                             foreach (var image in uiVariant.Images)
                             {
@@ -794,7 +771,7 @@
                         }
                         else
                         {
-                            foreach(var img in uiVariant.Images)
+                            foreach (var img in uiVariant.Images)
                             {
                                 img.ProductVariantId = createdVariantId;
                             }
@@ -804,7 +781,7 @@
 
                         if (!imageResult.IsSuccess)
                         {
-                            await JSRuntime.InvokeVoidAsync("showToast", $"Varyant {i+1} resim kaydetme hatası: {imageResult.Message}", "error");
+                            await JSRuntime.InvokeVoidAsync("showToast", $"Varyant {i + 1} resim kaydetme hatası: {imageResult.Message}", "error");
                             return;
                         }
                     }
@@ -915,7 +892,7 @@
     {
         if (key == "Renk") return variant.Color ?? "";
         if (key == "Beden") return variant.Size ?? "";
-        
+
         var spec = variant.VariantSpecifications.FirstOrDefault(s => s.Key == key);
         return spec?.Value ?? "";
     }
@@ -924,7 +901,7 @@
     {
         if (key == "Renk") variant.Color = value;
         else if (key == "Beden") variant.Size = value;
-        
+
         var spec = variant.VariantSpecifications.FirstOrDefault(s => s.Key == key);
         if (spec != null)
         {

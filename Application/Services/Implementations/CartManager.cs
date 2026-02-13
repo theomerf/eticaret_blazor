@@ -333,7 +333,7 @@ namespace Application.Services.Implementations
                             ProductId = sessionLine.ProductId,
                             ProductName = sessionLine.ProductName,
                             ImageUrl = sessionLine.ImageUrl,
-                            Price = sessionLine.ActualPrice,
+                            Price = sessionLine.Price,
                             DiscountPrice = sessionLine.DiscountPrice,
                             Quantity = sessionLine.Quantity,
                             ProductVariantId = sessionLine.ProductVariantId,

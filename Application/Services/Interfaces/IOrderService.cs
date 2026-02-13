@@ -1,5 +1,6 @@
 ﻿using Application.Common.Models;
 using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Domain.Entities;
 
 namespace Application.Services.Interfaces
@@ -23,6 +24,7 @@ namespace Application.Services.Interfaces
         Task<int> CountByUserIdAsync(string userId);
         Task<decimal> GetUserTotalSpentAsync(string userId);
         Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default);
+        Task<OperationResult<(IEnumerable<OrderDto> orders, int count)>> GetAllAdminAsync(OrderFilterParametersAdmin p);
 
         Task<int> CountOfInProcessAsync(CancellationToken ct = default);
     }

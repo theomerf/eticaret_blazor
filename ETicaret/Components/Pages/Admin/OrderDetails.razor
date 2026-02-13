@@ -1,0 +1,473 @@
+﻿@page "/admin/orders/details/{OrderId:int}"
+@attribute [Authorize(Roles = "Admin")]
+@using Application.DTOs
+@using Application.Common.Models
+@using Domain.Entities
+@using System.Globalization
+@layout AdminLayout
+@inject IOrderService OrderService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode RenderMode.InteractiveServer
+
+<div class="container mx-auto px-4 py-8 font-sans">
+    <div class="mb-6 flex items-center justify-between">
+        <a href="/admin/orders" class="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-2">
+            <i class="fas fa-arrow-left"></i> Siparişlere Dön
+        </a>
+        <div class="flex gap-2">
+            @if (order != null)
+            {
+                if (order.OrderStatus == OrderStatus.Processing || order.OrderStatus == OrderStatus.Pending)
+                {
+                    <button @onclick="OpenShipModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                        <i class="fas fa-shipping-fast"></i> Kargoya Ver
+                    </button>
+                    <button @onclick="OpenCancelModal" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 border border-red-200">
+                        <i class="fas fa-times-circle"></i> İptal Et
+                    </button>
+                }
+                else if (order.OrderStatus == OrderStatus.Shipped)
+                {
+                    <button @onclick="MarkAsDelivered" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                        <i class="fas fa-check-circle"></i> Teslim Edildi İşaretle
+                    </button>
+                }
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex flex-col items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p class="text-gray-500">Sipariş detayları yükleniyor...</p>
+        </div>
+    }
+    else if (order == null)
+    {
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded shadow-sm">
+            <p class="text-yellow-700">Sipariş bulunamadı.</p>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <h1 class="text-2xl font-bold text-gray-800">Sipariş #@order.OrderNumber</h1>
+                    <span class="px-3 py-1 rounded-full text-sm font-semibold @GetStatusBadgeClass(order.OrderStatus)">
+                        @GetStatusLabel(order.OrderStatus)
+                    </span>
+                     <span class="px-3 py-1 rounded-full text-sm font-semibold @GetPaymentStatusBadgeClass(order.PaymentStatus)">
+                        @GetPaymentStatusLabel(order.PaymentStatus)
+                    </span>
+                </div>
+                <p class="text-gray-500 text-sm">
+                    <i class="far fa-calendar-alt mr-1"></i> @order.OrderedAt.ToLocalTime().ToString("dd MMMM yyyy HH:mm")
+                </p>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-gray-500">Toplam Tutar</p>
+                <p class="text-3xl font-bold text-gray-900">@order.TotalAmount.ToString("C2", new CultureInfo("tr-TR"))</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: Items & Summary -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Order Items -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold text-gray-800">Ürünler (@order.Lines.Count)</h2>
+                    </div>
+                    <div class="divide-y divide-gray-100">
+                        @foreach (var item in order.Lines)
+                        {
+                            <div class="p-4 flex items-center gap-4">
+                                <div class="h-20 w-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                    <img src="@(item.ImageUrl ?? "placeholder.png")" alt="@item.ProductName" class="h-full w-full object-cover" />
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-medium text-gray-900 truncate">@item.ProductName</h3>
+                                    <p class="text-xs text-gray-500">@item.CategoryName @(string.IsNullOrEmpty(item.SubCategoryName) ? "" : $" > {item.SubCategoryName}")</p>
+                                    @if (!string.IsNullOrEmpty(item.VariantColor) || !string.IsNullOrEmpty(item.VariantSize))
+                                    {
+                                        <div class="flex flex-wrap gap-2 mt-1">
+                                            @if (!string.IsNullOrEmpty(item.VariantColor))
+                                            {
+                                                <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">Renk: @item.VariantColor</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.VariantSize))
+                                            {
+                                                <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">Beden: @item.VariantSize</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-gray-900">@item.FinalPrice.ToString("C2", new CultureInfo("tr-TR"))</p>
+                                    <p class="text-xs text-gray-500">x @item.Quantity</p>
+                                    <p class="text-sm font-bold text-gray-900 mt-1">@item.LineTotal.ToString("C2", new CultureInfo("tr-TR"))</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Özet</h2>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Ara Toplam</span>
+                            <span>@order.SubTotal.ToString("C2", new CultureInfo("tr-TR"))</span>
+                        </div>
+                        @if (order.TotalDiscountAmount > 0)
+                        {
+                            <div class="flex justify-between text-emerald-600">
+                                <span>İndirimler</span>
+                                <span>-@order.TotalDiscountAmount?.ToString("C2", new CultureInfo("tr-TR"))</span>
+                            </div>
+                        }
+                         <div class="flex justify-between text-gray-600">
+                            <span>Kargo</span>
+                            <span>@order.ShippingCost.ToString("C2", new CultureInfo("tr-TR"))</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Vergi (%18 KDV)</span>
+                             <span>@((order.TotalAmount - (order.TotalAmount / 1.18m)).ToString("C2", new CultureInfo("tr-TR")))</span>
+                        </div>
+                        <div class="border-t border-gray-200 pt-3 mt-3 flex justify-between items-center">
+                            <span class="text-base font-bold text-gray-900">Genel Toplam</span>
+                            <span class="text-xl font-bold text-blue-600">@order.TotalAmount.ToString("C2", new CultureInfo("tr-TR"))</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Customer & Details -->
+            <div class="space-y-6">
+                <!-- Customer Info -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                         <i class="far fa-user text-gray-400"></i> Müşteri Bilgileri
+                    </h2>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                             @(order.FirstName.FirstOrDefault())@(order.LastName.FirstOrDefault())
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">@order.FirstName @order.LastName</p>
+                            <p class="text-xs text-gray-500">Müşteri</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <div class="flex items-center gap-2">
+                             <i class="fas fa-phone w-4 text-gray-400"></i> @order.Phone
+                        </div>
+                         <div class="flex items-center gap-2">
+                             <i class="fas fa-envelope w-4 text-gray-400"></i> (Email eklenecek)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Address -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-map-marker-alt text-gray-400"></i> Teslimat Adresi
+                    </h2>
+                    <address class="not-italic text-sm text-gray-600 leading-relaxed">
+                        @order.AddressLine<br>
+                        @order.District / @order.City<br>
+                        @order.PostalCode
+                    </address>
+                </div>
+
+                <!-- Payment Info -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                         <i class="far fa-credit-card text-gray-400"></i> Ödeme Bilgileri
+                    </h2>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <div class="flex justify-between">
+                            <span>Yöntem:</span>
+                            <span class="font-medium text-gray-900">@GetPaymentMethodLabel(order.PaymentMethod)</span>
+                        </div>
+                        @if (order.PaymentMethod == PaymentMethod.CreditCard)
+                        {
+                            <div class="flex justify-between">
+                                <span>Kart:</span>
+                                <span class="font-medium text-gray-900">@order.CardAssociation @order.CardFamily</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Numara:</span>
+                                <span>**** @order.LastFourDigits</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Taksit:</span>
+                                <span>@order.InstallmentCount</span>
+                            </div>
+                        }
+                        <div class="flex justify-between">
+                            <span>Durum:</span>
+                            <span class="@GetPaymentStatusBadgeClass(order.PaymentStatus) px-2 py-0.5 rounded text-xs font-semibold">
+                                @GetPaymentStatusLabel(order.PaymentStatus)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <!-- Order History Timeline (Bottom Full Width) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:col-span-3">
+                 <h2 class="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-history text-gray-400"></i> Sipariş Geçmişi
+                 </h2>
+                 <div class="relative pl-4 border-l-2 border-gray-200 space-y-8">
+                     @foreach (var eventItem in order.History.OrderByDescending(h => h.CreatedAt))
+                    {
+                        <div class="relative">
+                            <span class="absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-white @GetEventTypeColor(eventItem.EventType)"></span>
+                            <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
+                                <h3 class="text-sm font-semibold text-gray-900">@eventItem.Description</h3>
+                                <time class="text-xs text-gray-500">@eventItem.CreatedAt.ToLocalTime().ToString("g")</time>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                İşlem Yapan: @(string.IsNullOrEmpty(eventItem.CreatedByUserName) ? "Sistem" : eventItem.CreatedByUserName)
+                            </p>
+                        </div>
+                    }
+                 </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Ship Modal -->
+@if (isShipModalOpen)
+{
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-fadeIn">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Siparişi Kargoya Ver</h3>
+            <div class="space-y-4">
+                <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-1">Kargo Firması</label>
+                     <input type="text" @bind="shipModel.CompanyName" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Örn: Aras Kargo">
+                </div>
+                <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-1">Takip Numarası</label>
+                     <input type="text" @bind="shipModel.TrackingNumber" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Takip No">
+                </div>
+            </div>
+             <div class="mt-6 flex justify-end gap-3">
+                 <button @onclick="CloseShipModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">İptal</button>
+                 <button @onclick="SubmitShip" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled="@(string.IsNullOrWhiteSpace(shipModel.TrackingNumber))">Kargola</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Cancel Modal -->
+@if (isCancelModalOpen)
+{
+     <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-fadeIn">
+             <h3 class="text-lg font-bold text-gray-900 mb-4">Siparişi İptal Et</h3>
+             <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4" role="alert">
+                <p class="text-sm text-yellow-700">Dikkat: Bu işlem geri alınamaz. Ödenmiş siparişlerde otomatik iade süreci başlatılacaktır.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-1">İptal Nedeni</label>
+                     <textarea @bind="cancelReason" rows="3" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="İptal sebebini giriniz..."></textarea>
+                </div>
+            </div>
+             <div class="mt-6 flex justify-end gap-3">
+                 <button @onclick="CloseCancelModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Kapat</button>
+                 <button @onclick="SubmitCancel" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50" disabled="@(string.IsNullOrWhiteSpace(cancelReason))">Siparişi İptal Et</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int OrderId { get; set; }
+
+    private OrderWithDetailsDto? order;
+    private bool isLoading = true;
+    private bool isShipModalOpen = false;
+    private bool isCancelModalOpen = false;
+    
+    // Modal Models
+    private ShipModel shipModel = new();
+    private string cancelReason = "";
+
+    private class ShipModel
+    {
+        public string CompanyName { get; set; } = "";
+        public string TrackingNumber { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrder();
+    }
+
+    private async Task LoadOrder()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await OrderService.GetByIdAsync(OrderId);
+            order = result; // GetByIdAsync returns OrderWithDetailsDto directly, throwing exception if not found
+        }
+        catch (Exception)
+        {
+            order = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Ship Modal Actions
+    private void OpenShipModal()
+    {
+        shipModel = new ShipModel();
+        isShipModalOpen = true;
+    }
+
+    private void CloseShipModal()
+    {
+        isShipModalOpen = false;
+    }
+
+    private async Task SubmitShip()
+    {
+        if (string.IsNullOrWhiteSpace(shipModel.TrackingNumber)) return;
+
+        var result = await OrderService.MarkAsShippedAsync(OrderId, shipModel.TrackingNumber, shipModel.CompanyName, null);
+        if (result.IsSuccess)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", "Sipariş kargoya verildi.", "success");
+            CloseShipModal();
+            await LoadOrder();
+        }
+        else
+        {
+             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    // Cancel Modal Actions
+    private void OpenCancelModal()
+    {
+        cancelReason = "";
+        isCancelModalOpen = true;
+    }
+
+    private void CloseCancelModal()
+    {
+        isCancelModalOpen = false;
+    }
+
+    private async Task SubmitCancel()
+    {
+        if (string.IsNullOrWhiteSpace(cancelReason)) return;
+
+        var result = await OrderService.CancelAsync(OrderId, cancelReason);
+        if (result.IsSuccess)
+        {
+             await JSRuntime.InvokeVoidAsync("showToast", "Sipariş iptal edildi.", "success");
+             CloseCancelModal();
+             await LoadOrder();
+        }
+        else
+        {
+             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    // Mark as Delivered
+    private async Task MarkAsDelivered()
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Siparişi teslim edildi olarak işaretlemek istiyor musunuz?")) return;
+
+        var result = await OrderService.MarkAsDeliveredAsync(OrderId);
+         if (result.IsSuccess)
+        {
+             await JSRuntime.InvokeVoidAsync("showToast", "Sipariş teslim edildi.", "success");
+             await LoadOrder();
+        }
+        else
+        {
+             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
+    }
+
+    // Helpers
+    private string GetStatusLabel(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "Beklemede",
+        OrderStatus.Processing => "İşleniyor",
+        OrderStatus.Shipped => "Kargoya Verildi",
+        OrderStatus.Delivered => "Teslim Edildi",
+        OrderStatus.Cancelled => "İptal Edildi",
+        OrderStatus.Returned => "İade Edildi",
+        OrderStatus.Failed => "Başarısız",
+        _ => status.ToString()
+    };
+
+    private string GetStatusBadgeClass(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "bg-yellow-100 text-yellow-800",
+        OrderStatus.Processing => "bg-blue-100 text-blue-800",
+        OrderStatus.Shipped => "bg-purple-100 text-purple-800",
+        OrderStatus.Delivered => "bg-green-100 text-green-800",
+        OrderStatus.Cancelled => "bg-red-100 text-red-800",
+        OrderStatus.Returned => "bg-orange-100 text-orange-800",
+        OrderStatus.Failed => "bg-gray-100 text-gray-800",
+        _ => "bg-gray-100 text-gray-800"
+    };
+
+    private string GetPaymentStatusLabel(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Pending => "Bekleniyor",
+        PaymentStatus.Completed => "Ödendi",
+        PaymentStatus.Failed => "Başarısız",
+        PaymentStatus.Refunded => "İade",
+        _ => status.ToString()
+    };
+
+    private string GetPaymentStatusBadgeClass(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Pending => "bg-yellow-100 text-yellow-800",
+        PaymentStatus.Completed => "bg-green-100 text-green-800",
+        PaymentStatus.Failed => "bg-red-100 text-red-800",
+        PaymentStatus.Refunded => "bg-orange-100 text-orange-800",
+        _ => "bg-gray-100 text-gray-800"
+    };
+
+     private string GetPaymentMethodLabel(PaymentMethod method) => method switch
+    {
+        PaymentMethod.CreditCard => "Kredi Kartı",
+        PaymentMethod.CashOnDelivery => "Kapıda Ödeme",
+        PaymentMethod.BankTransfer => "Havale / EFT",
+        _ => method.ToString()
+    };
+
+    private string GetEventTypeColor(OrderEventType type) => type switch
+    {
+        OrderEventType.OrderCreated => "bg-blue-500",
+        OrderEventType.PaymentCompleted => "bg-green-500",
+        OrderEventType.OrderProcessing => "bg-indigo-500",
+        OrderEventType.Shipped => "bg-purple-500",
+        OrderEventType.Delivered => "bg-emerald-500",
+        OrderEventType.Cancelled => "bg-red-500",
+        OrderEventType.Returned => "bg-orange-500",
+        _ => "bg-gray-500"
+    };
+}

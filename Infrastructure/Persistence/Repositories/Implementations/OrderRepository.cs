@@ -2,6 +2,7 @@
 using Domain.Entities;
 using Application.Repositories.Interfaces;
 using Application.DTOs;
+using Application.Queries.RequestParameters;
 
 namespace Infrastructure.Persistence.Repositories.Implementations
 {
@@ -209,6 +210,57 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .ToList();
 
             return productSales;
+        }
+
+        public async Task<(IEnumerable<Order> orders, int count)> GetAllAdminAsync(OrderFilterParametersAdmin p, bool trackChanges, CancellationToken ct = default)
+        {
+            var ordersQuery = FindAll(trackChanges);
+
+            if (!string.IsNullOrWhiteSpace(p.SearchTerm))
+            {
+                var lowerTerm = p.SearchTerm.ToLower();
+                ordersQuery = ordersQuery.Where(o => 
+                    o.OrderNumber.ToLower().Contains(lowerTerm) || 
+                    (o.FirstName + " " + o.LastName).ToLower().Contains(lowerTerm));
+            }
+
+            if (p.Status.HasValue)
+            {
+                ordersQuery = ordersQuery.Where(o => o.OrderStatus == p.Status.Value);
+            }
+
+            if (p.PaymentStatus.HasValue)
+            {
+                ordersQuery = ordersQuery.Where(o => o.PaymentStatus == p.PaymentStatus.Value);
+            }
+
+            if (p.StartDate.HasValue)
+            {
+                ordersQuery = ordersQuery.Where(o => o.OrderedAt >= p.StartDate.Value);
+            }
+
+            if (p.EndDate.HasValue)
+            {
+                ordersQuery = ordersQuery.Where(o => o.OrderedAt <= p.EndDate.Value);
+            }
+
+            var count = await ordersQuery.CountAsync(ct);
+
+            ordersQuery = p.SortBy switch
+            {
+                "date_asc" => ordersQuery.OrderBy(o => o.OrderedAt),
+                "date_desc" => ordersQuery.OrderByDescending(o => o.OrderedAt),
+                "amount_asc" => ordersQuery.OrderBy(o => o.TotalAmount),
+                "amount_desc" => ordersQuery.OrderByDescending(o => o.TotalAmount),
+                _ => ordersQuery.OrderByDescending(o => o.OrderedAt)
+            };
+
+            var orders = await ordersQuery
+                .Skip((p.PageNumber - 1) * p.PageSize)
+                .Take(p.PageSize)
+                .ToListAsync(ct);
+
+            return (orders, count);
         }
 
         public void Create(Order order) => CreateEntity(order);
