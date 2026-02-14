@@ -39,8 +39,8 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             var count = await filteredCategoriesQuery.CountAsync(ct);
 
             var filteredCategories = await filteredCategoriesQuery
-                .ToPaginate(p.PageNumber, p.PageSize)
                 .OrderBy(c => c.CategoryId)
+                .ToPaginate(p.PageNumber, p.PageSize)
                 .Select(c => new Category
                 {
                     CategoryId = c.CategoryId,

@@ -6,8 +6,9 @@
 @inherits OwningComponentBase<ICategoryService>
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@implements IDisposable
 
-<div class="min-h-screen bg-gray-50 flex flex-col font-sans">
+<div class="flex flex-col">
 
     <!-- Mobil Header / Toolbar -->
     <div class="lg:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30 px-4 py-3 flex justify-between items-center">
@@ -43,7 +44,7 @@
                         }
                     </div>
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <div class="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center mb-2">
+                        <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-2">
                             <i class="fas fa-star"></i>
                         </div>
                         <div class="text-xs text-gray-500 font-medium">Öne Çıkarılan</div>
@@ -126,7 +127,7 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative group">
                                     <img class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                         src="@(cat?.IconUrl ?? "placeholder.png")"
+                                         src="@(cat?.IconUrl ?? "https://placehold.co/48")"
                                          alt="@cat?.CategoryName" />
                                 </div>
                             </td>
@@ -169,7 +170,6 @@
     private bool isLoading = true;
 
     private CancellationTokenSource? _cts;
-    private bool _isDisposed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -192,8 +192,6 @@
 
         await InvokeAsync(async () =>
         {
-            if (_isDisposed) return;
-
             var newParams = Navigation.BindFromQuery<RequestParametersAdmin>();
             model.FilterParams = newParams;
 
@@ -201,7 +199,7 @@
 
             await LoadAndBuildModel(token);
 
-            if (_isDisposed || token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested) return;
 
             StateHasChanged();
 
@@ -211,8 +209,6 @@
 
     private async Task LoadAndBuildModel(CancellationToken ct)
     {
-        if (_isDisposed) return;
-
         try
         {
             if (model?.FilterParams.PageSize == 0)
@@ -253,7 +249,6 @@
 
     private void UpdateUrl()
     {
-        if (_isDisposed) return;
         var url = model.FilterParams.ToQueryString("/admin/categories");
         Navigation.NavigateTo(url!);
     }
@@ -267,11 +262,7 @@
 
     private async Task HandleFeaturedUpdate(int categoryId)
     {
-        if (_isDisposed) return;
-
         var result = await Service.UpdateFeaturedStatus(categoryId);
-
-        if (_isDisposed) return;
 
         if (result.IsSuccess)
         {
@@ -288,15 +279,12 @@
 
     private async Task HandleDeleteProduct(int categoryId)
     {
-        if (_isDisposed) return;
 
         if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu kategoriyi silmek istediğinize emin misiniz?")) return;
 
         try
         {
             var result = await Service.DeleteAsync(categoryId);
-
-            if (_isDisposed) return;
 
             if (result.IsSuccess)
             {
@@ -328,23 +316,19 @@
         _debounceTimer?.Dispose();
         _debounceTimer = new Timer(async _ =>
         {
-            if (!_isDisposed)
-            {
+
                 await InvokeAsync(() =>
                 {
                     model.FilterParams.SearchTerm = searchTerm;
                     model.FilterParams.PageNumber = 1;
                     UpdateUrl();
                 });
-            }
+            
         }, null, 500, Timeout.Infinite);
     }
 
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _isDisposed = true;
-
         Navigation.LocationChanged -= OnLocationChanged;
 
         _debounceTimer?.Dispose();

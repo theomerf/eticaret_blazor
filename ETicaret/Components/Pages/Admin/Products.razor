@@ -20,7 +20,7 @@
     <script src="/js/products-mobile.js"></script>
 </HeadContent>
 
-<div class="min-h-screen bg-gray-50 flex flex-col font-sans">
+<div class="flex flex-col">
     <CascadingValue Value="@model.FilterParams" Name="FilterParams">
         <CascadingValue Value="@showLoadingOverlay" Name="ShowLoadingOverlay">
             <CascadingValue Value="@HandleFiltersChange" Name="OnFilterChange">
@@ -72,7 +72,7 @@
                                     }
                                 </div>
                                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                                    <div class="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center mb-2">
+                                    <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-2">
                                         <i class="fas fa-star"></i>
                                     </div>
                                     <div class="text-xs text-gray-500 font-medium">Vitrin</div>
@@ -223,7 +223,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative group">
                                                 <img class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                     src="@(prd?.Images?.FirstOrDefault()?.ImageUrl ?? "placeholder.png")"
+                                                     src="@(prd?.Images?.FirstOrDefault()?.ImageUrl ?? "https://placehold.co/48")"
                                                      alt="@prd?.ProductName" />
                                             </div>
                                         </td>
@@ -308,7 +308,6 @@
     private bool showLoadingOverlay = false;
 
     private CancellationTokenSource? _cts;
-    private bool _isDisposed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -331,8 +330,6 @@
 
         await InvokeAsync(async () =>
         {
-            if (_isDisposed) return;
-
             var newParams = Navigation.BindFromQuery<ProductFilterParametersAdmin>();
             model.FilterParams = newParams;
 
@@ -341,7 +338,7 @@
 
             await LoadAndBuildModel(token);
 
-            if (_isDisposed || token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested) return;
 
             showLoadingOverlay = false;
             StateHasChanged();
@@ -352,8 +349,6 @@
 
     private async Task LoadAndBuildModel(CancellationToken ct)
     {
-        if (_isDisposed) return;
-
         try
         {
             if (model?.FilterParams.PageSize == 0)
@@ -401,7 +396,6 @@
 
     private void UpdateUrl()
     {
-        if (_isDisposed) return;
         var url = model.FilterParams.ToQueryString("/admin/products");
         Navigation.NavigateTo(url!);
     }
@@ -415,11 +409,7 @@
 
     private async Task HandleShowcaseUpdate(int productId)
     {
-        if (_isDisposed) return;
-
         var result = await Service.UpdateShowcaseStatus(productId);
-
-        if (_isDisposed) return;
 
         if (result.IsSuccess)
         {
@@ -436,15 +426,11 @@
 
     private async Task HandleDeleteProduct(int productId)
     {
-        if (_isDisposed) return;
-
         if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu ürünü silmek istediğinize emin misiniz?")) return;
 
         try
         {
             var result = await Service.DeleteAsync(productId);
-
-            if (_isDisposed) return;
 
             if (result.IsSuccess)
             {
@@ -488,15 +474,14 @@
         _debounceTimer?.Dispose();
         _debounceTimer = new Timer(async _ =>
         {
-            if (!_isDisposed)
-            {
+
                 await InvokeAsync(() =>
                 {
                     model.FilterParams.SearchTerm = searchTerm;
                     model.FilterParams.PageNumber = 1;
                     UpdateUrl();
                 });
-            }
+            
         }, null, 500, Timeout.Infinite);
     }
 
@@ -510,9 +495,6 @@
 
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _isDisposed = true;
-
         Navigation.LocationChanged -= OnLocationChanged;
 
         _debounceTimer?.Dispose();

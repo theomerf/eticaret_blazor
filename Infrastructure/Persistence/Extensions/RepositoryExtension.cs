@@ -10,7 +10,9 @@ namespace Infrastructure.Persistence.Extensions
         Equal,
         NotEqual,
         GreaterThan,
+        GreaterThanOrEqual,
         LessThan,
+        LessThanOrEqual,
         Contains,
         StartsWith,
         EndsWith
@@ -43,7 +45,9 @@ namespace Infrastructure.Persistence.Extensions
                 FilterOperator.Equal => Expression.Equal(member, constant),
                 FilterOperator.NotEqual => Expression.NotEqual(member, constant),
                 FilterOperator.GreaterThan => Expression.GreaterThan(member, constant),
+                FilterOperator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(member, constant),
                 FilterOperator.LessThan => Expression.LessThan(member, constant),
+                FilterOperator.LessThanOrEqual => Expression.LessThanOrEqual(member, constant),
                 FilterOperator.Contains => Expression.Call(
                     member,
                     typeof(string).GetMethod("Contains", new[] { typeof(string) })!,

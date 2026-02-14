@@ -10,14 +10,13 @@
 @inject ICampaignService CampaignService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
-@rendermode RenderMode.InteractiveServer
 
 <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
     <div class="flex-1 max-w-full">
         <div class="flex flex-col">
             <div class="mb-6 flex items-center justify-between">
-                <a href="/admin/orders" class="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-2 font-medium">
-                    <i class="fas fa-arrow-left"></i> Siparişlere Dön
+                <a href="/admin/orders" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all">
+                    <i class="fas fa-arrow-left mr-2"></i>Geri Dön
                 </a>
                 <div class="flex gap-2">
                     @if (order != null)
@@ -69,7 +68,6 @@
             }
             else
             {
-                <!-- Header Card -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div class="flex-1">
@@ -88,7 +86,7 @@
                         </div>
                         <div class="text-right bg-gradient-to-br from-blue-50 to-indigo-50 px-6 py-4 rounded-xl border border-blue-100">
                             <p class="text-sm text-gray-600 font-medium mb-1">Toplam Tutar</p>
-                            <p class="text-3xl font-black text-blue-600">@order.TotalAmount.ToString("C2", new CultureInfo("tr-TR"))</p>
+                            <p class="text-3xl font-black text-secondary">@order.TotalAmount.ToString("C2", new CultureInfo("tr-TR"))</p>
                         </div>
                     </div>
                 </div>
@@ -100,7 +98,7 @@
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
                                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                    <i class="fas fa-box text-blue-600"></i> Ürünler (@order.Lines.Count)
+                                    <i class="fas fa-box text-secondary"></i> Ürünler (@order.Lines.Count)
                                 </h2>
                             </div>
                             <div class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
@@ -145,7 +143,7 @@
                                             <div class="text-right flex-shrink-0">
                                                 <p class="text-sm font-bold text-gray-900">@item.FinalPrice.ToString("C2", new CultureInfo("tr-TR"))</p>
                                                 <p class="text-xs text-gray-500 mt-1">x @item.Quantity</p>
-                                                <p class="text-base font-black text-blue-600 mt-2">@item.LineTotal.ToString("C2", new CultureInfo("tr-TR"))</p>
+                                                <p class="text-base font-black text-secondary mt-2">@item.LineTotal.ToString("C2", new CultureInfo("tr-TR"))</p>
                                             </div>
                                         </div>
                                     </div>
@@ -156,7 +154,7 @@
                         <!-- Order Summary -->
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <i class="fas fa-calculator text-blue-600"></i> Sipariş Özeti
+                                <i class="fas fa-calculator text-secondary"></i> Sipariş Özeti
                             </h2>
                             <div class="space-y-3 text-sm">
                                 <div class="flex justify-between text-gray-600">
@@ -206,7 +204,7 @@
                                 </div>
                                 <div class="border-t-2 border-gray-200 pt-3 mt-3 flex justify-between items-center">
                                     <span class="text-lg font-bold text-gray-900">Genel Toplam</span>
-                                    <span class="text-2xl font-black text-blue-600">@order.TotalAmount.ToString("C2", new CultureInfo("tr-TR"))</span>
+                                    <span class="text-2xl font-black text-secondary">@order.TotalAmount.ToString("C2", new CultureInfo("tr-TR"))</span>
                                 </div>
                             </div>
                         </div>
@@ -291,11 +289,11 @@
                         <!-- Customer Info -->
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                 <i class="far fa-user text-blue-600"></i> Müşteri Bilgileri
+                                 <i class="far fa-user text-secondary"></i> Müşteri Bilgileri
                             </h2>
                             <div class="flex items-center gap-3 mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                <div class="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                                     @(order.FirstName.FirstOrDefault())@(order.LastName.FirstOrDefault())
+                                <div class="h-12 w-12 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                                     @(order.FirstName.FirstOrDefault())
                                 </div>
                                 <div>
                                     <p class="font-bold text-gray-900">@order.FirstName @order.LastName</p>
@@ -304,7 +302,7 @@
                             </div>
                             <div class="space-y-3 text-sm text-gray-600">
                                 <div class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                     <i class="fas fa-phone w-5 text-blue-600"></i> 
+                                     <i class="fas fa-phone w-5 text-secondary"></i> 
                                      <span class="font-medium">@order.Phone</span>
                                 </div>
                             </div>
@@ -313,7 +311,7 @@
                         <!-- Shipping Address -->
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <i class="fas fa-map-marker-alt text-blue-600"></i> Teslimat Adresi
+                                <i class="fas fa-map-marker-alt text-secondary"></i> Teslimat Adresi
                             </h2>
                             <address class="not-italic text-sm text-gray-700 leading-relaxed p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <p class="font-semibold text-gray-900 mb-2">@order.AddressLine</p>
@@ -328,7 +326,7 @@
                         <!-- Shipping Info -->
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                 <i class="fas fa-truck text-blue-600"></i> Kargo Bilgileri
+                                 <i class="fas fa-truck text-secondary"></i> Kargo Bilgileri
                             </h2>
                             <div class="space-y-3 text-sm">
                                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
@@ -346,7 +344,7 @@
                                 {
                                     <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
                                         <span class="text-gray-600">Takip No:</span>
-                                        <span class="font-bold text-blue-700">@order.TrackingNumber</span>
+                                        <span class="font-bold text-secondary">@order.TrackingNumber</span>
                                     </div>
                                 }
                                 @if (order.GiftWrap)
@@ -362,7 +360,7 @@
                         <!-- Payment Info -->
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                 <i class="far fa-credit-card text-blue-600"></i> Ödeme Bilgileri
+                                 <i class="far fa-credit-card text-secondary"></i> Ödeme Bilgileri
                             </h2>
                             <div class="space-y-3 text-sm">
                                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
@@ -407,7 +405,7 @@
                         {
                             <div class="bg-blue-50 rounded-2xl shadow-sm border border-blue-200 p-6">
                                 <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                    <i class="fas fa-comment-dots text-blue-600"></i> Müşteri Notu
+                                    <i class="fas fa-comment-dots text-secondary"></i> Müşteri Notu
                                 </h2>
                                 <p class="text-sm text-gray-700 italic">@order.CustomerNotes</p>
                             </div>
@@ -427,7 +425,7 @@
                      <!-- Order History Timeline (Bottom Full Width) -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:col-span-3">
                          <h2 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                            <i class="fas fa-history text-blue-600"></i> Sipariş Geçmişi
+                            <i class="fas fa-history text-secondary"></i> Sipariş Geçmişi
                          </h2>
                          <div class="relative pl-6 border-l-2 border-gray-200 space-y-6">
                              @foreach (var eventItem in order.History.OrderByDescending(h => h.CreatedAt))
@@ -462,7 +460,7 @@
                 <div class="flex justify-between items-center">
                     <h3 class="text-xl font-bold text-white flex items-center gap-2" id="modal-title">
                         <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center">
-                            <i class="fas fa-shipping-fast text-blue-600 text-sm"></i>
+                            <i class="fas fa-shipping-fast text-secondary text-sm"></i>
                         </div>
                         Siparişi Kargoya Ver
                     </h3>
@@ -565,7 +563,7 @@
             <div class="bg-white px-6 py-6 overflow-y-auto flex-1">
                 <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 rounded-lg" role="alert">
                     <div class="flex items-start gap-3">
-                        <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                        <i class="fas fa-info-circle text-secondary mt-0.5"></i>
                         <p class="text-sm text-blue-700 font-medium">Bu not sipariş geçmişine kaydedilecek ve admin notları bölümünde görünecektir.</p>
                     </div>
                 </div>
@@ -643,7 +641,6 @@
     private bool isAdminNoteModalOpen = false;
     private bool isReturnModalOpen = false;
     
-    // Modal Models
     private ShipModel shipModel = new();
     private string cancelReason = "";
     private string adminNote = "";
@@ -668,7 +665,6 @@
             var result = await OrderService.GetByIdAsync(OrderId);
             order = result;
 
-            // Load coupon details if a coupon was used
             if (order != null && !string.IsNullOrEmpty(order.CouponCode))
             {
                 try
@@ -679,7 +675,7 @@
                         couponDetails = couponResult.Data;
                     }
                 }
-                catch { /* Coupon details are optional */ }
+                catch {}
             }
         }
         catch (Exception)
@@ -692,7 +688,6 @@
         }
     }
 
-    // Ship Modal Actions
     private void OpenShipModal()
     {
         shipModel = new ShipModel();
@@ -721,7 +716,6 @@
         }
     }
 
-    // Cancel Modal Actions
     private void OpenCancelModal()
     {
         cancelReason = "";
@@ -750,7 +744,6 @@
         }
     }
 
-    // Mark as Delivered
     private async Task MarkAsDelivered()
     {
         if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Siparişi teslim edildi olarak işaretlemek istiyor musunuz?")) return;
@@ -767,7 +760,6 @@
         }
     }
 
-    // Admin Note Modal Actions
     private void OpenAdminNoteModal()
     {
         adminNote = "";
@@ -796,7 +788,6 @@
         }
     }
 
-    // Return Modal Actions
     private void OpenReturnModal()
     {
         returnReason = "";
@@ -825,7 +816,6 @@
         }
     }
 
-    // Helpers
     private string GetStatusLabel(OrderStatus status) => status switch
     {
         OrderStatus.Pending => "Beklemede",

@@ -3508,6 +3508,11 @@ a:hover {
   max-height: 100%;
 }
 
+.max-h-fit {
+  max-height: -moz-fit-content;
+  max-height: fit-content;
+}
+
 .min-h-0 {
   min-height: 0px;
 }
@@ -7097,6 +7102,10 @@ a:hover {
 
 .bg-button {
   background-image: var(--button);
+}
+
+.bg-button-hover {
+  background-image: var(--button-hover);
 }
 
 .bg-badge {
