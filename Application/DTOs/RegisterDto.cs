@@ -48,6 +48,7 @@ namespace Application.DTOs
 
         [Required(ErrorMessage = "Doğum tarihi gereklidir.")]
         [DataType(DataType.Date, ErrorMessage = "Geçerli bir tarih giriniz.")]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
         [MinAge(18)]
         [MaxAge(120)]
         public DateOnly BirthDate { get; set; }

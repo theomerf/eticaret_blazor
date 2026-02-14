@@ -147,7 +147,7 @@ namespace ETicaret.Extensions
             services.ConfigureApplicationCookie(options =>
             {
                 options.LoginPath = "/account/login";
-                options.AccessDeniedPath = "/account/accessDenied";
+                options.AccessDeniedPath = "/not-found";
                 options.LogoutPath = "/account/logout";
 
                 options.Cookie.Name = "ETicaret.Auth";
@@ -177,7 +177,7 @@ namespace ETicaret.Extensions
 
                 options.Events.OnRedirectToAccessDenied = context =>
                 {
-                    context.Response.Redirect("/account/accessDenied");
+                    context.Response.Redirect("/not-found");
                     return Task.CompletedTask;
                 };
 

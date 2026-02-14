@@ -311,7 +311,8 @@ namespace ETicaret.Controllers
 
                 if (roleResult.Succeeded)
                 {
-                    TempData["success"] = "Kayıt başarılı! Lütfen e-postanızı kontrol edin.";
+                    TempData["toastContent"] = "Kayıt başarılı! Lütfen e-postanızı kontrol edin.";
+                    TempData["toastType"] = "success";
                     return RedirectToAction("Login");
                 }
             }
@@ -344,11 +345,13 @@ namespace ETicaret.Controllers
             {
                 await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName);
 
-                TempData["success"] = "E-posta adresiniz başarıyla doğrulandı!";
+                TempData["toastContent"] = "E-posta adresiniz başarıyla doğrulandı!";
+                TempData["toastType"] = "success";
                 return RedirectToAction("Login");
             }
 
-            TempData["error"] = "E-posta doğrulama başarısız. Lütfen tekrar deneyin.";
+            TempData["toastContent"] = "E-posta doğrulama başarısız. Lütfen tekrar deneyin.";
+            TempData["toastType"] = "error";
 
             return RedirectToAction("Login");
         }

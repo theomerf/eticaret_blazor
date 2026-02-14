@@ -1,0 +1,52 @@
+@page "/not-found"
+@namespace ETicaret.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = null;
+    Response.StatusCode = 404;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sayfa Bulunamadı - 404</title>
+    <base href="~/" />
+    <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    </head>
+    <body class="bg-gray-50 flex flex-col min-h-screen">
+
+        <div class="flex-grow flex items-center justify-center p-4">
+            <div
+                class="max-w-lg w-full bg-white p-8 rounded-3xl shadow-xl text-center border border-gray-100 animate-fade-in-up">
+                <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fa-solid fa-question text-5xl"></i>
+                </div>
+
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">
+                    Sayfa Bulunamadı
+                </h3>
+
+                <p class="text-gray-500 mb-8">
+                    Aradığınız sayfa mevcut değil, silinmiş veya taşınmış olabilir. Lütfen adresi kontrol edin.
+                </p>
+
+                <div class="flex gap-3 justify-center">
+                    <button onclick="history.back()"
+                            class="px-8 py-3 rounded-xl font-semibold text-gray-600 hover:bg-gray-50 transition-all border border-gray-200 cursor-pointer">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Geri Dön
+                    </button>
+                    <a href="/"
+                           class="bg-button hover:bg-button-hover text-white px-8 py-3 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                        <i class="fas fa-home"></i>
+                        Ana Sayfa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

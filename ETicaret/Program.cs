@@ -6,6 +6,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.PostgreSQL.ColumnWriters;
 using Serilog.Sinks.SystemConsole.Themes;
+using ETicaret.Binders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,7 +77,10 @@ try
     builder.Services.AddAuthorization();
     builder.Services.AddCascadingAuthenticationState();
 
-    builder.Services.AddControllersWithViews();
+    builder.Services.AddControllersWithViews(options =>
+    {
+        options.ModelBinderProviders.Insert(0, new DateOnlyModelBinderProvider());
+    });
     builder.Services.AddRazorPages();
 
     builder.Services.AddServerSideBlazor(options =>
@@ -109,6 +113,8 @@ try
             diagnosticContext.Set("UserId", httpContext.User?.Identity?.Name);
         };
     });
+
+    app.UseStatusCodePagesWithReExecute("/not-found");
 
     if (!app.Environment.IsDevelopment())
     {

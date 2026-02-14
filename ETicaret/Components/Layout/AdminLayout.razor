@@ -1,18 +1,25 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="flex flex-col h-screen overflow-hidden">
-    <header class="shrink-0">
-        <AdminNavbar />
-    </header>
-    <div class="flex flex-1 min-h-0">
-        <AdminSidebar />
-        <div class="flex flex-col flex-1 min-h-0 overflow-y-auto px-2 md:px-4">
-            <main role="main" class="flex-1 lg:mt-4 lg:mb-4" id="main-content">
-                @Body
-            </main>
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="flex flex-col h-screen overflow-hidden">
+            <header class="shrink-0">
+                <AdminNavbar />
+            </header>
+            <div class="flex flex-1 min-h-0">
+                <AdminSidebar />
+                <div class="flex flex-col flex-1 min-h-0 overflow-y-auto px-2 md:px-4">
+                    <main role="main" class="flex-1 lg:mt-4 lg:mb-4" id="main-content">
+                        @Body
+                    </main>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
+    </Authorized>
+    <NotAuthorized>
+        @Body
+    </NotAuthorized>
+</AuthorizeView>
 
 <div id="toastContainer" class="toast-container"></div>
 

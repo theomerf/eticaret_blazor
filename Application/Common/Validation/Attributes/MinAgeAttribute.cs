@@ -16,8 +16,19 @@ namespace Application.Common.Validation.Attributes
             if (value == null)
                 return ValidationResult.Success;
 
-            if (value is not DateTime birthDate)
+            DateTime birthDate;
+            if (value is DateTime dt)
+            {
+                birthDate = dt;
+            }
+            else if (value is DateOnly d)
+            {
+                birthDate = d.ToDateTime(TimeOnly.MinValue);
+            }
+            else
+            {
                 return new ValidationResult("Geçersiz tarih formatı.");
+            }
 
             var today = DateTime.Today;
             var age = today.Year - birthDate.Year;

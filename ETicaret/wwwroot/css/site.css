@@ -6852,6 +6852,11 @@ a:hover {
   --tw-shadow: var(--tw-shadow-colored);
 }
 
+.shadow-blue-600\/30 {
+  --tw-shadow-color: rgb(37 99 235 / 0.3);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
 .outline-none {
   outline: 2px solid transparent;
   outline-offset: 2px;
