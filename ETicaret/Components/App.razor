@@ -6,19 +6,45 @@
             <Found Context="routeData">
                 <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(AdminLayout)">
                     <Authorizing>
-                        <p>Yetkilendirme kontrol ediliyor...</p>
+                        <div class="flex items-center justify-center min-h-screen bg-gray-50">
+                            <div class="text-center">
+                                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
+                                <p class="mt-4 text-gray-600 font-medium">Yetkilendirme kontrol ediliyor...</p>
+                            </div>
+                        </div>
                     </Authorizing>
                     <NotAuthorized>
-                        <p>Bu sayfaya erişim yetkiniz yok.</p>
-                        <a href="/account/login">Giriş Yap</a>
+                        @if (context.User.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="flex items-center justify-center min-h-screen bg-gray-50">
+                                <div class="text-center">
+                                    <h1 class="text-9xl font-bold text-gray-200">404</h1>
+                                    <h2 class="text-2xl font-semibold text-gray-800 mt-4">Sayfa Bulunamadı</h2>
+                                    <p class="text-gray-600 mt-2">Aradığınız sayfa mevcut değil veya taşınmış olabilir.</p>
+                                    <a href="/" class="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                                        <i class="fas fa-home mr-2"></i> Ana Sayfaya Dön
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <RedirectToLogin />
+                        }
                     </NotAuthorized>
                 </AuthorizeRouteView>
-
             </Found>
             <NotFound>
-                <LayoutView Layout="@typeof(AdminLayout)">
-                    <p>Sayfa bulunamadı.</p>
-                </LayoutView>
+                <div class="flex items-center justify-center min-h-screen bg-gray-50">
+                    <div class="text-center">
+                        <h1 class="text-9xl font-bold text-gray-200">404</h1>
+                        <h2 class="text-2xl font-semibold text-gray-800 mt-4">Sayfa Bulunamadı</h2>
+                        <p class="text-gray-600 mt-2">Aradığınız sayfa mevcut değil veya taşınmış olabilir.</p>
+                        <a href="/" class="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-home mr-2"></i> Ana Sayfaya Dön
+                        </a>
+                    </div>
+                </div>
             </NotFound>
         </Router>
     </GlobalErrorBoundary>

@@ -159,6 +159,28 @@ namespace ETicaret.Extensions
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
                 options.SlidingExpiration = true;
 
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    var requestPath = context.Request.Path.Value ?? "";
+                    if (requestPath.StartsWith("/admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Response.Redirect($"/account/login");
+                    }
+                    else
+                    {
+                        var returnUrl = context.Request.Path + context.Request.QueryString;
+                        context.Response.Redirect($"/account/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
+                    }
+            
+                    return Task.CompletedTask;
+                };
+
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.Redirect("/account/accessDenied");
+                    return Task.CompletedTask;
+                };
+
                 options.Events.OnSigningIn = context =>
                 {
                     if (context.Properties.IsPersistent)

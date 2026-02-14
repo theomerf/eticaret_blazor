@@ -978,5 +978,182 @@ namespace Application.Services.Implementations
             );
 
         }
+
+        public async Task<OperationResult<OrderWithDetailsDto>> AddAdminNoteAsync(int orderId, string note)
+        {
+            if (string.IsNullOrWhiteSpace(note))
+            {
+                return OperationResult<OrderWithDetailsDto>.Failure("Not boş olamaz.", ResultType.ValidationError);
+            }
+
+            _manager.ClearTracker();
+            var order = await _manager.Order.GetByIdAsync(orderId, true);
+            if (order == null)
+            {
+                return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
+            }
+
+            var userId = GetCurrentUserId();
+            var userName = GetCurrentUserName();
+
+            if (string.IsNullOrWhiteSpace(order.AdminNotes))
+            {
+                order.AdminNotes = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm}] {userName}: {note}";
+            }
+            else
+            {
+                order.AdminNotes += $"\n[{DateTime.UtcNow:yyyy-MM-dd HH:mm}] {userName}: {note}";
+            }
+
+            var historyEntry = OrderHistory.CreateEvent(
+                orderId: order.OrderId,
+                eventType: OrderEventType.OrderProcessing,
+                description: $"Admin notu eklendi: {note}",
+                userId: userId
+            );
+            _manager.OrderHistory.Create(historyEntry);
+
+            await _manager.SaveAsync();
+
+            _logger.LogInformation(
+                "Admin note added to order. OrderId: {OrderId}, User: {UserId}",
+                orderId, userId);
+
+            var orderDto = _mapper.Map<OrderWithDetailsDto>(order);
+            return OperationResult<OrderWithDetailsDto>.Success(orderDto, "Admin notu eklendi.");
+        }
+
+        public async Task<OperationResult<OrderWithDetailsDto>> InitiateReturnAsync(int orderId, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                return OperationResult<OrderWithDetailsDto>.Failure("İade nedeni belirtilmelidir.", ResultType.ValidationError);
+            }
+
+            _manager.ClearTracker();
+            var order = await _manager.Order.GetWithDetailsAsync(orderId, true);
+            if (order == null)
+            {
+                return OperationResult<OrderWithDetailsDto>.Failure("Sipariş bulunamadı.", ResultType.NotFound);
+            }
+
+            if (order.OrderStatus != OrderStatus.Delivered)
+            {
+                return OperationResult<OrderWithDetailsDto>.Failure(
+                    "Sadece teslim edilmiş siparişler iade edilebilir.",
+                    ResultType.ValidationError);
+            }
+
+            var userId = GetCurrentUserId();
+
+            if (order.PaymentStatus == PaymentStatus.Completed)
+            {
+                _logger.LogInformation("Processing refund for admin-initiated return. OrderId: {OrderId}", orderId);
+
+                var paymentTransactions = await _manager.OrderLinePaymentTransaction
+                    .GetByOrderIdAsync(orderId, true);
+
+                if (paymentTransactions != null && paymentTransactions.Any())
+                {
+                    var userIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+                    var refundErrors = new List<string>();
+
+                    foreach (var transaction in paymentTransactions)
+                    {
+                        if (transaction!.IsRefunded)
+                        {
+                            _logger.LogInformation("Transaction already refunded. PaymentTransactionId: {PaymentTransactionId}",
+                                transaction.PaymentTransactionId);
+                            continue;
+                        }
+
+                        var refundRequest = new IyzicoRefundRequest
+                        {
+                            PaymentTransactionId = transaction.PaymentTransactionId,
+                            Price = transaction.PaidPrice,
+                            Currency = order.Currency,
+                            Ip = userIp,
+                            Reason = "SELLER_REQUEST",
+                            Description = $"Admin tarafından iade başlatıldı - {order.OrderNumber} - {reason}"
+                        };
+
+                        var refundResult = await _paymentProvider.RefundAsync(refundRequest);
+
+                        if (refundResult.IsSuccess && refundResult.Data != null)
+                        {
+                            transaction.IsRefunded = true;
+                            transaction.RefundTransactionId = refundResult.Data.PaymentTransactionId;
+                            transaction.RefundedAt = DateTime.UtcNow;
+                            _manager.OrderLinePaymentTransaction.Update(transaction);
+
+                            _logger.LogInformation(
+                                "Payment refunded for admin-initiated return. PaymentTransactionId: {PaymentTransactionId}",
+                                transaction.PaymentTransactionId);
+                        }
+                        else
+                        {
+                            var errorMsg = $"Item {transaction.ItemId}: {refundResult.Message}";
+                            refundErrors.Add(errorMsg);
+                            _logger.LogError("Refund failed for admin-initiated return. Error: {Error}", errorMsg);
+                        }
+                    }
+
+                    if (refundErrors.Any())
+                    {
+                        return OperationResult<OrderWithDetailsDto>.Failure(
+                            $"İade başlatıldı ancak ödeme iadesi kısmen başarısız: {string.Join(", ", refundErrors)}. Lütfen manuel işlem yapın.",
+                            ResultType.Error);
+                    }
+
+                    order.PaymentStatus = PaymentStatus.Refunded;
+                    _logger.LogInformation("Payment fully refunded for admin-initiated return. OrderId: {OrderId}", orderId);
+                }
+                else
+                {
+                    _logger.LogWarning("No payment transactions found for admin-initiated return. OrderId: {OrderId}", orderId);
+                }
+            }
+
+            order.OrderStatus = OrderStatus.Returned;
+
+            var historyEntry = OrderHistory.CreateEvent(
+                orderId: order.OrderId,
+                eventType: OrderEventType.Returned,
+                description: $"Sipariş admin tarafından iade edildi. Sebep: {reason}",
+                userId: userId
+            );
+            _manager.OrderHistory.Create(historyEntry);
+
+            foreach (var line in order.Lines)
+            {
+                var product = await _manager.Product.GetByIdAsync(line.ProductId, true, true);
+                if (product != null)
+                {
+                    var variant = await _manager.ProductVariant.GetByIdAsync(line.ProductVariantId, false, true);
+                    if (variant != null)
+                    {
+                        variant.Stock += line.Quantity;
+                        _manager.ProductVariant.Update(variant);
+
+                        _logger.LogInformation("Stock restored for admin-initiated return. VariantId: {VariantId}, Quantity: +{Quantity}",
+                            variant.ProductVariantId, line.Quantity);
+                    }
+
+                    _manager.Product.Update(product);
+                }
+            }
+
+            await _manager.SaveAsync();
+
+            var successMessage = order.PaymentStatus == PaymentStatus.Refunded
+                ? "Sipariş başarıyla iade edildi ve ödeme iadesi yapıldı."
+                : "Sipariş başarıyla iade edildi.";
+
+            _logger.LogInformation("Admin-initiated return completed. OrderId: {OrderId}, User: {UserId}, PaymentRefunded: {PaymentRefunded}",
+                orderId, userId, order.PaymentStatus == PaymentStatus.Refunded);
+
+            var orderDto = _mapper.Map<OrderWithDetailsDto>(order);
+            return OperationResult<OrderWithDetailsDto>.Success(orderDto, successMessage);
+        }
     }
 }

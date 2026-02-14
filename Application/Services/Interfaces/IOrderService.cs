@@ -27,5 +27,9 @@ namespace Application.Services.Interfaces
         Task<OperationResult<(IEnumerable<OrderDto> orders, int count)>> GetAllAdminAsync(OrderFilterParametersAdmin p);
 
         Task<int> CountOfInProcessAsync(CancellationToken ct = default);
+        
+        // Admin Actions
+        Task<OperationResult<OrderWithDetailsDto>> AddAdminNoteAsync(int orderId, string note);
+        Task<OperationResult<OrderWithDetailsDto>> InitiateReturnAsync(int orderId, string reason);
     }
 }

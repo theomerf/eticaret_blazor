@@ -47,7 +47,7 @@ namespace Application.DTOs
         [DataType(DataType.Date, ErrorMessage = "Geçerli bir tarih giriniz.")]
         [MinAge(18)]
         [MaxAge(120)]
-        public DateTime BirthDate { get; set; }
+        public DateOnly BirthDate { get; set; }
         public HashSet<string?> RolesList { get; set; } = new HashSet<string?>();
     }
 }

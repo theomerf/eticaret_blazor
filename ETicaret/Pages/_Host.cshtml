@@ -4,6 +4,12 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     Layout = null;
+    
+    if (HttpContext.User.Identity?.IsAuthenticated != true)
+    {
+        HttpContext.Response.Redirect("/account/login");
+        return;
+    }
 }
 
 <!DOCTYPE html>

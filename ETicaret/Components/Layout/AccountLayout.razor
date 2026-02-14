@@ -5,18 +5,18 @@
     <h1 class="page-title">Hesabım</h1>
 
     <div class="flex flex-col lg:flex-row gap-6">
-        <!-- Mobile Sidebar Toggle Button -->
+        @* Mobile Sidebar Toggle Button *@
         <button @onclick="ToggleSidebar" class="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[1150] bg-white shadow-lg rounded-r-xl p-2 border border-l-0 border-gray-200">
             <i class="fas @(isSidebarOpen ? "fa-chevron-left" : "fa-chevron-right") text-blue-600"></i>
         </button>
 
-        <!-- Sidebar Overlay for Mobile -->
+        @* Sidebar Overlay for Mobile *@
         @if (isSidebarOpen)
         {
             <div class="lg:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-[1140]" @onclick="CloseSidebar"></div>
         }
 
-        <!-- Sidebar -->
+        @* Sidebar *@ 
         <div class="@(isSidebarOpen ? "translate-x-0" : "-translate-x-full") lg:translate-x-0 fixed lg:relative left-0 top-0 h-full lg:h-auto w-64 lg:w-64 shrink-0 z-[1160] transition-transform duration-300 ease-in-out">
             <div class="bg-white rounded-none lg:rounded-2xl shadow-lg border-r lg:border border-gray-100/50 overflow-hidden lg:sticky lg:top-24 backdrop-blur-sm bg-white/95 h-full lg:h-auto">
                 <div class="p-5 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-cyan-50">
@@ -66,7 +66,6 @@
             </div>
         </div>
 
-        <!-- Content -->
         <div class="flex-1">
             @ChildContent
         </div>

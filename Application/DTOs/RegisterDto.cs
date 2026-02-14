@@ -50,7 +50,7 @@ namespace Application.DTOs
         [DataType(DataType.Date, ErrorMessage = "Geçerli bir tarih giriniz.")]
         [MinAge(18)]
         [MaxAge(120)]
-        public DateTime BirthDate { get; set; }
+        public DateOnly BirthDate { get; set; }
 
         [Required(ErrorMessage = "KVKK metnini onaylamalısınız.")]
         [Range(typeof(bool), "true", "true", ErrorMessage = "KVKK metnini onaylamalısınız.")]

@@ -9,7 +9,7 @@ namespace Domain.Entities
         public string LastName { get; set; } = null!;
         public string IdentityNumber { get; set; } = "11111111111";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? BirthDate { get; set; }
+        public DateOnly BirthDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
         public ICollection<Address>? Addresses { get; set; }
         public ICollection<UserReview>? UserReviews { get; set; }
@@ -54,20 +54,17 @@ namespace Domain.Entities
                 throw new UserValidationException("Soyisim 2-50 karakter arasında olmalıdır.");
             }
 
-            if (BirthDate.HasValue)
+            var age = DateTime.UtcNow.Year - BirthDate.Year;
+            if (BirthDate > DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-age)) age--;
+
+            if (age < 18)
             {
-                var age = DateTime.UtcNow.Year - BirthDate.Value.Year;
-                if (BirthDate.Value > DateTime.UtcNow.AddYears(-age)) age--;
+                throw new UserValidationException("Kullanıcı en az 18 yaşında olmalıdır.");
+            }
 
-                if (age < 18)
-                {
-                    throw new UserValidationException("Kullanıcı en az 18 yaşında olmalıdır.");
-                }
-
-                if (age > 120)
-                {
-                    throw new UserValidationException("Geçersiz doğum tarihi.");
-                }
+            if (age > 120)
+            {
+                throw new UserValidationException("Geçersiz doğum tarihi.");
             }
 
             if (string.IsNullOrWhiteSpace(Email))
