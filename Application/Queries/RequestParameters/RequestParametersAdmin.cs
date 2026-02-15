@@ -1,6 +1,6 @@
 ﻿namespace Application.Queries.RequestParameters
 {
-    public class RequestParametersAdmin : RequestParameters
+    public record RequestParametersAdmin : RequestParameters
     {
         const int _maxPageSize = 100;
         private int _pageSize = 10;

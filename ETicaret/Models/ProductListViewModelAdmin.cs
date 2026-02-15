@@ -5,38 +5,21 @@ namespace ETicaret.Models
 {
     public class ProductListViewModelAdmin
     {
-        public IEnumerable<ProductDto> Products { get; set; } = new List<ProductDto>();
-        public int TotalCount { get; set; }
+        public IEnumerable<ProductDto> Products { get; set; } = [];
         public Pagination Pagination { get; set; } = new();
-        public ProductFilterParametersAdmin FilterParams { get; set; } = new();
-    }
+        public int TotalCount { get; set; }
+        public ProductRequestParametersAdmin FilterParams { get; set; } = new();
 
-    public class ProductFilterParametersAdmin : ProductRequestParametersAdmin
-    {
-        public bool HasActiveFilters =>
-            !string.IsNullOrEmpty(SearchTerm) ||
-            MinPrice.HasValue ||
-            MaxPrice.HasValue ||
-            !string.IsNullOrEmpty(Brand) ||
-            IsShowCase.HasValue ||
-            IsDiscount.HasValue;
-
-        public ProductFilterParametersAdmin Clone()
+        public bool HasFiltered()
         {
-            return new ProductFilterParametersAdmin
-            {
-                SearchTerm = this.SearchTerm,
-                MinPrice = this.MinPrice,
-                MaxPrice = this.MaxPrice,
-                Brand = this.Brand,
-                IsShowCase = this.IsShowCase,
-                IsDiscount = this.IsDiscount,
-                SortBy = this.SortBy,
-                PageNumber = this.PageNumber,
-                PageSize = this.PageSize
-            };
+            if (FilterParams == null) return false;
+
+            return !string.IsNullOrEmpty(FilterParams.SearchTerm) ||
+                FilterParams.MinPrice.HasValue ||
+                FilterParams.MaxPrice.HasValue ||
+                !string.IsNullOrEmpty(FilterParams.Brand) ||
+                FilterParams.IsShowCase == true ||
+                FilterParams.IsDiscount == true;
         }
     }
-
-
 }

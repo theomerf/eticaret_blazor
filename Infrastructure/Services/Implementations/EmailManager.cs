@@ -24,7 +24,7 @@ namespace Infrastructure.Services.Implementations
             _smtpUsername = _configuration["EmailSettings:Username"] ?? "";
             _smtpPassword = _configuration["EmailSettings:Password"] ?? "";
             _fromEmail = _configuration["EmailSettings:FromEmail"] ?? "";
-            _fromName = _configuration["EmailSettings:FromName"] ?? "E-Ticaret";
+            _fromName = _configuration["EmailSettings:FromName"] ?? "SiparişKapıda";
         }
 
         public async Task SendAsync(string to, string subject, string body)

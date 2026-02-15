@@ -2,12 +2,15 @@
 @namespace E_Ticaret.Pages
 @using Microsoft.AspNetCore.Components.Web
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 @{
     Layout = null;
+    var HttpContext = HttpContextAccessor.HttpContext;
     
-    if (HttpContext.User.Identity?.IsAuthenticated != true)
+    if (HttpContext?.User.Identity?.IsAuthenticated != true)
     {
-        HttpContext.Response.Redirect("/account/login");
+        HttpContext?.Response.Redirect("/account/login");
         return;
     }
 }
@@ -31,10 +34,16 @@
     <title>SiparişKapıda - Admin Paneli</title>
     <base href="~/" />
     <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="css/impersonation.css" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.css">
     <component type="typeof(HeadOutlet)" render-mode="Server" />
 </head>
 <body class="admin">
+    @{
+        var token = Antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
+    }
+    <input type="hidden" id="__GlobalRequestVerificationToken" value="@token" />
+
     <component type="typeof(ETicaret.Components.App)" render-mode="Server" />
 
     <script src="js/site.js"></script>

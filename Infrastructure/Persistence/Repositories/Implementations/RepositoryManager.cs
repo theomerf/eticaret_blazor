@@ -22,6 +22,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         private readonly IOrderLinePaymentTransactionRepository _orderLinePaymentTransactionRepository;
         private readonly IActivityRepository _activityRepository;
         private readonly ICategoryVariantAttributeRepository _categoryVariantAttributeRepository;
+        private readonly IUserRepository _userRepository;
 
         public RepositoryManager(
             IProductRepository productRepository,
@@ -41,7 +42,8 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             ICouponUsageRepository couponUsageRepository,
             IOrderLinePaymentTransactionRepository orderLinePaymentTransactionRepository,
             IActivityRepository activityRepository,
-            ICategoryVariantAttributeRepository categoryVariantAttributeRepository)
+            ICategoryVariantAttributeRepository categoryVariantAttributeRepository,
+            IUserRepository userRepository)
         {
             _context = context;
             _productRepository = productRepository;
@@ -61,6 +63,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             _orderLinePaymentTransactionRepository = orderLinePaymentTransactionRepository;
             _activityRepository = activityRepository;
             _categoryVariantAttributeRepository = categoryVariantAttributeRepository;
+            _userRepository = userRepository;
         }
 
         public IProductRepository Product => _productRepository;
@@ -80,6 +83,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction => _orderLinePaymentTransactionRepository;
         public IActivityRepository Activity => _activityRepository;
         public ICategoryVariantAttributeRepository CategoryVariantAttribute => _categoryVariantAttributeRepository;
+        public IUserRepository User => _userRepository;
 
         public void Save() => _context.SaveChanges();
         public async Task SaveAsync() => await _context.SaveChangesAsync();

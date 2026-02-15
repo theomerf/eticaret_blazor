@@ -38,7 +38,7 @@ namespace ETicaret.Extensions
 
         public static void ConfigureIdentity(this IServiceCollection services)
         {
-            services.AddIdentity<User, IdentityRole>(options =>
+            services.AddIdentity<User, Role>(options =>
             {
                 options.SignIn.RequireConfirmedEmail = true;
                 options.SignIn.RequireConfirmedAccount = false;
@@ -111,6 +111,7 @@ namespace ETicaret.Extensions
             services.AddScoped<IOrderLinePaymentTransactionRepository, OrderLinePaymentTransactionRepository>();
             services.AddScoped<IActivityRepository, ActivityRepository>();
             services.AddScoped<ICategoryVariantAttributeRepository, CategoryVariantAttributeRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
         }
 
         public static void ConfigureServiceRegistration(this IServiceCollection services)

@@ -1,7 +1,7 @@
 @typeparam TItem
 @using ETicaret.Models
 
-<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200">
     @if (ToolbarContent != null)
     {
         <div class="px-4 py-3 border-b border-gray-200">
@@ -9,33 +9,33 @@
         </div>
     }
 
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto lg:overflow-visible">
         <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                @HeaderTemplate
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @if (Items != null && Items.Any())
-                {
-                    foreach (var item in Items)
+                <thead class="bg-gray-50">
+                    @HeaderTemplate
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @if (Items != null && Items.Any())
                     {
-                        <tr class="hover:bg-gray-50 transition-colors duration-200">
-                            @RowTemplate(item)
+                        foreach (var item in Items)
+                        {
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                @RowTemplate(item)
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="100%" class="px-6 py-10 text-center text-gray-500">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="fas fa-inbox text-4xl mb-3 text-gray-300"></i>
+                                    <span class="text-lg font-medium">Kayıt bulunamadı</span>
+                                </div>
+                            </td>
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="100%" class="px-6 py-10 text-center text-gray-500">
-                            <div class="flex flex-col items-center justify-center">
-                                <i class="fas fa-inbox text-4xl mb-3 text-gray-300"></i>
-                                <span class="text-lg font-medium">Kayıt bulunamadı</span>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
+                </tbody>
         </table>
     </div>
 

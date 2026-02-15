@@ -22,281 +22,283 @@
 
 <div class="flex flex-col">
     <CascadingValue Value="@model.FilterParams" Name="FilterParams">
-        <CascadingValue Value="@showLoadingOverlay" Name="ShowLoadingOverlay">
-            <CascadingValue Value="@HandleFiltersChange" Name="OnFilterChange">
+        <CascadingValue Value="@_lastParams" Name="LastParams">
+            <CascadingValue Value="@showLoadingOverlay" Name="ShowLoadingOverlay">
+                <CascadingValue Value="@HandleFiltersChange" Name="OnFilterChange">
 
-                <!-- Mobil Header / Toolbar -->
-                <div class="lg:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30 px-4 py-3 flex justify-between items-center">
-                    <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <i class="fa-solid fa-box text-primary"></i> Ürünler
-                    </h1>
-                    <div class="flex gap-2">
-                        @if (!isLoading)
-                        {
-                            <a href="/admin/products/create" class="bg-button text-sm text-white px-2 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-1">
-                                <i class="fas fa-plus"></i> Yeni Ürün
-                            </a>
-                        }
-                        <button data-blazor-sort-open class="p-2 text-gray-600 hover:text-primary active:scale-95 transition-all">
-                            <i class="fa-solid fa-sort text-xl"></i>
-                        </button>
-                        <button data-blazor-filter-open class="relative p-2 text-gray-600 hover:text-primary active:scale-95 transition-all">
-                            <i class="fa-solid fa-filter text-xl"></i>
-                            @if (HasFiltered())
+                    <!-- Mobil Header / Toolbar -->
+                    <div class="lg:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30 px-4 py-3 flex justify-between items-center">
+                        <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fa-solid fa-box text-primary"></i> Ürünler
+                        </h1>
+                        <div class="flex gap-2">
+                            @if (!isLoading)
                             {
-                                <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                                <a href="/admin/products/create" class="bg-button text-sm text-white px-2 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-1">
+                                    <i class="fas fa-plus"></i> Yeni Ürün
+                                </a>
                             }
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex-1 max-w-full">
-                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
-
-                        <div class="hidden lg:block lg:col-span-1">
-                            <div class="grid grid-cols-2 gap-3 mb-6">
-                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                                    <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2">
-                                        <i class="fas fa-box"></i>
-                                    </div>
-                                    <div class="text-xs text-gray-500 font-medium">Toplam</div>
-                                    @if (isLoading)
-                                    {
-                                        <div class="flex items-center mt-2">
-                                            <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="text-lg font-bold text-gray-800">@model.TotalCount</div>
-                                    }
-                                </div>
-                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                                    <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-2">
-                                        <i class="fas fa-star"></i>
-                                    </div>
-                                    <div class="text-xs text-gray-500 font-medium">Vitrin</div>
-                                    @if (isLoading)
-                                    {
-                                        <div class="flex items-center mt-2">
-                                            <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="text-lg font-bold text-gray-800">@model.Products?.Count(p => p.ShowCase)</div>
-                                    }
-                                </div>
-                            </div>
-
-                            <ProductsFilter />
-                        </div>
-
-                        <div class="lg:col-span-4">
-                            <div id="products-list-top"></div>
-                            <div class="hidden lg:flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                                <div>
-                                    <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl bg-primary/10 text-secondary flex items-center justify-center text-lg">
-                                            <i class="fa-solid fa-gears"></i>
-                                        </div>
-                                        Ürün Yönetimi
-                                    </h1>
-                                    <p class="text-gray-500 text-sm mt-1 ml-[52px]">Mağaza ürünlerini listeleyin, düzenleyin ve yönetin.</p>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    @if (!isLoading)
-                                    {
-                                        <a href="/admin/products/create" class="bg-button hover:bg-button-hover text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
-                                            <i class="fas fa-plus"></i> Yeni Ürün
-                                        </a>
-                                    }
-                                </div>
-                            </div>
-
-                            @if (isLoading)
-                            {
-                                <div class="flex justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-100">
-                                    <div class="flex flex-col items-center gap-3">
-                                        <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                        <span class="text-gray-500 font-medium">Yükleniyor...</span>
-                                    </div>
-                                </div>
-                            }
-                            else
-                            {
-                                @if (HasFiltered())
+                            <button data-blazor-sort-open class="p-2 text-gray-600 hover:text-primary active:scale-95 transition-all">
+                                <i class="fa-solid fa-sort text-xl"></i>
+                            </button>
+                            <button data-blazor-filter-open class="relative p-2 text-gray-600 hover:text-primary active:scale-95 transition-all">
+                                <i class="fa-solid fa-filter text-xl"></i>
+                                @if (model.HasFiltered())
                                 {
-                                    <div class="mb-4 flex flex-wrap gap-2 items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm animate-fadeIn">
-                                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-1 px-2">Filtreler:</span>
+                                    <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                                }
+                            </button>
+                        </div>
+                    </div>
 
-                                        @if (!string.IsNullOrEmpty(model.FilterParams.SearchTerm))
-                                        {
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                                                Ara: @model.FilterParams.SearchTerm
-                                                <button @onclick="async () => { model.FilterParams.SearchTerm = null; await HandleFiltersChange(); }" class="ml-2 text-blue-400 hover:text-blue-600"><i class="fas fa-times"></i></button>
-                                            </span>
-                                        }
-                                        @if (model.FilterParams.MinPrice.HasValue || model.FilterParams.MaxPrice.HasValue)
-                                        {
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
-                                                @(model.FilterParams.MinPrice ?? 0) - @(model.FilterParams.MaxPrice?.ToString() ?? "Max") TL
-                                                <button @onclick="async () => { model.FilterParams.MinPrice = null; model.FilterParams.MaxPrice = null; await HandleFiltersChange(); }" class="ml-2 text-green-400 hover:text-green-600"><i class="fas fa-times"></i></button>
-                                            </span>
-                                        }
-                                        @if (!string.IsNullOrEmpty(model.FilterParams.Brand))
-                                        {
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100">
-                                                Marka: @model.FilterParams.Brand
-                                                <button @onclick="async () => { model.FilterParams.Brand = null; await HandleFiltersChange(); }" class="ml-2 text-purple-400 hover:text-purple-600"><i class="fas fa-times"></i></button>
-                                            </span>
-                                        }
-                                        @if (model.FilterParams.IsShowCase == true)
-                                        {
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700 border border-orange-100">
-                                                <i class="fas fa-fire mr-1"></i> Çok Satanlar
-                                                <button @onclick="async () => { model.FilterParams.IsShowCase = null; await HandleFiltersChange(); }" class="ml-2 text-orange-400 hover:text-orange-600"><i class="fas fa-times"></i></button>
-                                            </span>
-                                        }
-                                        @if (model.FilterParams.IsDiscount == true)
-                                        {
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
-                                                <i class="fas fa-percent mr-1"></i> İndirimli
-                                                <button @onclick="async () => { model.FilterParams.IsDiscount = null; await HandleFiltersChange(); }" class="ml-2 text-teal-400 hover:text-teal-600"><i class="fas fa-times"></i></button>
-                                            </span>
-                                        }
+                    <div class="flex-1 max-w-full">
+                        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
 
-                                        <button @onclick="async () => { model.FilterParams = new ProductFilterParametersAdmin(); await HandleFiltersChange(); }"
-                                                class="ml-auto text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-lg transition-colors">
-                                            Temizle
-                                        </button>
+                            <div class="hidden lg:block lg:col-span-1">
+                                <div class="grid grid-cols-2 gap-3 mb-6">
+                                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                                        <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2">
+                                            <i class="fas fa-box"></i>
+                                        </div>
+                                        <div class="text-xs text-gray-500 font-medium">Toplam</div>
+                                        @if (isLoading)
+                                        {
+                                            <div class="flex items-center mt-2">
+                                                <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-lg font-bold text-gray-800">@model.TotalCount</div>
+                                        }
+                                    </div>
+                                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                                        <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-2">
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <div class="text-xs text-gray-500 font-medium">Vitrin</div>
+                                        @if (isLoading)
+                                        {
+                                            <div class="flex items-center mt-2">
+                                                <div class="w-5 h-5 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-lg font-bold text-gray-800">@model.Products?.Count(p => p.ShowCase)</div>
+                                        }
+                                    </div>
+                                </div>
+
+                                    <ProductsFilter />
+                            </div>
+
+                            <div class="lg:col-span-4">
+                                <div id="products-list-top"></div>
+                                <div class="hidden lg:flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                    <div>
+                                        <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-primary/10 text-secondary flex items-center justify-center text-lg">
+                                                <i class="fa-solid fa-gears"></i>
+                                            </div>
+                                            Ürün Yönetimi
+                                        </h1>
+                                        <p class="text-gray-500 text-sm mt-1 ml-[52px]">Mağaza ürünlerini listeleyin, düzenleyin ve yönetin.</p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        @if (!isLoading)
+                                        {
+                                            <a href="/admin/products/create" class="bg-button hover:bg-button-hover text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                                                <i class="fas fa-plus"></i> Yeni Ürün
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+
+                                @if (isLoading)
+                                {
+                                    <div class="flex justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-100">
+                                        <div class="flex flex-col items-center gap-3">
+                                            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                            <span class="text-gray-500 font-medium">Yükleniyor...</span>
+                                        </div>
                                     </div>
                                 }
+                                else
+                                {
+                                    @if (model.HasFiltered())
+                                    {
+                                        <div class="mb-4 flex flex-wrap gap-2 items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm animate-fadeIn">
+                                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-1 px-2">Filtreler:</span>
 
-                                <AdminTable Items="model.Products" Pagination="model.Pagination" OnPageChange="HandlePageChange" PageSize="@(model?.FilterParams.PageSize ?? 10)" OnPageSizeChange="HandlePageSizeChange">
-                                    <ToolbarContent>
-                                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                            <div class="relative flex-1 sm:max-w-md">
-                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <i class="fas fa-search text-gray-400"></i>
-                                                </div>
-                                                <input type="text" 
-                                                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition duration-150 ease-in-out"
-                                                       placeholder="Ürün ara..."
-                                                       value="@searchTerm"
-                                                       @oninput="OnSearchInput">
-                                            </div>
+                                            @if (!string.IsNullOrEmpty(model.FilterParams.SearchTerm))
+                                            {
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                                    Ara: @model.FilterParams.SearchTerm
+                                                    <button @onclick="async () => { model.FilterParams.SearchTerm = null; await HandleFiltersChange(); }" class="ml-2 text-blue-400 hover:text-blue-600"><i class="fas fa-times"></i></button>
+                                                </span>
+                                            }
+                                            @if (model.FilterParams.MinPrice.HasValue || model.FilterParams.MaxPrice.HasValue)
+                                            {
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                                    @(model.FilterParams.MinPrice ?? 0) - @(model.FilterParams.MaxPrice?.ToString() ?? "Max") TL
+                                                    <button @onclick="ClearPriceFilter" class="ml-2 text-green-400 hover:text-green-600"><i class="fas fa-times"></i></button>
+                                                </span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(model.FilterParams.Brand))
+                                            {
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100">
+                                                    Marka: @model.FilterParams.Brand
+                                                    <button @onclick="async () => { model.FilterParams.Brand = null; await HandleFiltersChange(); }" class="ml-2 text-purple-400 hover:text-purple-600"><i class="fas fa-times"></i></button>
+                                                </span>
+                                            }
+                                            @if (model.FilterParams.IsShowCase == true)
+                                            {
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700 border border-orange-100">
+                                                    <i class="fas fa-fire mr-1"></i> Çok Satanlar
+                                                    <button @onclick="async () => { model.FilterParams.IsShowCase = null; await HandleFiltersChange(); }" class="ml-2 text-orange-400 hover:text-orange-600"><i class="fas fa-times"></i></button>
+                                                </span>
+                                            }
+                                            @if (model.FilterParams.IsDiscount == true)
+                                            {
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
+                                                    <i class="fas fa-percent mr-1"></i> İndirimli
+                                                    <button @onclick="async () => { model.FilterParams.IsDiscount = null; await HandleFiltersChange(); }" class="ml-2 text-teal-400 hover:text-teal-600"><i class="fas fa-times"></i></button>
+                                                </span>
+                                            }
 
-                                            <!-- Sort (Desktop Only) -->
-                                            <div class="hidden lg:flex items-center gap-2">
-                                                <label for="productSortOptions" class="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                                    <i class="fa-solid fa-sort mr-1 text-gray-400"></i>Sırala:
-                                                </label>
-                                                <select id="productSortOptions" 
-                                                        class="block w-auto pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                                                        value="@model?.FilterParams.SortBy"
-                                                        @onchange="OnSortChange">
-                                                    <option value="default">Varsayılan</option>
-                                                    <option value="price_asc">Fiyat: Düşükten Yükseğe</option>
-                                                    <option value="price_desc">Fiyat: Yüksekten Düşüğe</option>
-                                                    <option value="topReviews">En Yüksek Puanlılar</option>
-                                                    <option value="mostReviews">En Çok Değerlendirme</option>
-                                                </select>
-                                            </div>
+                                            <button @onclick="ClearAllFilters"
+                                                    class="ml-auto text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-lg transition-colors">
+                                                Temizle
+                                            </button>
                                         </div>
-                                    </ToolbarContent>
-                                    <HeaderTemplate>
-                                        <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">ID</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Görsel</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ürün Adı</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Fiyat</th>
-                                            <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Vitrin</th>
-                                            <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">T. Stok</th>
-                                            <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">İşlemler</th>
-                                        </tr>
-                                    </HeaderTemplate>
-                                    <RowTemplate Context="prd">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            #@prd.ProductId
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative group">
-                                                <img class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                     src="@(prd?.Images?.FirstOrDefault()?.ImageUrl ?? "https://placehold.co/48")"
-                                                     alt="@prd?.ProductName" />
+                                    }
+
+                                    <AdminTable Items="model.Products" Pagination="model.Pagination" OnPageChange="HandlePageChange" PageSize="@(model?.FilterParams.PageSize ?? 10)" OnPageSizeChange="HandlePageSizeChange">
+                                        <ToolbarContent>
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                <div class="relative flex-1 sm:max-w-md">
+                                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <i class="fas fa-search text-gray-400"></i>
+                                                    </div>
+                                                    <input type="text"
+                                                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                                           placeholder="Ürün ara..."
+                                                           value="@searchTerm"
+                                                           @oninput="OnSearchInput"
+                                                           @onkeydown="HandleSearchKeyDown">
+                                                </div>
+
+                                                <!-- Sort (Desktop Only) -->
+                                                <div class="hidden lg:flex items-center gap-2">
+                                                    <label for="productSortOptions" class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                                        <i class="fa-solid fa-sort mr-1 text-gray-400"></i>Sırala:
+                                                    </label>
+                                                    <select id="productSortOptions"
+                                                            class="block w-auto pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                                                            value="@model?.FilterParams.SortBy"
+                                                            @onchange="HandleSortChange">
+                                                        <option value="default">Varsayılan</option>
+                                                        <option value="price_asc">Fiyat: Düşükten Yükseğe</option>
+                                                        <option value="price_desc">Fiyat: Yüksekten Düşüğe</option>
+                                                        <option value="topReviews">En Yüksek Puanlılar</option>
+                                                        <option value="mostReviews">En Çok Değerlendirme</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex flex-col">
-                                                <span class="text-sm font-semibold text-gray-900 line-clamp-1">@prd?.ProductName</span>
-                                                <span class="text-xs text-gray-400">Kategori: Elektronik</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex flex-col">
-                                                @if (prd?.DiscountPrice != null && prd?.Price > prd?.DiscountPrice)
+                                        </ToolbarContent>
+                                        <HeaderTemplate>
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">ID</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Görsel</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ürün Adı</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Fiyat</th>
+                                                <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Vitrin</th>
+                                                <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">T. Stok</th>
+                                                <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">İşlemler</th>
+                                            </tr>
+                                        </HeaderTemplate>
+                                        <RowTemplate Context="prd">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                #@prd.ProductId
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative group">
+                                                    <img class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                         src="@(prd?.Images?.FirstOrDefault()?.ImageUrl ?? "https://placehold.co/48")"
+                                                         alt="@prd?.ProductName" />
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex flex-col">
+                                                    <span class="text-sm font-semibold text-gray-900 line-clamp-1">@prd?.ProductName</span>
+                                                    <span class="text-xs text-gray-400">Kategori: Elektronik</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex flex-col">
+                                                    @if (prd?.DiscountPrice != null && prd?.Price > prd?.DiscountPrice)
+                                                    {
+                                                        <span class="text-xs text-gray-400 line-through font-medium">
+                                                            @prd?.Price.ToString("C2", new CultureInfo("tr-TR"))
+                                                        </span>
+                                                        <span class="text-sm font-bold text-emerald-600">
+                                                            @prd?.DiscountPrice?.ToString("C2", new CultureInfo("tr-TR"))
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-sm font-medium text-gray-900">
+                                                            @prd?.Price.ToString("C2", new CultureInfo("tr-TR"))
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                <label data-tooltip="@(prd != null && prd.ShowCase ? "Vitrinden kaldır" : "Vitrinde göster")" class="tooltip relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" class="sr-only peer" checked="@(prd != null && prd.ShowCase)"
+                                                           @onclick="async () => await HandleShowcaseUpdate(prd!.ProductId)">
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                                </label>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                @if (prd?.TotalStock > 0 && prd?.TotalStock > 5)
                                                 {
-                                                    <span class="text-xs text-gray-400 line-through font-medium">
-                                                        @prd?.Price.ToString("C2", new CultureInfo("tr-TR"))
-                                                    </span>
-                                                    <span class="text-sm font-bold text-emerald-600">
-                                                        @prd?.DiscountPrice?.ToString("C2", new CultureInfo("tr-TR"))
-                                                    </span>
+                                                    <span data-tooltip="Toplam stokta @prd?.TotalStock ürün bulunmaktadır" class="tooltip inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Stokta</span>
+                                                }
+                                                else if (prd?.TotalStock > 0 && prd?.TotalStock <= 5)
+                                                {
+                                                    <span data-tooltip="Toplam stokta sadece @prd?.TotalStock ürün kaldı" class="tooltip inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Az Kaldı (@prd?.TotalStock)</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-sm font-medium text-gray-900">
-                                                        @prd?.Price.ToString("C2", new CultureInfo("tr-TR"))
-                                                    </span>
+                                                    <span data-tooltip="Toplam stokta ürün kalmadı" class="tooltip inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-800 ring-1 ring-inset ring-red-600/20">Tükendi</span>
                                                 }
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            <label data-tooltip="@(prd != null && prd.ShowCase ? "Vitrinden kaldır" : "Vitrinde göster")" class="tooltip relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" class="sr-only peer" checked="@(prd != null && prd.ShowCase)"
-                                                       @onclick="async () => await HandleShowcaseUpdate(prd!.ProductId)">
-                                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                            </label>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            @if (prd?.TotalStock > 0 && prd?.TotalStock > 5)
-                                            {
-                                                <span data-tooltip="Toplam stokta @prd?.TotalStock ürün bulunmaktadır" class="tooltip inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Stokta</span>
-                                            }
-                                            else if (prd?.TotalStock > 0 && prd?.TotalStock <= 5)
-                                            {
-                                                <span data-tooltip="Toplam stokta sadece @prd?.TotalStock ürün kaldı" class="tooltip inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Az Kaldı (@prd?.TotalStock)</span>
-                                            }
-                                            else
-                                            {
-                                                <span data-tooltip="Toplam stokta ürün kalmadı" class="tooltip inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-800 ring-1 ring-inset ring-red-600/20">Tükendi</span>
-                                            }
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div class="flex items-center justify-end gap-2">
-                                                <a href="/admin/products/update/@prd?.ProductId" class="tooltip p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" data-tooltip="Düzenle">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <a href="/products/@prd?.Slug" target="_blank" class="tooltip p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" data-tooltip="Görüntüle">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <button @onclick="async () => await HandleDeleteProduct(prd!.ProductId)" class="tooltip p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" data-tooltip="Sil">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </RowTemplate>
-                                </AdminTable>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <a href="/admin/products/update/@prd?.ProductId" class="tooltip p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" data-tooltip="Düzenle">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="/products/@prd?.Slug" target="_blank" class="tooltip p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" data-tooltip="Görüntüle">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <button @onclick="async () => await HandleDeleteProduct(prd!.ProductId)" class="tooltip p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" data-tooltip="Sil">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </RowTemplate>
+                                    </AdminTable>
 
-                            }
+                                }
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <ProductsFilterMobile OnClose="HandleFiltersChange" />
-                <ProductsSortMobile />
-
+                    <ProductsFilterMobile OnClose="HandleFiltersChange" />
+                    <ProductsSortMobile />
+                </CascadingValue>
             </CascadingValue>
         </CascadingValue>
     </CascadingValue>
@@ -304,18 +306,22 @@
 
 @code {
     private ProductListViewModelAdmin model = new();
+    private ProductRequestParametersAdmin _lastParams = new();
     private bool isLoading = true;
     private bool showLoadingOverlay = false;
+    private string searchTerm = "";
+    private Timer? _debounceTimer;
 
     private CancellationTokenSource? _cts;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        model.FilterParams = Navigation.BindFromQuery<ProductFilterParametersAdmin>();
+        model.FilterParams = Navigation.BindFromQuery<ProductRequestParametersAdmin>();
+        searchTerm = model.FilterParams.SearchTerm ?? "";
 
         _cts = new CancellationTokenSource();
-        await LoadAndBuildModel(_cts.Token);
+        await LoadProducts(_cts.Token);
 
         isLoading = false;
         Navigation.LocationChanged += OnLocationChanged;
@@ -323,6 +329,13 @@
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        var newParams = Navigation.BindFromQuery<ProductRequestParametersAdmin>();
+
+        if (_lastParams != null && _lastParams.Equals(newParams))
+            return;
+
+        _lastParams = newParams with { };
+
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = new CancellationTokenSource();
@@ -330,13 +343,12 @@
 
         await InvokeAsync(async () =>
         {
-            var newParams = Navigation.BindFromQuery<ProductFilterParametersAdmin>();
-            model.FilterParams = newParams;
-
             showLoadingOverlay = true;
             StateHasChanged();
 
-            await LoadAndBuildModel(token);
+            model.FilterParams = newParams;
+
+            await LoadProducts(token);
 
             if (token.IsCancellationRequested) return;
 
@@ -347,23 +359,18 @@
         });
     }
 
-    private async Task LoadAndBuildModel(CancellationToken ct)
+    private async Task LoadProducts(CancellationToken ct)
     {
         try
         {
-            if (model?.FilterParams.PageSize == 0)
-            {
-                model.FilterParams.PageSize = 12;
-            }
-
-            var result = await Service.GetAllAdminAsync(model?.FilterParams!, ct);
+            var result = await Service.GetAllAdminAsync(model.FilterParams, ct);
 
             if (ct.IsCancellationRequested) return;
 
             var pagination = new Pagination()
             {
-                CurrentPage = model?.FilterParams.PageNumber ?? 1,
-                ItemsPerPage = model?.FilterParams.PageSize ?? 12,
+                CurrentPage = model.FilterParams.PageNumber,
+                ItemsPerPage = model.FilterParams.PageSize,
                 TotalItems = result.count
             };
 
@@ -372,26 +379,12 @@
                 Products = result.products,
                 Pagination = pagination,
                 TotalCount = result.count,
-                FilterParams = model?.FilterParams ?? new()
+                FilterParams = model.FilterParams
             };
         }
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private async Task HandleFiltersChange()
-    {
-        model.FilterParams.PageNumber = 1;
-        UpdateUrl();
-        await Task.CompletedTask;
-    }
-
-    private async Task HandlePageChange(int newPage)
-    {
-        model.FilterParams.PageNumber = newPage;
-        UpdateUrl();
-        await Task.CompletedTask;
     }
 
     private void UpdateUrl()
@@ -400,11 +393,73 @@
         Navigation.NavigateTo(url!);
     }
 
-    private void HandlePageSizeChange(int pageSize)
+    private async Task HandleFiltersChange()
     {
-        model.FilterParams.PageSize = pageSize;
-        model.FilterParams.PageNumber = 1;
+        model.FilterParams = model.FilterParams with { PageNumber = 1 };
         UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private void HandleSortChange(ChangeEventArgs e)
+    {
+        var newSort = e.Value?.ToString() ?? "default";
+        model.FilterParams = model.FilterParams with { SortBy = newSort, PageNumber = 1 };
+        UpdateUrl();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(async _ =>
+        {
+            await InvokeAsync(() =>
+            {
+                model.FilterParams = model.FilterParams with { SearchTerm = searchTerm, PageNumber = 1 };
+                UpdateUrl();
+            });
+
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            model.FilterParams = model.FilterParams with { PageNumber = 1 };
+            UpdateUrl();
+            await Task.CompletedTask;
+        }
+    }
+
+    private async Task HandlePageChange(int newPage)
+    {
+        model.FilterParams = model.FilterParams with { PageNumber = newPage };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageSizeChange(int newSize)
+    {
+        model.FilterParams = model.FilterParams with { PageSize = newSize, PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task ClearPriceFilter()
+    {
+        model.FilterParams.MinPrice = null;
+        model.FilterParams.MaxPrice = null;
+        await HandleFiltersChange();
+        await JSRuntime.InvokeVoidAsync("priceSliderAPI.resetSliders");
+    }
+
+    private async Task ClearAllFilters()
+    {
+        model.FilterParams = new();
+        await HandleFiltersChange();
+        await JSRuntime.InvokeVoidAsync("priceSliderAPI.resetSliders");
     }
 
     private async Task HandleShowcaseUpdate(int productId)
@@ -428,69 +483,22 @@
     {
         if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu ürünü silmek istediğinize emin misiniz?")) return;
 
-        try
+        var result = await Service.DeleteAsync(productId);
+
+        if (result.IsSuccess)
         {
-            var result = await Service.DeleteAsync(productId);
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
 
-            if (result.IsSuccess)
-            {
-                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
-
-                _cts?.Cancel();
-                _cts?.Dispose();
-                _cts = new CancellationTokenSource();
-                await LoadAndBuildModel(_cts.Token);
-                StateHasChanged();
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
-            }
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+            await LoadProducts(_cts.Token);
+            StateHasChanged();
         }
-        catch (OperationCanceledException)
+        else
         {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
         }
-    }
-
-    public bool HasFiltered()
-    {
-        if (model?.FilterParams == null) return false;
-
-        return !string.IsNullOrEmpty(model.FilterParams.SearchTerm) ||
-            model.FilterParams.MinPrice.HasValue ||
-            model.FilterParams.MaxPrice.HasValue ||
-            !string.IsNullOrEmpty(model.FilterParams.Brand) ||
-            model.FilterParams.IsShowCase == true ||
-            model.FilterParams.IsDiscount == true;
-    }
-
-    private string searchTerm = "";
-    private Timer? _debounceTimer;
-
-    private void OnSearchInput(ChangeEventArgs e)
-    {
-        searchTerm = e.Value?.ToString() ?? "";
-        
-        _debounceTimer?.Dispose();
-        _debounceTimer = new Timer(async _ =>
-        {
-
-                await InvokeAsync(() =>
-                {
-                    model.FilterParams.SearchTerm = searchTerm;
-                    model.FilterParams.PageNumber = 1;
-                    UpdateUrl();
-                });
-            
-        }, null, 500, Timeout.Infinite);
-    }
-
-    private void OnSortChange(ChangeEventArgs e)
-    {
-        var newSort = e.Value?.ToString() ?? "default";
-        model.FilterParams.SortBy = newSort;
-        model.FilterParams.PageNumber = 1;
-        UpdateUrl();
     }
 
     public void Dispose()

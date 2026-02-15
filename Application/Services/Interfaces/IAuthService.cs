@@ -1,16 +1,18 @@
 ﻿using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Domain.Entities;
-using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace Application.Services.Interfaces
 {
     public interface IAuthService
     {
         Task<IEnumerable<UserDto>> GetAllUsersAsync();
-        Task<IEnumerable<IdentityRole>> GetRolesAsync(CancellationToken ct = default);
+        Task<(IEnumerable<UserDto> users, int count)> GetAllUsersAdminAsync(UserRequestParametersAdmin p, CancellationToken ct = default);
+        Task<IEnumerable<Role>> GetRolesAsync(CancellationToken ct = default);
         Task<int> GetRolesCountAsync(CancellationToken ct = default);
         Task<int> GetUsersCountAsync(CancellationToken ct = default);
-        Task<UserDto> GetOneUserAsync(string userId);
+        Task<UserDto> GetOneUserAsync(string userId, CancellationToken ct = default);
         Task<OperationResult<UserDto>> ResetPasswordAsync(ResetPasswordDto model);
         Task<OperationResult<UserDto>> ChangePasswordAsync(ChangePasswordDto model);
         Task<OperationResult<UserDto>> CreateUserAsync(UserDtoForCreation userDto);
@@ -21,5 +23,12 @@ namespace Application.Services.Interfaces
         Task<OperationResult<FavouriteResultDto>> AddToFavouritesAsync(int productId);
         Task<OperationResult<FavouriteResultDto>> RemoveFromFavouritesAsync(int productId);
         Task<OperationResult<FavouriteResultDto>> UpdateUserFavouritesAsync(List<int> favouriteProductIds);
+        Task<OperationResult<UserDto>> ToggleUserActiveAsync(string userId);
+        Task<OperationResult<UserDto>> VerifyEmailAsync(string userId);
+        Task<OperationResult<string>> GeneratePasswordResetLinkAsync(string userId);
+        Task<OperationResult<UserDto>> UpdateAdminNotesAsync(string userId, string notes);
+        Task<OperationResult<UserDto>> EditUserInfoAsync(UserDtoForAdminEdit dto);
+        Task<OperationResult<UserDto>> ChangeUserRolesAsync(string userId, HashSet<string> roles);
+        Task<OperationResult<List<Claim>>> BuildImpersonationClaimsAsync(string targetUserId, string adminUserId);
     }
 }

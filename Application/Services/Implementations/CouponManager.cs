@@ -385,5 +385,11 @@ namespace Application.Services.Implementations
 
             return OperationResult<Coupon>.Success(coupon);
         }
+
+        public async Task<IEnumerable<CouponUsage>> GetCouponUsagesByUserIdAsync(string userId)
+        {
+            var usages = await _manager.CouponUsage.GetByUserIdAsync(userId, false);
+            return usages;
+        }
     }
 }

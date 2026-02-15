@@ -18,6 +18,7 @@ namespace Application.Repositories.Interfaces
         IOrderLinePaymentTransactionRepository OrderLinePaymentTransaction { get; }
         IActivityRepository Activity { get; }
         ICategoryVariantAttributeRepository CategoryVariantAttribute { get; }
+        IUserRepository User { get; }
 
         void Save();
         Task SaveAsync();

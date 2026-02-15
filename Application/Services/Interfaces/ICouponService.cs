@@ -19,5 +19,6 @@ namespace Application.Services.Interfaces
 
         Task<OperationResult<decimal>> ValidateAndCalculateDiscountAsync(string code, decimal orderAmount, string userId);
         Task<OperationResult<Coupon>> ValidateForOrderAsync(string code, decimal orderAmount, string userId);
+        Task<IEnumerable<CouponUsage>> GetCouponUsagesByUserIdAsync(string userId);
     }
 }

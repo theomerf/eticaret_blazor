@@ -63,6 +63,7 @@
 
                 <div class="lg:col-span-4 lg:flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                     <div>
+                        <div id="categories-list-top"></div>
                         <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-primary/10 text-secondary flex items-center justify-center text-lg">
                                 <i class="fa-solid fa-gears"></i>
@@ -106,7 +107,8 @@
                                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition duration-150 ease-in-out"
                                            placeholder="Ürün ara..."
                                            value="@searchTerm"
-                                           @oninput="OnSearchInput">
+                                           @oninput="OnSearchInput"
+                                           @onkeydown="HandleSearchKeyDown">
                                 </div>
                             </div>
                         </ToolbarContent>
@@ -165,9 +167,21 @@
     </div>
 </div>
 
+<div id="loadingOverlay"
+     class="fixed inset-0 bg-black/30 z-[9999] flex justify-center items-center backdrop-blur-sm transition-opacity duration-300 @(showLoadingOverlay ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")">
+    <div class="bg-white rounded-2xl p-6 text-center shadow-2xl transform transition-transform duration-300 @(showLoadingOverlay ? "scale-100" : "scale-95")">
+        <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <div class="text-gray-800 font-semibold">Filtreler uygulanıyor...</div>
+    </div>
+</div>
+
 @code {
     private CategoriesListViewModelAdmin model { get; set; } = new();
+    private RequestParametersAdmin _lastParams { get; set; } = new();
     private bool isLoading = true;
+    private bool showLoadingOverlay = false;
+    private string searchTerm = "";
+    private Timer? _debounceTimer;
 
     private CancellationTokenSource? _cts;
 
@@ -177,7 +191,7 @@
         model.FilterParams = Navigation.BindFromQuery<RequestParametersAdmin>();
 
         _cts = new CancellationTokenSource();
-        await LoadAndBuildModel(_cts.Token);
+        await LoadCategories(_cts.Token);
 
         isLoading = false;
         Navigation.LocationChanged += OnLocationChanged;
@@ -185,6 +199,13 @@
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        var newParams = Navigation.BindFromQuery<RequestParametersAdmin>();
+
+        if (_lastParams != null && _lastParams.Equals(newParams))
+            return;
+
+        _lastParams = newParams with { };
+
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = new CancellationTokenSource();
@@ -192,38 +213,36 @@
 
         await InvokeAsync(async () =>
         {
-            var newParams = Navigation.BindFromQuery<RequestParametersAdmin>();
-            model.FilterParams = newParams;
-
+            showLoadingOverlay = true;
             StateHasChanged();
 
-            await LoadAndBuildModel(token);
+            model.FilterParams = newParams;
+
+            await LoadCategories(token);
 
             if (token.IsCancellationRequested) return;
 
+            showLoadingOverlay = false;
             StateHasChanged();
 
-            await JSRuntime.InvokeVoidAsync("scrollToElement", "products-list-top");
+            await JSRuntime.InvokeVoidAsync("scrollToElement", "categories-list-top");
         });
     }
 
-    private async Task LoadAndBuildModel(CancellationToken ct)
+    private async Task LoadCategories(CancellationToken ct)
     {
         try
         {
-            if (model?.FilterParams.PageSize == 0)
-            {
-                model.FilterParams.PageSize = 12;
-            }
+            if (model.FilterParams.PageSize == 0) model.FilterParams.PageSize = 10;
 
-            var result = await Service.GetAllAdminAsync(model?.FilterParams!, ct);
+            var result = await Service.GetAllAdminAsync(model.FilterParams, ct);
 
             if (ct.IsCancellationRequested) return;
 
             var pagination = new Pagination()
             {
-                CurrentPage = model?.FilterParams.PageNumber ?? 1,
-                ItemsPerPage = model?.FilterParams.PageSize ?? 12,
+                CurrentPage = model.FilterParams.PageNumber,
+                ItemsPerPage = model.FilterParams.PageSize,
                 TotalItems = result.count
             };
 
@@ -232,19 +251,12 @@
                 Categories = result.categories,
                 Pagination = pagination,
                 TotalCount = result.count,
-                FilterParams = model?.FilterParams ?? new()
+                FilterParams = model.FilterParams
             };
         }
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private async Task HandlePageChange(int newPage)
-    {
-        model.FilterParams.PageNumber = newPage;
-        UpdateUrl();
-        await Task.CompletedTask;
     }
 
     private void UpdateUrl()
@@ -253,11 +265,43 @@
         Navigation.NavigateTo(url!);
     }
 
-    private void HandlePageSizeChange(int pageSize)
+    private void OnSearchInput(ChangeEventArgs e)
     {
-        model.FilterParams.PageSize = pageSize;
-        model.FilterParams.PageNumber = 1;
+        searchTerm = e.Value?.ToString() ?? "";
+
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(async _ =>
+        {
+            await InvokeAsync(() =>
+            {
+                model.FilterParams = model.FilterParams with { SearchTerm = searchTerm, PageNumber = 1 };
+                UpdateUrl();
+            });
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            model.FilterParams = model.FilterParams with { PageNumber = 1 };
+            UpdateUrl();
+            await Task.CompletedTask;
+        }
+    }
+
+    private async Task HandlePageChange(int newPage)
+    {
+        model.FilterParams = model.FilterParams with { PageNumber = newPage };
         UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageSizeChange(int newSize)
+    {
+        model.FilterParams = model.FilterParams with { PageSize = newSize, PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
     }
 
     private async Task HandleFeaturedUpdate(int categoryId)
@@ -293,7 +337,7 @@
                 _cts?.Cancel();
                 _cts?.Dispose();
                 _cts = new CancellationTokenSource();
-                await LoadAndBuildModel(_cts.Token);
+                await LoadCategories(_cts.Token);
                 StateHasChanged();
             }
             else
@@ -304,27 +348,6 @@
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private string searchTerm = "";
-    private Timer? _debounceTimer;
-
-    private void OnSearchInput(ChangeEventArgs e)
-    {
-        searchTerm = e.Value?.ToString() ?? "";
-
-        _debounceTimer?.Dispose();
-        _debounceTimer = new Timer(async _ =>
-        {
-
-                await InvokeAsync(() =>
-                {
-                    model.FilterParams.SearchTerm = searchTerm;
-                    model.FilterParams.PageNumber = 1;
-                    UpdateUrl();
-                });
-            
-        }, null, 500, Timeout.Infinite);
     }
 
     public void Dispose()

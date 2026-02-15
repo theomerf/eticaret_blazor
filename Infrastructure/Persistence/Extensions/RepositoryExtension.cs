@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace Infrastructure.Persistence.Extensions
 {
@@ -33,7 +30,9 @@ namespace Infrastructure.Persistence.Extensions
          Expression<Func<T, TProperty>> propertySelector,
          FilterOperator op = FilterOperator.Equal)
         {
-            if (value == null || value.Equals(default(TProperty)))
+            if (value == null)
+                return query;
+            if (value is string s && string.IsNullOrWhiteSpace(s))
                 return query;
 
             var parameter = propertySelector.Parameters[0];

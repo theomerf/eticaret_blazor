@@ -15,7 +15,7 @@
         </div>
 
         <div id="filterAccordion" class="lg:flex-1 lg:overflow-y-auto lg:scrollbar-thin lg:scrollbar-thumb-gray-300 lg:scrollbar-track-gray-100">
-            <CascadingValue Value="_draftParams" Name="FilterParams">
+            <CascadingValue Value="FilterParams" Name="FilterParams">
                 <CascadingValue Value="OnDraftChange" Name="OnFilterChange">
                     
                     <!-- Kategoriler Bölümü -->
@@ -60,11 +60,10 @@
                                             <i class="fas fa-search text-blue-600 mr-2"></i>Ürün Ara
                                         </label>
                                         <div class="relative">
-                                            <!-- Doğrudan _draftParams'a bind ediyoruz ama değişikliği anlık uyguluyoruz -->
                                             <input type="text" class="filter-input w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-2xl sm:rounded-[15px] pr-10 sm:pr-12 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                                   id="searchTerm" @bind="_draftParams.SearchTerm" @bind:event="oninput" @bind:after="HandleProductSearch"
+                                                   id="searchTerm" @bind="FilterParams.SearchTerm" @bind:event="oninput" @bind:after="OnDraftChange"
                                                    placeholder="Ürün adı veya açıklama yazın...">
-                                            @if (!string.IsNullOrEmpty(_draftParams.SearchTerm))
+                                            @if (!string.IsNullOrEmpty(FilterParams.SearchTerm))
                                             {
                                                 <button class="absolute top-1/2 right-0 -translate-y-1/2 mr-2 sm:mr-3 border-none bg-transparent z-10 text-gray-400 hover:text-gray-600 transition-colors"
                                                         type="button" @onclick="ClearSearch">
@@ -81,9 +80,9 @@
                                                 <i class="fas fa-tag text-blue-600 mr-2"></i>Fiyat Aralığı
                                             </label>
                                             <div class="bg-gray-100 rounded-full px-3 py-1 text-xs sm:text-sm border border-gray-200">
-                                                <span class="font-bold text-blue-600">@(_draftParams.MinPrice ?? 0)</span>
+                                                <span class="font-bold text-blue-600">@(FilterParams.MinPrice ?? 0)</span>
                                                 <span class="text-gray-500 mx-1">-</span>
-                                                <span class="font-bold text-blue-600">@(_draftParams.MaxPrice ?? 100000)</span>
+                                                <span class="font-bold text-blue-600">@(FilterParams.MaxPrice ?? 100000)</span>
                                             </div>
                                         </div>
                                         <div id="priceRange" class="mb-3 sm:mb-4 h-2.5 px-2"></div>
@@ -92,13 +91,13 @@
                                                 <span class="bg-gray-100 border-r border-gray-200 px-2 sm:px-3 py-2 text-sm sm:text-base text-gray-600">₺</span>
                                                 <input type="number" class="filter-input flex-1 px-2 sm:px-3 py-2 text-sm sm:text-base border-0 focus:ring-0 focus:outline-none" 
                                                        id="minPrice" placeholder="Min" 
-                                                       @bind="_draftParams.MinPrice" @bind:event="oninput" @bind:after="OnDraftChange" min="0">
+                                                       @bind="FilterParams.MinPrice" @bind:event="oninput" @bind:after="OnDraftChange" min="0">
                                             </div>
                                             <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
                                                 <span class="bg-gray-100 border-r border-gray-200 px-2 sm:px-3 py-2 text-sm sm:text-base text-gray-600">₺</span>
                                                 <input type="number" class="filter-input flex-1 px-2 sm:px-3 py-2 text-sm sm:text-base border-0 focus:ring-0 focus:outline-none" 
                                                        id="maxPrice" placeholder="Max" 
-                                                       @bind="_draftParams.MaxPrice" @bind:event="oninput" @bind:after="OnDraftChange" min="0">
+                                                       @bind="FilterParams.MaxPrice" @bind:event="oninput" @bind:after="OnDraftChange" min="0">
                                             </div>
                                         </div>
                                     </div>
@@ -117,7 +116,7 @@
                                             <div class="flex items-center mb-2 sm:mb-3 hover:bg-blue-500/5 rounded-lg p-1 sm:p-2 pl-1 transition-colors cursor-pointer"
                                                  @onclick="() => SelectBrand(null)">
                                                 <input class="filter-input w-4 h-4 rounded-md border-2 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer pointer-events-none" 
-                                                       type="radio" name="Brand" checked="@(string.IsNullOrEmpty(_draftParams.Brand))">
+                                                       type="radio" name="Brand" checked="@(string.IsNullOrEmpty(FilterParams.Brand))">
                                                 <label class="flex justify-between items-center w-full ml-2 sm:ml-3 cursor-pointer text-sm sm:text-base">
                                                     <span class="font-medium text-gray-700">Tüm Markalar</span>
                                                     <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full border border-gray-200">Tümü</span>
@@ -129,7 +128,7 @@
                                                      @onclick="() => SelectBrand(brand.Name)">
                                                     
                                                      <input class="filter-input w-4 h-4 rounded-md border-2 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer pointer-events-none" 
-                                                       type="radio" name="Brand" checked="@(_draftParams.Brand == brand.Name)">
+                                                       type="radio" name="Brand" checked="@(FilterParams.Brand == brand.Name)">
 
                                                     <label class="flex justify-between items-center w-full ml-2 sm:ml-3 cursor-pointer text-sm sm:text-base">
                                                         <span class="text-gray-700">@brand.Name</span>
@@ -157,7 +156,7 @@
                                                             </div>
                                                         </div>
                                                         <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6" 
-                                                               type="checkbox" checked="@(_draftParams.IsShowCase == true)" @onchange="HandleShowcase">
+                                                               type="checkbox" @bind="IsShowcaseChecked">
                                                     </div>
                                                 </div>
                                             </div>
@@ -172,7 +171,7 @@
                                                             </div>
                                                         </div>
                                                         <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6" 
-                                                               type="checkbox" checked="@(_draftParams.IsDiscount == true)" @onchange="HandleDiscount">
+                                                               type="checkbox" @bind="IsDiscountChecked">
                                                     </div>
                                                 </div>
                                             </div>
@@ -218,63 +217,41 @@
     [CascadingParameter(Name = "ShowLoadingOverlay")]
     public bool ShowLoadingOverlay { get; set; }
 
-    private ProductRequestParametersAdmin _draftParams = new();
+    [CascadingParameter(Name = "LastParams")]
+    public ProductRequestParametersAdmin LastParams { get; set; } = new();
     
     private Func<Task> OnDraftChange => () => { StateHasChanged(); return Task.CompletedTask; };
 
     private bool collapseCategories = false;
     private bool collapseProductFilters = false;
     private string? brandSearchTerm;
+    private bool IsShowcaseChecked
+    {
+        get => FilterParams.IsShowCase == true;
+        set
+        {
+            FilterParams.IsShowCase = value ? true : null;
+            StateHasChanged();
+        }
+    }
+    private bool IsDiscountChecked
+    {
+        get => FilterParams.IsDiscount == true;
+        set
+        {
+            FilterParams.IsDiscount = value ? true : null;
+            StateHasChanged();
+        }
+    }
 
     private void ToggleCategories() => collapseCategories = !collapseCategories;
     private void ToggleProductFilters() => collapseProductFilters = !collapseProductFilters;
 
-    protected override void OnParametersSet()
-    {
-        SyncDraft();
-    }
-    
-    private void SyncDraft()
-    {
-       if (!AreParamsEqual(_draftParams, FilterParams))
-       {
-           CopyParams(FilterParams, _draftParams);
-       }
-    }
-
-    private void CopyParams(ProductRequestParametersAdmin source, ProductRequestParametersAdmin dest)
-    {
-        dest.SearchTerm = source.SearchTerm;
-        dest.MinPrice = source.MinPrice;
-        dest.MaxPrice = source.MaxPrice;
-        dest.CategoryId = source.CategoryId;
-        dest.Brand = source.Brand;
-        dest.IsShowCase = source.IsShowCase;
-        dest.IsDiscount = source.IsDiscount;
-        dest.SortBy = source.SortBy;
-        dest.PageNumber = source.PageNumber;
-        dest.PageSize = source.PageSize;
-    }
-
-    private bool AreParamsEqual(ProductRequestParametersAdmin p1, ProductRequestParametersAdmin p2)
-    {
-        if (p1 == null || p2 == null) return false;
-        
-        return p1.SearchTerm == p2.SearchTerm &&
-               p1.MinPrice == p2.MinPrice &&
-               p1.MaxPrice == p2.MaxPrice &&
-               p1.CategoryId == p2.CategoryId &&
-               p1.Brand == p2.Brand &&
-               p1.IsShowCase == p2.IsShowCase &&
-               p1.IsDiscount == p2.IsDiscount;
-    }
-
-    private bool IsDirty => !AreParamsEqual(_draftParams, FilterParams);
+    private bool IsDirty => !LastParams.Equals(FilterParams);
 
     private async Task ApplyFilters()
     {
-        CopyParams(_draftParams, FilterParams);
-        FilterParams.PageNumber = 1; 
+        FilterParams.PageNumber = 1;
         await ParentOnFilterChange.Invoke();
     }
 
@@ -301,48 +278,17 @@
     }
 
     private DotNetObjectReference<ProductsFilter>? dotNetHelper;
-    private Debouncer Debouncer = new Debouncer(500);
 
-    public void Dispose()
+    private void ClearSearch()
     {
-        dotNetHelper?.Dispose();
-    }
-
-    private void HandleProductSearch()
-    {
-        Debouncer.Debounce(() =>
-        {
-            _ = InvokeAsync(async () =>
-            {
-                FilterParams.SearchTerm = _draftParams.SearchTerm;
-                FilterParams.PageNumber = 1;
-                await ParentOnFilterChange.Invoke();
-            });
-        });
-    }
-
-    private async Task ClearSearch()
-    {
-        _draftParams.SearchTerm = string.Empty;
-        FilterParams.SearchTerm = string.Empty;
-        FilterParams.PageNumber = 1;
-        await ParentOnFilterChange.Invoke();
+        FilterParams.SearchTerm = "";
         StateHasChanged(); 
     }
 
     private void SelectBrand(string? brandName)
     {
-        _draftParams.Brand = brandName;
+        FilterParams.Brand = brandName;
         StateHasChanged();
-    }
-
-    private void HandleDiscount(ChangeEventArgs e)
-    {
-        if (e.Value is bool isChecked)
-        {
-            _draftParams.IsDiscount = isChecked == true ? true : null;
-            StateHasChanged();
-        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -361,7 +307,7 @@
                 }
 
                 await JSRuntime.InvokeVoidAsync("setProductFilterReference", dotNetHelper);
-                await JSRuntime.InvokeVoidAsync("initPriceSliders", _draftParams.MinPrice, _draftParams.MaxPrice);
+                await JSRuntime.InvokeVoidAsync("initPriceSliders", FilterParams.MinPrice, FilterParams.MaxPrice);
             }
             catch (Exception ex)
             {
@@ -373,18 +319,14 @@
     [JSInvokable]
     public async Task UpdatePriceFromSlider(int? min, int? max)
     {
-        _draftParams.MinPrice = min;
-        _draftParams.MaxPrice = max;
+        FilterParams.MinPrice = min;
+        FilterParams.MaxPrice = max;
         StateHasChanged();
         await Task.CompletedTask;
     }
 
-    private void HandleShowcase(ChangeEventArgs e)
+    public void Dispose()
     {
-        if (e.Value is bool isChecked)
-        {
-            _draftParams.IsShowCase = isChecked == true ? true : null;
-            StateHasChanged();
-        }
+        dotNetHelper?.Dispose();
     }
 }

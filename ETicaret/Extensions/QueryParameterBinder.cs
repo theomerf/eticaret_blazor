@@ -28,6 +28,11 @@ namespace ETicaret.Extensions
                         {
                             prop.SetValue(obj, value.ToString());
                         }
+                        else if (propType.IsEnum)
+                        {
+                            if (Enum.TryParse(propType, value.ToString(), true, out var enumValue))
+                                prop.SetValue(obj, enumValue);
+                        }
                         else if (propType == typeof(int))
                         {
                             if (int.TryParse(value, out var intValue))
@@ -66,7 +71,6 @@ namespace ETicaret.Extensions
 
             foreach (var prop in properties)
             {
-                // Sadece yazılabilir özellikleri al (HasActiveFilters, SortEnum gibi read-only özellikler hariç)
                 if (!prop.CanWrite) continue;
 
                 var value = prop.GetValue(obj);
@@ -78,8 +82,21 @@ namespace ETicaret.Extensions
                     {
                         parameters[propName] = boolValue.ToString().ToLower();
                     }
+                    else if (value is Enum enumValue)
+                    {
+                        parameters[propName] = ToCamelCase(enumValue.ToString());
+                    }
                     else
                     {
+                        if (propName == "sortBy" && string.Equals(value.ToString(), "date_desc", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+                        if (value is DateTime dateValue)
+                        {
+                            parameters[propName] = dateValue.ToString("yyyy-MM-dd");
+                            continue;
+                        }
                         if (propName == "pageSize" && (int)value == 10 || propName == "pageNumber" && (int)value == 1)
                         {
                             continue;
@@ -94,6 +111,16 @@ namespace ETicaret.Extensions
                 .ToDictionary(p => p.Key, p => p.Value!);
 
             return QueryHelpers.AddQueryString(baseUrl, cleanParams!);
+        }
+
+        private static string ToCamelCase(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+            if (value.Length == 1)
+                return value.ToLowerInvariant();
+
+            return char.ToLowerInvariant(value[0]) + value.Substring(1);
         }
     }
 }

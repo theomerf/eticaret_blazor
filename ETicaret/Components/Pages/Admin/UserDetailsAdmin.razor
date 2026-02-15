@@ -1,0 +1,453 @@
+@page "/admin/users/details/{UserId}"
+@attribute [Authorize(Roles = "Admin")]
+@using Application.DTOs
+@using Domain.Entities
+@using System.Globalization
+@inherits OwningComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@layout AdminLayout
+
+@if (isLoading)
+{
+    <div class="flex items-center justify-center min-h-[60vh]">
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-gray-500 text-sm">Yükleniyor...</p>
+        </div>
+    </div>
+}
+else if (user == null)
+{
+    <div class="flex items-center justify-center min-h-[60vh]">
+        <div class="text-center">
+            <i class="fas fa-user-slash text-gray-300 text-5xl mb-4"></i>
+            <p class="text-gray-500 text-lg">Kullanıcı bulunamadı</p>
+            <button @onclick="GoBack" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90">
+                <i class="fas fa-arrow-left mr-1"></i> Geri Dön
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="flex flex-col gap-6">
+        <!-- Back + Header -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <button @onclick="GoBack" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+                    <i class="fas fa-arrow-left text-lg"></i>
+                </button>
+                <div class="flex items-center gap-3">
+                    <div class="rounded-full overflow-hidden transition-all duration-400 hover:scale-110 shadow-lg border-2 border-white/20 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-cyan-500 text-white font-bold text-sm flex-shrink-0">
+                        @(user.FirstName?.FirstOrDefault().ToString().ToUpper() ?? "?")
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">@user.FirstName @user.LastName</h1>
+                        <p class="text-sm text-gray-500">@user.Email</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold @(user.IsActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")">
+                    <i class="fas @(user.IsActive ? "fa-check-circle" : "fa-ban") mr-1.5"></i>
+                    @(user.IsActive ? "Aktif" : "Pasif")
+                </span>
+                @if (user.EmailConfirmed)
+                {
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                        <i class="fas fa-envelope-circle-check mr-1.5"></i> Doğrulanmış
+                    </span>
+                }
+                @foreach (var role in user.Roles)
+                {
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold @GetRoleBadgeClass(role)">
+                        @role
+                    </span>
+                }
+            </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <i class="fas fa-clock text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Son Giriş</p>
+                        <p class="text-sm font-bold text-gray-800">
+                            @(user.LastLoginDate?.ToString("dd.MM.yyyy HH:mm") ?? "—")
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-box text-blue-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Toplam Sipariş</p>
+                        <p class="text-sm font-bold text-gray-800">@orders.Count()</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-lira-sign text-green-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Toplam Harcama</p>
+                        <p class="text-sm font-bold text-gray-800">@totalSpending.ToString("N2") ₺</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <i class="fas fa-calendar-days text-purple-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Hesap Yaşı</p>
+                        <p class="text-sm font-bold text-gray-800">@accountAgeDays gün</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200">
+                <nav class="flex overflow-x-auto">
+                    @foreach (var tab in tabs)
+                    {
+                        <button @onclick="() => activeTab = tab.Key"
+                                class="flex-shrink-0 px-5 py-3 text-sm font-medium border-b-2 transition-colors @(activeTab == tab.Key ? "border-cyan-500 text-cyan-500" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")">
+                            <i class="fas @tab.Value.icon mr-1.5"></i> @tab.Value.label
+                        </button>
+                    }
+                </nav>
+            </div>
+
+            <div class="p-5">
+                @switch (activeTab)
+                {
+                    case "info":
+                        @RenderUserInfo()
+                        break;
+                    case "addresses":
+                        @RenderAddresses()
+                        break;
+                    case "orders":
+                        @RenderOrders()
+                        break;
+                    case "reviews":
+                        @RenderReviews()
+                        break;
+                    case "coupons":
+                        @RenderCouponUsages()
+                        break;
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@{
+    RenderFragment RenderUserInfo() =>
+        @<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InfoRow Label="İsim" Value="@user!.FirstName" />
+            <InfoRow Label="Soyisim" Value="@user.LastName" />
+            <InfoRow Label="E-posta" Value="@user.Email" />
+            <InfoRow Label="Telefon" Value="@(user.PhoneNumber ?? "—")" />
+            <InfoRow Label="Doğum Tarihi" Value="@user.BirthDate.ToString("dd.MM.yyyy")" />
+            <InfoRow Label="Kayıt Tarihi" Value="@user.CreatedAt.ToString("dd.MM.yyyy HH:mm")" />
+            <InfoRow Label="Son Giriş IP" Value="@(user.LastLoginIpAddress ?? "—")" />
+            <InfoRow Label="Risk Skoru" Value="@user.RiskScore.ToString()" />
+
+            @if (!string.IsNullOrWhiteSpace(user.AdminNotes))
+            {
+                <div class="md:col-span-2 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p class="text-xs font-semibold text-amber-700 mb-1"><i class="fas fa-sticky-note mr-1"></i> Admin Notu</p>
+                    <p class="text-sm text-amber-900 whitespace-pre-wrap">@user.AdminNotes</p>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(user.BannedReason))
+            {
+                <div class="md:col-span-2 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-xs font-semibold text-red-700 mb-1"><i class="fas fa-ban mr-1"></i> Yasaklanma Nedeni</p>
+                    <p class="text-sm text-red-900">@user.BannedReason</p>
+                </div>
+            }
+        </div>;
+
+    RenderFragment RenderAddresses() =>
+        @<div>
+            @if (!addresses.Any())
+            {
+                <EmptyState Icon="fa-map-marker-alt" Message="Kayıtlı adres yok" />
+            }
+            else
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach (var addr in addresses)
+                    {
+                        <div class="border border-gray-200 rounded-xl p-4 @(addr.IsDefault ? "ring-2 ring-emerald-500 border-emerald-200" : "")">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-bold text-gray-800">@addr.Title</h4>
+                                @if (addr.IsDefault)
+                                {
+                                    <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Varsayılan</span>
+                                }
+                            </div>
+                            <p class="text-sm text-gray-600">@addr.FirstName @addr.LastName</p>
+                            <p class="text-sm text-gray-500 mt-1">@addr.AddressLine</p>
+                            <p class="text-sm text-gray-500">@addr.District / @addr.City @addr.PostalCode</p>
+                            <p class="text-sm text-gray-500 mt-1"><i class="fas fa-phone text-xs mr-1"></i>@addr.Phone</p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>;
+
+    RenderFragment RenderOrders() =>
+        @<div>
+            @if (!orders.Any())
+            {
+                <EmptyState Icon="fa-box" Message="Henüz sipariş yok" />
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Sipariş No</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Tarih</th>
+                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500 uppercase">Durum</th>
+                                <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Tutar</th>
+                                <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach (var order in orders)
+                            {
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 py-2.5 text-sm font-medium text-gray-800">#@order.OrderNumber</td>
+                                    <td class="px-4 py-2.5 text-sm text-gray-600">@order.OrderedAt.ToString("dd.MM.yyyy")</td>
+                                    <td class="px-4 py-2.5 text-center">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @GetOrderStatusClass(order.OrderStatus)">
+                                            @GetOrderStatusText(order.OrderStatus)
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-sm font-semibold text-gray-800 text-right">@order.TotalAmount.ToString("N2") ₺</td>
+                                    <td class="px-4 py-2.5 text-right">
+                                        <button @onclick="() => NavigateToOrder(order.OrderId)"
+                                            class="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs px-4 py-2 rounded-lg font-medium transition-colors">
+                                            <i class="fas fa-eye mr-1"></i>Detay
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>;
+
+    RenderFragment RenderReviews() =>
+        @<div>
+            @if (!reviews.Any())
+            {
+                <EmptyState Icon="fa-star" Message="Henüz değerlendirme yok" />
+            }
+            else
+            {
+                <div class="space-y-3">
+                    @foreach (var review in reviews)
+                    {
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    @if (review.Product != null)
+                                    {
+                                        <span class="text-sm font-semibold text-gray-800">@review.Product.ProductName</span>
+                                    }
+                                    <div class="flex items-center gap-0.5">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            var starIndex = i;
+                                            <i class="fas fa-star text-xs @(starIndex <= review.Rating ? "text-yellow-400" : "text-gray-300")"></i>
+                                        }
+                                    </div>
+                                </div>
+                                <span class="text-xs text-gray-400">@review.ReviewDate.ToString("dd.MM.yyyy")</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(review.ReviewTitle))
+                            {
+                                <p class="text-sm font-medium text-gray-700 mb-1">@review.ReviewTitle</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(review.ReviewText))
+                            {
+                                <p class="text-sm text-gray-600">@review.ReviewText</p>
+                            }
+                            <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                                <span><i class="fas fa-thumbs-up mr-1"></i>@review.HelpfulCount</span>
+                                <span><i class="fas fa-thumbs-down mr-1"></i>@review.NotHelpfulCount</span>
+                                @if (review.IsFeatured)
+                                {
+                                    <span class="text-amber-500"><i class="fas fa-award mr-1"></i>Öne Çıkan</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>;
+
+    RenderFragment RenderCouponUsages() =>
+        @<div>
+            @if (!couponUsages.Any())
+            {
+                <EmptyState Icon="fa-ticket" Message="Kupon kullanımı yok" />
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Kupon Kodu</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Sipariş No</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Kullanım Tarihi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach (var usage in couponUsages)
+                            {
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 py-2.5 text-sm font-medium text-gray-800">
+                                        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-mono">@(usage.Coupon?.Code ?? $"Kupon #{usage.CouponId}")</span>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-sm text-gray-600">
+                                        <button @onclick="() => NavigateToOrder(usage.OrderId)"
+                                                class="text-blue-600 hover:text-blue-800 font-medium">
+                                            #@usage.OrderId
+                                        </button>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-sm text-gray-600">@usage.UsedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>;
+}
+
+@code {
+    [Parameter]
+    public string UserId { get; set; } = null!;
+
+    private IOrderService? _orderService;
+    private IAuthService? _authService;
+    private IAddressService? _addressService;
+    private IUserReviewService? _userReviewService;
+    private ICouponService? _couponService;
+
+    private UserDto? user;
+    private IEnumerable<OrderDto> orders = Enumerable.Empty<OrderDto>();
+    private IEnumerable<AddressDto> addresses = Enumerable.Empty<AddressDto>();
+    private IEnumerable<UserReviewDto> reviews = Enumerable.Empty<UserReviewDto>();
+    private IEnumerable<CouponUsage> couponUsages = Enumerable.Empty<CouponUsage>();
+    private bool isLoading = true;
+    private decimal totalSpending = 0;
+    private int accountAgeDays = 0;
+    private string activeTab = "info";
+
+    private readonly Dictionary<string, (string icon, string label)> tabs = new()
+    {
+        ["info"] = ("fa-user", "Bilgiler"),
+        ["addresses"] = ("fa-map-marker-alt", "Adresler"),
+        ["orders"] = ("fa-box", "Siparişler"),
+        ["reviews"] = ("fa-star", "Değerlendirmeler"),
+        ["coupons"] = ("fa-ticket", "Kupon Kullanımları")
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _orderService = ScopedServices.GetRequiredService<IOrderService>();
+        _authService = ScopedServices.GetRequiredService<IAuthService>();
+        _addressService = ScopedServices.GetRequiredService<IAddressService>();
+        _userReviewService = ScopedServices.GetRequiredService<IUserReviewService>();
+        _couponService = ScopedServices.GetRequiredService<ICouponService>();
+
+        try
+        {
+            user = await _authService.GetOneUserAsync(UserId);
+
+            if (user != null)
+            {
+                var userEntity = await _authService.GetOneUserAsync(UserId);
+                user.Roles = userEntity.Roles;
+
+                orders = await _orderService.GetByUserIdAsync(UserId);
+                addresses = await _addressService.GetByUserIdAsync(UserId);
+                reviews = await _userReviewService.GetByUserIdAsync(UserId);
+                couponUsages = await _couponService.GetCouponUsagesByUserIdAsync(UserId);
+
+                totalSpending = orders.Sum(o => o.TotalAmount);
+                accountAgeDays = (DateTime.UtcNow - user.CreatedAt).Days;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"Hata: {ex.Message}", "error");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/admin/users");
+
+    private void NavigateToOrder(int orderId) => Navigation.NavigateTo($"/admin/orders/details/{orderId}");
+
+    private string GetRoleBadgeClass(string role) => role switch
+    {
+        "Admin" => "bg-red-100 text-red-700",
+        "User" => "bg-blue-100 text-blue-700",
+        "Editor" => "bg-purple-100 text-purple-700",
+        _ => "bg-gray-100 text-gray-700"
+    };
+
+    private string GetOrderStatusClass(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "bg-yellow-100 text-yellow-700",
+        OrderStatus.Processing => "bg-blue-100 text-blue-700",
+        OrderStatus.Shipped => "bg-indigo-100 text-indigo-700",
+        OrderStatus.Delivered => "bg-green-100 text-green-700",
+        OrderStatus.Cancelled => "bg-red-100 text-red-700",
+        OrderStatus.Returned => "bg-orange-100 text-orange-700",
+        _ => "bg-gray-100 text-gray-700"
+    };
+
+    private string GetOrderStatusText(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "Bekliyor",
+        OrderStatus.Processing => "İşleniyor",
+        OrderStatus.Shipped => "Kargoda",
+        OrderStatus.Delivered => "Teslim Edildi",
+        OrderStatus.Cancelled => "İptal",
+        OrderStatus.Returned => "İade",
+        _ => status.ToString()
+    };
+}

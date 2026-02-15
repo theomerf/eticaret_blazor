@@ -6,7 +6,7 @@ namespace Application.Repositories.Interfaces
 {
     public interface IOrderRepository
     {
-        Task<(IEnumerable<Order> orders, int count)> GetAllAdminAsync(OrderFilterParametersAdmin p, bool trackChanges, CancellationToken ct = default);
+        Task<(IEnumerable<Order> orders, int count)> GetAllAdminAsync(OrderRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
         Task<Order?> GetByIdAsync(int orderId, bool trackChanges);
         Task<Order?> GetByNumberAsync(string orderNumber, bool trackChanges);
         Task<Order?> GetWithDetailsAsync(int orderId, bool trackChanges);

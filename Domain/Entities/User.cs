@@ -15,6 +15,8 @@ namespace Domain.Entities
         public ICollection<UserReview>? UserReviews { get; set; }
         public ICollection<int> FavouriteProductVariantsId { get; set; } = new List<int>();
 
+        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
         public string? LastLoginIpAddress { get; set; }
         public string? RegistrationIpAddress { get; set; }
         public string? TwoFactorSecretKey { get; set; }
@@ -26,6 +28,11 @@ namespace Domain.Entities
         public DateTime? TermsAcceptedDate { get; set; }
         public bool AcceptedMarketing { get; set; } = false;
         public DateTime? MarketingAcceptedDate { get; set; }
+
+        public bool IsActive { get; set; } = true;
+        public string? AdminNotes { get; set; }
+        public string? BannedReason { get; set; }
+        public int RiskScore { get; set; } = 0;
 
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }

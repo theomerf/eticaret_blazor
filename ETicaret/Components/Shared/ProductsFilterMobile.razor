@@ -2,7 +2,7 @@
 @using ETicaret.Helpers
 @using ETicaret.Models
 @using Microsoft.JSInterop
-@using static ETicaret.Models.ProductListViewModel
+@using static ETicaret.Models.ProductListViewModelAdmin
 @inject IJSRuntime JSRuntime
 
 <div id="blazorMobileFilterModal" class="fixed inset-0 z-[2000] hidden lg:hidden">
@@ -22,7 +22,7 @@
         </div>
         
         <div class="overflow-y-auto max-h-[calc(85vh-100px)] p-4">
-            <CascadingValue Value="_draftParams" Name="FilterParams">
+            <CascadingValue Value="FilterParams" Name="FilterParams">
                 <CascadingValue Value="OnDraftChange" Name="OnFilterChange">
                     
                     <div class="mb-6">
@@ -43,9 +43,9 @@
                                 <input type="text"
                                        class="filter-input w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl pr-10 focus:outline-none"
                                        id="blazorMobileSearchTerm"
-                                       @bind="_draftParams.SearchTerm" @bind:event="oninput"
+                                       @bind="FilterParams.SearchTerm" @bind:event="oninput"
                                        placeholder="Ürün adı veya açıklama yazın...">
-                                 @if (!string.IsNullOrEmpty(_draftParams.SearchTerm))
+                                 @if (!string.IsNullOrEmpty(FilterParams.SearchTerm))
                                  {
                                     <button class="absolute top-1/2 right-3 -translate-y-1/2 border-none bg-transparent text-gray-400 hover:text-gray-600 transition-colors"
                                             type="button" @onclick="ClearSearch">
@@ -62,9 +62,9 @@
                                     <i class="fa-solid fa-tag text-blue-600 mr-2"></i>Fiyat Aralığı
                                 </label>
                                 <div class="bg-gray-100 rounded-full px-3 py-1 text-xs border border-gray-200">
-                                    <span class="font-bold text-blue-600" id="mobileMinPriceDisplay">@(_draftParams.MinPrice ?? 0)</span>
+                                    <span class="font-bold text-blue-600" id="mobileMinPriceDisplay">@(FilterParams.MinPrice ?? 0)</span>
                                     <span class="text-gray-500 mx-1">-</span>
-                                    <span class="font-bold text-blue-600" id="mobileMaxPriceDisplay">@(_draftParams.MaxPrice ?? 100000)</span>
+                                    <span class="font-bold text-blue-600" id="mobileMaxPriceDisplay">@(FilterParams.MaxPrice ?? 100000)</span>
                                 </div>
                             </div>
                             
@@ -78,7 +78,7 @@
                                            id="mobileMinPrice"
                                            class="filter-input flex-1 px-3 py-2 text-sm border-0 focus:ring-0 focus:outline-none"
                                            placeholder="Min"
-                                           @bind="_draftParams.MinPrice" @bind:event="oninput" min="0">
+                                           @bind="FilterParams.MinPrice" @bind:event="oninput" min="0">
                                 </div>
                                 <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
                                     <span class="bg-gray-100 border-r border-gray-200 px-3 py-2 text-sm text-gray-600">₺</span>
@@ -86,7 +86,7 @@
                                            id="mobileMaxPrice"
                                            class="filter-input flex-1 px-3 py-2 text-sm border-0 focus:ring-0 focus:outline-none"
                                            placeholder="Max"
-                                           @bind="_draftParams.MaxPrice" @bind:event="oninput" min="0">
+                                           @bind="FilterParams.MaxPrice" @bind:event="oninput" min="0">
                                 </div>
                             </div>
                         </div>
@@ -105,8 +105,8 @@
                             <div class="max-h-[180px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
                                 <div class="flex items-center mb-3 hover:bg-blue-500/5 rounded-lg p-2 -m-2 transition-colors"
                                      @onclick="() => SelectBrand(null)">
-                                    <div class="w-4 h-4 rounded-md border-2 mr-3 flex items-center justify-center transition-all @(string.IsNullOrEmpty(_draftParams.Brand) ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white")">
-                                        @if (string.IsNullOrEmpty(_draftParams.Brand))
+                                    <div class="w-4 h-4 rounded-md border-2 mr-3 flex items-center justify-center transition-all @(string.IsNullOrEmpty(FilterParams.Brand) ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white")">
+                                        @if (string.IsNullOrEmpty(FilterParams.Brand))
                                         {
                                             <i class="fas fa-check text-white text-[10px]"></i>
                                         }
@@ -120,8 +120,8 @@
                                 {
                                     <div class="flex items-center mb-3 hover:bg-blue-500/5 rounded-lg p-2 -m-2 transition-colors"
                                          @onclick="() => SelectBrand(brand.Name)">
-                                        <div class="w-4 h-4 rounded-md border-2 mr-3 flex items-center justify-center transition-all @(_draftParams.Brand == brand.Name ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white")">
-                                            @if (_draftParams.Brand == brand.Name)
+                                        <div class="w-4 h-4 rounded-md border-2 mr-3 flex items-center justify-center transition-all @(FilterParams.Brand == brand.Name ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white")">
+                                            @if (FilterParams.Brand == brand.Name)
                                             {
                                                 <i class="fas fa-check text-white text-[10px]"></i>
                                             }
@@ -153,8 +153,7 @@
                                             </div>
                                             <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6"
                                                    type="checkbox"
-                                                   checked="@(_draftParams.IsShowCase == true)"
-                                                   @onchange="HandleShowcase">
+                                                   @bind="IsShowcaseChecked">
                                         </div>
                                     </div>
                                 </div>
@@ -170,8 +169,7 @@
                                             </div>
                                             <input class="filter-input ml-0 w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-200 checked:bg-blue-600 checked:border-blue-600 appearance-none cursor-pointer relative transition-colors before:content-[''] before:absolute before:w-5 before:h-5 before:rounded-full before:bg-white before:top-0 before:left-0 before:transition-transform checked:before:translate-x-6"
                                                    type="checkbox"
-                                                   checked="@(_draftParams.IsDiscount == true)"
-                                                   @onchange="HandleDiscount">
+                                                   @bind="IsDiscountChecked">
                                         </div>
                                     </div>
                                 </div>
@@ -197,13 +195,13 @@
 
 @code {
     [CascadingParameter(Name = "FilterParams")]
-    public ProductFilterParametersAdmin? FilterParams { get; set; }
+    public ProductRequestParametersAdmin FilterParams { get; set; } = new();
+
+    [CascadingParameter(Name = "LastParams")]
+    public ProductRequestParametersAdmin LastParams { get; set; } = new();
 
     [Parameter]
     public EventCallback OnClose { get; set; }
-
-    private ProductFilterParametersAdmin _draftParams = new();
-    private ProductFilterParametersAdmin _originalParams = new();
 
     private string brandSearchTerm = "";
 
@@ -223,15 +221,30 @@
             ? allBrands
             : allBrands.Where(b => b.Name.Contains(brandSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
 
-    private bool IsDirty => !_draftParams.Equals(_originalParams);
+    private bool IsDirty => FilterParams != null && !LastParams.Equals(FilterParams);
+    private bool IsShowcaseChecked
+    {
+        get => FilterParams?.IsShowCase == true;
+        set
+        {
+            if (FilterParams != null)
+                FilterParams.IsShowCase = value ? true : null;
+            StateHasChanged();
+        }
+    }
+    private bool IsDiscountChecked
+    {
+        get => FilterParams?.IsDiscount == true;
+        set
+        {
+            if (FilterParams != null)
+                FilterParams.IsDiscount = value ? true : null;
+            StateHasChanged();
+        }
+    }
 
     protected override void OnParametersSet()
     {
-        if (FilterParams != null)
-        {
-            _draftParams = FilterParams.Clone();
-            _originalParams = FilterParams.Clone();
-        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -251,7 +264,7 @@
                 }
 
                 await JSRuntime.InvokeVoidAsync("initBlazorMobileFilters");
-                await JSRuntime.InvokeVoidAsync("initPriceSliders", _draftParams.MinPrice, _draftParams.MaxPrice);
+                await JSRuntime.InvokeVoidAsync("initPriceSliders", FilterParams?.MinPrice, FilterParams?.MaxPrice);
             }
             catch (Exception ex)
             {
@@ -267,25 +280,15 @@
 
     private void SelectBrand(string? brand)
     {
-        _draftParams.Brand = brand;
+        if (FilterParams != null)
+            FilterParams.Brand = brand;
         StateHasChanged();
     }
 
     private void ClearSearch()
     {
-        _draftParams.SearchTerm = null;
-        StateHasChanged();
-    }
-
-    private void HandleShowcase(ChangeEventArgs e)
-    {
-        _draftParams.IsShowCase = (bool?)e.Value;
-        StateHasChanged();
-    }
-
-    private void HandleDiscount(ChangeEventArgs e)
-    {
-        _draftParams.IsDiscount = (bool?)e.Value;
+        if (FilterParams != null)
+            FilterParams.SearchTerm = null;
         StateHasChanged();
     }
 
@@ -293,12 +296,6 @@
     {
         if (FilterParams != null)
         {
-            FilterParams.SearchTerm = _draftParams.SearchTerm;
-            FilterParams.MinPrice = _draftParams.MinPrice;
-            FilterParams.MaxPrice = _draftParams.MaxPrice;
-            FilterParams.Brand = _draftParams.Brand;
-            FilterParams.IsShowCase = _draftParams.IsShowCase;
-            FilterParams.IsDiscount = _draftParams.IsDiscount;
             FilterParams.PageNumber = 1;
         }
 

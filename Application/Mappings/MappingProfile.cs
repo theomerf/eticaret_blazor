@@ -32,10 +32,12 @@ namespace Application.Mappings
                     JsonSerializer.Serialize(src.Specifications, (JsonSerializerOptions?)null)));
             CreateMap<ProductImage, ProductImageDto>();
             CreateMap<ProductImageDtoForCreation, ProductImage>();
-            CreateMap<User, UserDto>();
+            CreateMap<User, UserDto>()
+               .ForMember(dest => dest.Roles,opt => opt.MapFrom(src => src.UserRoles.Select(ur => ur.Role.Name)));
             CreateMap<UserDtoForCreation, User>();
             CreateMap<UserDtoForUpdate, User>();
             CreateMap<UserDtoForUpdateAdmin, User>();
+            CreateMap<UserDtoForAdminEdit, User>();
             CreateMap<Category, CategoryDto>();
             CreateMap<Category, CategoryWithDetailsDto>();
             CreateMap<CategoryDtoForCreation, Category>();

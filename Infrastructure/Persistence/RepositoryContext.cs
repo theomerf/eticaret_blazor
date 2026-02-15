@@ -2,10 +2,11 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 
 namespace Infrastructure.Persistence
 {
-    public class RepositoryContext : IdentityDbContext<User>
+    public class RepositoryContext : IdentityDbContext<User, Role, string, IdentityUserClaim<string>, UserRole, IdentityUserLogin<string>, IdentityRoleClaim<string>, IdentityUserToken<string>>
     {
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }

@@ -1,0 +1,37 @@
+:root {
+  --impersonation-offset: 0px;
+}
+
+.impersonation-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1200;
+}
+
+#navbarWrapper {
+  top: var(--impersonation-offset, 0px);
+}
+
+#navbarSpacer {
+  height: calc(116px + var(--impersonation-offset, 0px));
+}
+
+@media (min-width: 1024px) {
+  #navbarSpacer {
+    height: calc(164px + var(--impersonation-offset, 0px));
+  }
+}
+
+.admin-layout {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+body.is-impersonating .admin-layout {
+  height: calc(100vh - var(--impersonation-offset, 0px));
+  min-height: calc(100vh - var(--impersonation-offset, 0px));
+  padding-top: var(--impersonation-offset, 0px);
+}

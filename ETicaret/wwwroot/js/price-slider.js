@@ -257,6 +257,16 @@ window.priceSliderAPI = {
     },
 
     resetSliders: function () {
+        const minPriceInput = document.getElementById('minPrice');
+        const maxPriceInput = document.getElementById('maxPrice');
+        const mobileMinPriceInput = document.getElementById('mobileMinPrice');
+        const mobileMaxPriceInput = document.getElementById('mobileMaxPrice');
+
+        if (minPriceInput) minPriceInput.value = '';
+        if (maxPriceInput) maxPriceInput.value = '';
+        if (mobileMinPriceInput) mobileMinPriceInput.value = '';
+        if (mobileMaxPriceInput) mobileMaxPriceInput.value = '';
+
         if (desktopPriceSlider) {
             desktopPriceSlider.set([0, 100000]);
         }

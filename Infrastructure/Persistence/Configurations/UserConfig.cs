@@ -29,6 +29,18 @@ namespace Infrastructure.Persistence.Configurations
                    .IsRequired()
                    .HasMaxLength(256);
 
+            builder.Property(a => a.AdminNotes)
+                   .HasMaxLength(1000);
+
+            builder.Property(a => a.BannedReason)
+                   .HasMaxLength(500);
+
+            builder.Property(a => a.RiskScore)
+                   .HasDefaultValue(0);
+
+            builder.Property(a => a.IsActive)
+                   .HasDefaultValue(true);
+
             builder.HasIndex(a => a.IsDeleted)
                 .HasFilter("\"IsDeleted\" = false")
                 .HasDatabaseName("IX_Accounts_IsDeleted_Filtered");
@@ -42,6 +54,10 @@ namespace Infrastructure.Persistence.Configurations
                    .WithOne(a => a.User)
                    .HasForeignKey(a => a.UserId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(u => u.UserRoles)
+                   .WithOne(ur => ur.User)
+                   .HasForeignKey(ur => ur.UserId);
         }
     }
 }

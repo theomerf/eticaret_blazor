@@ -1,0 +1,9 @@
+<div class="text-center py-10">
+    <i class="fas @Icon text-gray-300 text-4xl mb-3"></i>
+    <p class="text-gray-500 text-sm">@Message</p>
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "fa-inbox";
+    [Parameter] public string Message { get; set; } = "Veri bulunamadı";
+}

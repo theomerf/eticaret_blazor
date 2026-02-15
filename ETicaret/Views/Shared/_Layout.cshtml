@@ -24,12 +24,41 @@
     <meta property="og:image" content="@ViewData["OgImage"]" />
     <title>Sipariş Kapıda - @ViewData["Title"]</title>
     <link rel="stylesheet" asp-append-version="true" href="~/css/site.css">
+    <link rel="stylesheet" asp-append-version="true" href="~/css/impersonation.css">
     <link rel="stylesheet" asp-append-version="true" href="~/lib/font-awesome/css/all.css">
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" asp-append-version="true" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
 
-<body class="flex flex-col min-h-screen">
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var isImpersonating = User.FindFirst("IsImpersonating")?.Value == "true";
+}
+
+<body class="flex flex-col min-h-screen @(isImpersonating ? "is-impersonating" : "")">
+    @{
+        if (isImpersonating)
+        {
+            var userName = User.FindFirst("first_name")?.Value + " " + User.FindFirst("last_name")?.Value;
+            var antiforgeryToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+
+            <div class="impersonation-banner bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 flex items-center justify-between z-[9999] shadow-md">
+                <div class="flex items-center gap-2 text-sm font-medium">
+                    <i class="fas fa-user-secret text-lg"></i>
+                    <span>
+                        <strong>@userName</strong> olarak görüntülüyorsunuz
+                    </span>
+                </div>
+                <form method="post" action="/account/stop-impersonation" class="m-0">
+                    <input type="hidden" name="__RequestVerificationToken" value="@antiforgeryToken" />
+                    <button type="submit" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 border-none cursor-pointer">
+                        <i class="fas fa-arrow-right-from-bracket"></i>
+                        Oturumu Sonlandır
+                    </button>
+                </form>
+            </div>
+        }
+    }
     <header>    
         <partial name="_Navbar" />
         @RenderSection("Header", false)

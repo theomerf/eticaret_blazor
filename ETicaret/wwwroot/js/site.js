@@ -438,4 +438,28 @@ window.showConfirm = function (message, title = "Onay") {
     });
 };
 
+// Impersonation banner offset helper
+function updateImpersonationOffset() {
+    const banner = document.querySelector('.impersonation-banner');
+    if (!banner) {
+        document.body.classList.remove('is-impersonating');
+        document.body.style.removeProperty('--impersonation-offset');
+        return;
+    }
+
+    const height = Math.ceil(banner.getBoundingClientRect().height);
+    document.body.classList.add('is-impersonating');
+    document.body.style.setProperty('--impersonation-offset', `${height}px`);
+}
+
+function initImpersonationOffsetObserver() {
+    updateImpersonationOffset();
+
+    const observer = new MutationObserver(() => updateImpersonationOffset());
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    window.addEventListener('resize', () => updateImpersonationOffset());
+}
+
+document.addEventListener('DOMContentLoaded', initImpersonationOffsetObserver);
 

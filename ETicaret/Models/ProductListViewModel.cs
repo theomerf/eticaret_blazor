@@ -10,7 +10,7 @@ namespace ETicaret.Models
         public ProductFilterParameters FilterParams { get; set; } = new();
     }
 
-    public class ProductFilterParameters : ProductRequestParameters
+    public record ProductFilterParameters : ProductRequestParameters
     {
         public bool HasActiveFilters =>
             !string.IsNullOrEmpty(SearchTerm) ||

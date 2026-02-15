@@ -1,0 +1,9 @@
+<div class="bg-gray-50 rounded-lg p-3">
+    <p class="text-xs font-medium text-gray-500 mb-0.5">@Label</p>
+    <p class="text-sm font-semibold text-gray-800">@Value</p>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+}

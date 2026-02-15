@@ -1,8 +1,7 @@
 ﻿namespace Application.Queries.RequestParameters
 {
-    public abstract class RequestParameters
+    public abstract record RequestParameters
     {
         public string? SearchTerm { get; set; }
-
     }
 }

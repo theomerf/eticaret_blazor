@@ -1,4 +1,6 @@
-﻿namespace Application.DTOs
+﻿using Domain.Entities;
+
+namespace Application.DTOs
 {
     public record UserDto
     {
@@ -10,7 +12,13 @@
         public DateTime CreatedAt { get; set; }
         public DateOnly BirthDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
-        public List<int> FavouriteProductsId { get; set; } = new List<int>();
-        public HashSet<string> Roles { get; set; } = new HashSet<string>();
+        public bool IsActive { get; set; }
+        public bool EmailConfirmed { get; set; }
+        public string? AdminNotes { get; set; }
+        public string? BannedReason { get; set; }
+        public int RiskScore { get; set; }
+        public string? LastLoginIpAddress { get; set; }
+        public List<int> FavouriteProductsId { get; set; } = [];
+        public HashSet<string> Roles { get; set; } = [];
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Application.Queries.RequestParameters
 {
-    public class ProductRequestParameters : RequestParameters
+    public record ProductRequestParameters : RequestParameters
     {
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 9;

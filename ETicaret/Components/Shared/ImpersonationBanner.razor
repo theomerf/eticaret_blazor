@@ -1,0 +1,31 @@
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IAntiforgery Antiforgery
+
+@{
+    var httpContext = HttpContextAccessor.HttpContext;
+    var user = httpContext?.User;
+    var isImpersonating = user?.FindFirst("IsImpersonating")?.Value == "true";
+    var userName = user?.FindFirst("first_name")?.Value + " " + user?.FindFirst("last_name")?.Value;
+    var antiforgeryToken = httpContext != null ? Antiforgery.GetAndStoreTokens(httpContext).RequestToken : "";
+}
+
+@if (isImpersonating)
+{
+    <div class="impersonation-banner bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 flex items-center justify-between z-[9999] shadow-md">
+        <div class="flex items-center gap-2 text-sm font-medium">
+            <i class="fas fa-user-secret text-lg"></i>
+            <span>
+                <strong>@userName</strong> olarak görüntülüyorsunuz
+            </span>
+        </div>
+        <form method="post" action="/account/stop-impersonation">
+            <input type="hidden" name="__RequestVerificationToken" value="@antiforgeryToken" />
+            <button type="submit" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5">
+                <i class="fas fa-arrow-right-from-bracket"></i>
+                Oturumu Sonlandır
+            </button>
+        </form>
+    </div>
+}

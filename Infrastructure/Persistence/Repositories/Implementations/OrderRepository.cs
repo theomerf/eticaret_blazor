@@ -13,7 +13,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<(IEnumerable<Order> orders, int count)> GetAllAdminAsync(OrderFilterParametersAdmin p, bool trackChanges, CancellationToken ct = default)
+        public async Task<(IEnumerable<Order> orders, int count)> GetAllAdminAsync(OrderRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
             var ordersQuery = FindAll(trackChanges)
                 .FilterBy(p.Status, o => o.OrderStatus, FilterOperator.Equal)
@@ -41,8 +41,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             };
 
             var orders = await ordersQuery
-                .Skip((p.PageNumber - 1) * p.PageSize)
-                .Take(p.PageSize)
+                .ToPaginate(p.PageNumber, p.PageSize)
                 .ToListAsync(ct);
 
             return (orders, count);

@@ -55,7 +55,6 @@ namespace Application.Services.Implementations
             _cartService = cartService;
             _activityService = activityService;
 
-            // Resilience pipeline for database operations
             _retryPipeline = new ResiliencePipelineBuilder()
                 .AddRetry(new RetryStrategyOptions
                 {
@@ -87,6 +86,7 @@ namespace Application.Services.Implementations
 
         private void ValidateUserAccess(string? requestedUserId, string currentUserId)
         {
+            if (_httpContextAccessor.HttpContext?.User?.IsInRole("Admin") ?? false) return;
             if (requestedUserId != currentUserId)
             {
                 _securityLogService.LogUnauthorizedAccessAsync(
@@ -403,12 +403,12 @@ namespace Application.Services.Implementations
             return ordersDto;
         }
 
-        public async Task<OperationResult<(IEnumerable<OrderDto> orders, int count)>> GetAllAdminAsync(OrderFilterParametersAdmin p)
+        public async Task<(IEnumerable<OrderDto> orders, int count)> GetAllAdminAsync(OrderRequestParametersAdmin p, CancellationToken ct = default)
         {
-            var (orders, count) = await _manager.Order.GetAllAdminAsync(p, false);
-            var ordersDto = _mapper.Map<IEnumerable<OrderDto>>(orders);
+            var result = await _manager.Order.GetAllAdminAsync(p, false, ct);
+            var ordersDto = _mapper.Map<IEnumerable<OrderDto>>(result.orders);
 
-            return OperationResult<(IEnumerable<OrderDto> orders, int count)>.Success((ordersDto, count), "Siparişler listelendi.");
+            return (ordersDto, result.count);
         }
 
         public async Task<OperationResult<OrderWithDetailsDto>> UpdateStatusAsync(OrderDtoForUpdate orderDto)

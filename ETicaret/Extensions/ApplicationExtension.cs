@@ -52,11 +52,11 @@ namespace ETicaret.Extensions
                 .ServiceProvider
                 .GetRequiredService<UserManager<User>>();
 
-            RoleManager<IdentityRole> roleManager = app
+            RoleManager<Role> roleManager = app
                 .ApplicationServices
                 .CreateAsyncScope()
                 .ServiceProvider
-                .GetRequiredService<RoleManager<IdentityRole>>();
+                .GetRequiredService<RoleManager<Role>>();
 
             User? user = await userManager.FindByEmailAsync(adminUser);
             if (user == null)

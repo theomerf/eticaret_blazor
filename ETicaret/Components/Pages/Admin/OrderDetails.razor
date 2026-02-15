@@ -5,9 +5,7 @@
 @using Domain.Entities
 @using System.Globalization
 @layout AdminLayout
-@inject IOrderService OrderService
-@inject ICouponService CouponService
-@inject ICampaignService CampaignService
+@inherits OwningComponentBase
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 
@@ -633,6 +631,9 @@
     [Parameter]
     public int OrderId { get; set; }
 
+    private ICouponService? _couponService;
+    private IOrderService? _orderService;
+
     private OrderWithDetailsDto? order;
     private CouponDto? couponDetails;
     private bool isLoading = true;
@@ -640,7 +641,7 @@
     private bool isCancelModalOpen = false;
     private bool isAdminNoteModalOpen = false;
     private bool isReturnModalOpen = false;
-    
+
     private ShipModel shipModel = new();
     private string cancelReason = "";
     private string adminNote = "";
@@ -654,6 +655,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _couponService = ScopedServices.GetRequiredService<ICouponService>();
+        _orderService = ScopedServices.GetRequiredService<IOrderService>();
+
         await LoadOrder();
     }
 
@@ -662,17 +666,23 @@
         isLoading = true;
         try
         {
-            var result = await OrderService.GetByIdAsync(OrderId);
-            order = result;
+            if (_orderService != null)
+            {
+                var result = await _orderService.GetByIdAsync(OrderId);
+                order = result;
+            }
 
             if (order != null && !string.IsNullOrEmpty(order.CouponCode))
             {
                 try
                 {
-                    var couponResult = await CouponService.GetByCodeAsync(order.CouponCode);
-                    if (couponResult.IsSuccess)
+                    if (_couponService != null)
                     {
-                        couponDetails = couponResult.Data;
+                        var couponResult = await _couponService.GetByCodeAsync(order.CouponCode);
+                        if (couponResult.IsSuccess)
+                        {
+                            couponDetails = couponResult.Data;
+                        }
                     }
                 }
                 catch {}
@@ -703,16 +713,19 @@
     {
         if (string.IsNullOrWhiteSpace(shipModel.TrackingNumber)) return;
 
-        var result = await OrderService.MarkAsShippedAsync(OrderId, shipModel.TrackingNumber, shipModel.CompanyName, null);
-        if (result.IsSuccess)
+        if (_orderService != null)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", "Sipariş kargoya verildi.", "success");
-            CloseShipModal();
-            await LoadOrder();
-        }
-        else
-        {
-             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            var result = await _orderService.MarkAsShippedAsync(OrderId, shipModel.TrackingNumber, shipModel.CompanyName, null);
+            if (result.IsSuccess)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", "Sipariş kargoya verildi.", "success");
+                CloseShipModal();
+                await LoadOrder();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            }
         }
     }
 
@@ -731,16 +744,19 @@
     {
         if (string.IsNullOrWhiteSpace(cancelReason)) return;
 
-        var result = await OrderService.CancelAsync(OrderId, cancelReason);
-        if (result.IsSuccess)
+        if (_orderService != null)
         {
-             await JSRuntime.InvokeVoidAsync("showToast", "Sipariş iptal edildi.", "success");
-             CloseCancelModal();
-             await LoadOrder();
-        }
-        else
-        {
-             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            var result = await _orderService.CancelAsync(OrderId, cancelReason);
+            if (result.IsSuccess)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", "Sipariş iptal edildi.", "success");
+                CloseCancelModal();
+                await LoadOrder();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            }  
         }
     }
 
@@ -748,15 +764,18 @@
     {
         if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Siparişi teslim edildi olarak işaretlemek istiyor musunuz?")) return;
 
-        var result = await OrderService.MarkAsDeliveredAsync(OrderId);
-         if (result.IsSuccess)
+        if (_orderService != null)
         {
-             await JSRuntime.InvokeVoidAsync("showToast", "Sipariş teslim edildi.", "success");
-             await LoadOrder();
-        }
-        else
-        {
-             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            var result = await _orderService.MarkAsDeliveredAsync(OrderId);
+            if (result.IsSuccess)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", "Sipariş teslim edildi.", "success");
+                await LoadOrder();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            }
         }
     }
 
@@ -775,17 +794,20 @@
     {
         if (string.IsNullOrWhiteSpace(adminNote)) return;
 
-        var result = await OrderService.AddAdminNoteAsync(OrderId, adminNote);
-        if (result.IsSuccess)
+        if (_orderService != null)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", "Admin notu eklendi.", "success");
-            CloseAdminNoteModal();
-            await LoadOrder();
-        }
-        else
-        {
-            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
-        }
+            var result = await _orderService.AddAdminNoteAsync(OrderId, adminNote);
+            if (result.IsSuccess)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", "Admin notu eklendi.", "success");
+                CloseAdminNoteModal();
+                await LoadOrder();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            }
+        } 
     }
 
     private void OpenReturnModal()
@@ -803,16 +825,19 @@
     {
         if (string.IsNullOrWhiteSpace(returnReason)) return;
 
-        var result = await OrderService.InitiateReturnAsync(OrderId, returnReason);
-        if (result.IsSuccess)
+        if (_orderService != null)
         {
-            await JSRuntime.InvokeVoidAsync("showToast", "İade işlemi başlatıldı.", "success");
-            CloseReturnModal();
-            await LoadOrder();
-        }
-        else
-        {
-            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            var result = await _orderService.InitiateReturnAsync(OrderId, returnReason);
+            if (result.IsSuccess)
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", "İade işlemi başlatıldı.", "success");
+                CloseReturnModal();
+                await LoadOrder();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+            }
         }
     }
 

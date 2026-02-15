@@ -256,6 +256,112 @@ namespace ETicaret.Controllers
             return Redirect(ReturnUrl);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Impersonate(string userId)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            // Prevent self-impersonation
+            if (adminId == userId)
+            {
+                TempData["toastContent"] = "Kendi hesabınıza geçiş yapamazsınız.";
+                TempData["toastType"] = "error";
+                return RedirectToAction("Index", "Account");
+            }
+
+            var result = await _authService.BuildImpersonationClaimsAsync(userId, adminId);
+            if (!result.IsSuccess)
+            {
+                TempData["toastContent"] = result.Message;
+                TempData["toastType"] = "error";
+                return Redirect("/admin/users");
+            }
+
+            // Sign out admin
+            await _signInManager.SignOutAsync();
+            HttpContext.Session.Clear();
+            Response.Cookies.Delete("FavouriteProducts");
+
+            // Sign in as target user with impersonation claims
+            var claimsIdentity = new ClaimsIdentity(result.Data!, IdentityConstants.ApplicationScheme);
+            await HttpContext.SignInAsync(
+                IdentityConstants.ApplicationScheme,
+                new ClaimsPrincipal(claimsIdentity)
+            );
+                return Redirect("/");
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ActionName("stop-impersonation")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> StopImpersonation()
+        {
+            var isImpersonating = User.FindFirstValue("IsImpersonating");
+            if (isImpersonating != "true")
+            {
+                return Redirect("/");
+            }
+
+            var originalAdminId = User.FindFirstValue("OriginalAdminId");
+            var impersonatedUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(originalAdminId))
+            {
+                await _signInManager.SignOutAsync();
+                return Redirect("/account/login");
+            }
+
+            var adminUser = await _userManager.FindByIdAsync(originalAdminId);
+            if (adminUser == null)
+            {
+                await _signInManager.SignOutAsync();
+                return Redirect("/account/login");
+            }
+
+            // Sign out impersonated session
+            await _signInManager.SignOutAsync();
+            HttpContext.Session.Clear();
+            Response.Cookies.Delete("FavouriteProducts");
+
+            // Rebuild admin claims (same as Login flow)
+            var adminClaims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, adminUser.UserName ?? adminUser.Email ?? ""),
+                new Claim(ClaimTypes.NameIdentifier, adminUser.Id),
+                new Claim("first_name", adminUser.FirstName),
+                new Claim("last_name", adminUser.LastName),
+                new Claim("identity_number", adminUser.IdentityNumber ?? "")
+            };
+
+            var adminRoles = await _userManager.GetRolesAsync(adminUser);
+            foreach (var role in adminRoles)
+            {
+                adminClaims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            var claimsIdentity = new ClaimsIdentity(adminClaims, IdentityConstants.ApplicationScheme);
+            await HttpContext.SignInAsync(
+                IdentityConstants.ApplicationScheme,
+                new ClaimsPrincipal(claimsIdentity)
+            );
+
+            // Audit log stop
+            await _securityLogService.LogLoginAsync(
+                userId: adminUser.Id,
+                userName: adminUser.UserName!,
+                email: adminUser.Email!,
+                isSuccess: true
+            );
+
+            TempData["toastContent"] = "Admin oturumuna geri dönüldü.";
+            TempData["toastType"] = "success";
+
+            return Redirect("/admin/users");
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [EnableRateLimiting("register")]
