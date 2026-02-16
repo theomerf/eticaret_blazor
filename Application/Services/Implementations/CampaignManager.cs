@@ -1,6 +1,7 @@
 using Application.Common.Exceptions;
 using Application.Common.Models;
 using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
 using Application.Services.Interfaces;
 using AutoMapper;
@@ -20,6 +21,7 @@ namespace Application.Services.Implementations
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
         private readonly IActivityService _activityService;
+        private readonly ICacheService _cache;
 
         public CampaignManager(
             IRepositoryManager manager,
@@ -27,7 +29,8 @@ namespace Application.Services.Implementations
             ILogger<CampaignManager> logger,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
-            IActivityService activityService)
+            IActivityService activityService,
+            ICacheService cache)
         {
             _manager = manager;
             _mapper = mapper;
@@ -35,6 +38,7 @@ namespace Application.Services.Implementations
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
             _activityService = activityService;
+            _cache = cache;
         }
 
         private string GetCurrentUserId() =>
@@ -43,12 +47,26 @@ namespace Application.Services.Implementations
         private string GetCurrentUserName() =>
             _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-        public async Task<IEnumerable<CampaignDto>> GetAllAsync()
+        public async Task<(IEnumerable<CampaignDto> campaigns, int count)> GetAllAdminAsync(CampaignRequestParametersAdmin p, CancellationToken ct = default)
         {
-            var campaigns = await _manager.Campaign.GetAllAsync(false);
-            var campaignsDto = _mapper.Map<IEnumerable<CampaignDto>>(campaigns);
+            var result = await _manager.Campaign.GetAllAdminAsync(p, false, ct);
+            var campaignsDto = _mapper.Map<IEnumerable<CampaignDto>>(result.campaigns);
 
-            return campaignsDto;
+            return (campaignsDto, result.count);
+        }
+
+        public async Task<int> CountOfActiveAsync(CancellationToken ct = default)
+        {
+            return await _cache.GetOrCreateAsync(
+                "campaigns:activeCount",
+                async token =>
+                {
+                    return await _manager.Coupon.CountOfActiveAsync(token);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
         }
 
         public async Task<CampaignDto> GetByIdAsync(int campaignId)
@@ -131,6 +149,7 @@ namespace Application.Services.Implementations
                     "Campaign created successfully. CampaignId: {CampaignId}, Name: {Name}, User: {UserId}",
                     campaign.CampaignId, campaign.Name, userId);
 
+                await _cache.RemoveByPrefixAsync("campaigns:");
                 return OperationResult<int>.Success(campaign.CampaignId, "Kampanya başarıyla oluşturuldu.");
             }
             catch (CampaignValidationException ex)
@@ -201,8 +220,8 @@ namespace Application.Services.Implementations
                     "Campaign updated successfully. CampaignId: {CampaignId}, User: {UserId}",
                     campaign.CampaignId, userId);
 
-                var updatedCampaignDto = _mapper.Map<CampaignDto>(campaign);
-                return OperationResult<CampaignDto>.Success(updatedCampaignDto, "Kampanya başarıyla güncellendi.");
+                await _cache.RemoveByPrefixAsync("userReviews:");
+                return OperationResult<CampaignDto>.Success("Kampanya başarıyla güncellendi.");
             }
             catch (CampaignValidationException ex)
             {
@@ -237,6 +256,7 @@ namespace Application.Services.Implementations
                 "Campaign soft deleted. CampaignId: {CampaignId}, User: {UserId}",
                 campaignId, userId);
 
+            await _cache.RemoveByPrefixAsync("userReviews:");
             return OperationResult<CampaignDto>.Success("Kampanya başarıyla silindi.");
         }
 
@@ -271,8 +291,8 @@ namespace Application.Services.Implementations
                 "Campaign activated. CampaignId: {CampaignId}, User: {UserId}",
                 campaignId, userId);
 
-            var campaignDto = _mapper.Map<CampaignDto>(campaign);
-            return OperationResult<CampaignDto>.Success(campaignDto, "Kampanya aktif edildi.");
+            await _cache.RemoveByPrefixAsync("userReviews:");
+            return OperationResult<CampaignDto>.Success("Kampanya aktif edildi.");
         }
 
         public async Task<OperationResult<CampaignDto>> DeactivateAsync(int campaignId)
@@ -306,10 +326,14 @@ namespace Application.Services.Implementations
                 "Campaign deactivated. CampaignId: {CampaignId}, User: {UserId}",
                 campaignId, userId);
 
-            var campaignDto = _mapper.Map<CampaignDto>(campaign);
-            return OperationResult<CampaignDto>.Success(campaignDto, "Kampanya deaktif edildi.");
+            await _cache.RemoveByPrefixAsync("userReviews:");
+            return OperationResult<CampaignDto>.Success("Kampanya deaktif edildi.");
         }
 
-
+        public async Task<IEnumerable<CampaignUsageDto>> GetCampaignUsagesAsync(int campaignId, int take = 500, CancellationToken ct = default)
+        {
+            var usages = await _manager.Campaign.GetCampaignUsagesAsync(campaignId, take, ct);
+            return usages;
+        }
     }
 }

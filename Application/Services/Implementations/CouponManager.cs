@@ -1,6 +1,7 @@
 using Application.Common.Exceptions;
 using Application.Common.Models;
 using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
 using Application.Services.Interfaces;
 using AutoMapper;
@@ -21,6 +22,7 @@ namespace Application.Services.Implementations
         private readonly IAuditLogService _auditLogService;
         private readonly ISecurityLogService _securityLogService;
         private readonly IActivityService _activityService;
+        private readonly ICacheService _cache;
 
         public CouponManager(
             IRepositoryManager manager,
@@ -29,7 +31,8 @@ namespace Application.Services.Implementations
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
             ISecurityLogService securityLogService,
-            IActivityService activityService)
+            IActivityService activityService,
+            ICacheService cache)
         {
             _manager = manager;
             _mapper = mapper;
@@ -38,6 +41,7 @@ namespace Application.Services.Implementations
             _auditLogService = auditLogService;
             _securityLogService = securityLogService;
             _activityService = activityService;
+            _cache = cache;
         }
 
         private string GetCurrentUserId() =>
@@ -45,6 +49,28 @@ namespace Application.Services.Implementations
 
         private string GetCurrentUserName() =>
             _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+
+        public async Task<(IEnumerable<CouponDto> coupons, int count)> GetAllAdminAsync(CouponRequestParametersAdmin p, CancellationToken ct = default)
+        {
+            var result = await _manager.Coupon.GetAllAdminAsync(p, false, ct);
+            var couponsDto = _mapper.Map<IEnumerable<CouponDto>>(result.coupons);
+
+            return (couponsDto, result.count);
+        }
+
+        public async Task<int> CountOfActiveAsync(CancellationToken ct = default)
+        {
+            return await _cache.GetOrCreateAsync(
+                "coupons:activeCount",
+                async token =>
+                {
+                    return await _manager.Coupon.CountOfActiveAsync(token);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
+        }
 
         public async Task<OperationResult<CouponDto>> GetByIdAsync(int couponId)
         {
@@ -68,13 +94,6 @@ namespace Application.Services.Implementations
 
             var couponDto = _mapper.Map<CouponDto>(coupon);
             return OperationResult<CouponDto>.Success(couponDto);
-        }
-
-        public async Task<OperationResult<IEnumerable<CouponDto>>> GetAllAsync()
-        {
-            var coupons = await _manager.Coupon.GetAllAsync(false);
-            var couponsDto = _mapper.Map<IEnumerable<CouponDto>>(coupons);
-            return OperationResult<IEnumerable<CouponDto>>.Success(couponsDto);
         }
 
         public async Task<OperationResult<int>> CreateAsync(CouponDtoForCreation couponDto)
@@ -134,6 +153,7 @@ namespace Application.Services.Implementations
                     "Coupon created successfully. CouponId: {CouponId}, Code: {Code}, User: {UserId}",
                     coupon.CouponId, coupon.Code, userId);
 
+                await _cache.RemoveByPrefixAsync("campaigns:");
                 return OperationResult<int>.Success(coupon.CouponId, "Kupon başarıyla oluşturuldu.");
             }
             catch (CouponValidationException ex)
@@ -162,6 +182,13 @@ namespace Application.Services.Implementations
                     {
                         return OperationResult<CouponDto>.Failure("Bu kupon kodu zaten kullanılıyor.", ResultType.ValidationError);
                     }
+                }
+
+                if (couponDto.UsageLimit < coupon.UsedCount)
+                {
+                    return OperationResult<CouponDto>.Failure(
+                        $"Kullanım limiti mevcut kullanım sayısından düşük olamaz. (Mevcut kullanım: {coupon.UsedCount})",
+                        ResultType.ValidationError);
                 }
 
                 var oldValues = new
@@ -216,6 +243,7 @@ namespace Application.Services.Implementations
                     coupon.CouponId, userId);
 
                 var updatedCouponDto = _mapper.Map<CouponDto>(coupon);
+                await _cache.RemoveByPrefixAsync("campaigns:");
                 return OperationResult<CouponDto>.Success(updatedCouponDto, "Kupon başarıyla güncellendi.");
             }
             catch (CouponValidationException ex)
@@ -288,6 +316,7 @@ namespace Application.Services.Implementations
                 couponId, userId);
 
             var couponDto = _mapper.Map<CouponDto>(coupon);
+            await _cache.RemoveByPrefixAsync("campaigns:");
             return OperationResult<CouponDto>.Success(couponDto, "Kupon aktif edildi.");
         }
 
@@ -324,6 +353,7 @@ namespace Application.Services.Implementations
                 couponId, userId);
 
             var couponDto = _mapper.Map<CouponDto>(coupon);
+            await _cache.RemoveByPrefixAsync("campaigns:");
             return OperationResult<CouponDto>.Success(couponDto, "Kupon deaktif edildi.");
         }
 
@@ -384,6 +414,12 @@ namespace Application.Services.Implementations
             }
 
             return OperationResult<Coupon>.Success(coupon);
+        }
+
+        public async Task<IEnumerable<CouponUsage>> GetCouponUsagesByCouponIdAsync(int couponId)
+        {
+            var usages = await _manager.CouponUsage.GetAllAsync(couponId, false);
+            return usages;
         }
 
         public async Task<IEnumerable<CouponUsage>> GetCouponUsagesByUserIdAsync(string userId)

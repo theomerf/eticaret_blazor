@@ -1,11 +1,13 @@
 using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Domain.Entities;
 
 namespace Application.Services.Interfaces
 {
     public interface ICampaignService
     {
-        Task<IEnumerable<CampaignDto>> GetAllAsync();
+        Task<(IEnumerable<CampaignDto> campaigns, int count)> GetAllAdminAsync(CampaignRequestParametersAdmin p, CancellationToken ct = default);
+        Task<int> CountOfActiveAsync(CancellationToken ct = default);
         Task<CampaignDto> GetByIdAsync(int campaignId);
         Task<IEnumerable<CampaignDto>> GetActiveAsync();
         Task<IEnumerable<Campaign>> GetApplicableAsync(decimal orderAmount);
@@ -16,5 +18,6 @@ namespace Application.Services.Interfaces
 
         Task<OperationResult<CampaignDto>> ActivateAsync(int campaignId);
         Task<OperationResult<CampaignDto>> DeactivateAsync(int campaignId);
+        Task<IEnumerable<CampaignUsageDto>> GetCampaignUsagesAsync(int campaignId, int take = 500, CancellationToken ct = default);
     }
 }

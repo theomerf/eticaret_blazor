@@ -19,6 +19,7 @@ namespace Infrastructure.Persistence.Configurations
                    .WithMany(r => r.UserRoles)
                    .HasForeignKey(ur => ur.RoleId);
 
+            builder.HasQueryFilter(ur => !ur.User.IsDeleted);
         }
     }
 }

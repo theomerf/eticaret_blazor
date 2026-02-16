@@ -1,10 +1,12 @@
 using Domain.Entities;
+using Application.Queries.RequestParameters;
 
 namespace Application.Repositories.Interfaces
 {
     public interface ICouponRepository
     {
-        Task<IEnumerable<Coupon>> GetAllAsync(bool trackChanges);
+        Task<(IEnumerable<Coupon> coupons, int count)> GetAllAdminAsync(CouponRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
+        Task<int> CountOfActiveAsync(CancellationToken ct = default);
         Task<Coupon?> GetByIdAsync(int couponId, bool trackChanges);
         Task<Coupon?> GetByCodeAsync(string code, bool trackChanges);
         Task<Coupon?> GetWithUsagesAsync(int couponId, bool trackChanges);

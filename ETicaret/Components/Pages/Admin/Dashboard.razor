@@ -38,7 +38,8 @@
                  OrdersInProcessCount="ordersInProcessCount" 
                  UsersCount="usersCount" 
                  ReviewsCount="reviewsCount" 
-                 RolesCount="rolesCount"
+                 CouponsCount="couponsCount"
+                 CampaignsCount="campaignsCount"
                  RecentActivities="recentActivities"
                  TopSellingProducts="topSellingProducts"
                  SystemStatus="systemStatus"/>
@@ -56,6 +57,8 @@
     private IUserReviewService? _userReviewService;
     private IActivityService? _activityService;
     private ISystemService? _systemService;
+    private ICampaignService? _campaignService;
+    private ICouponService? _couponService;
 
     private CancellationTokenSource? _cts;
 
@@ -68,7 +71,8 @@
     private int? usersCount;
     private int? ordersInProcessCount;
     private int? reviewsCount;
-    private int? rolesCount;
+    private int? couponsCount;
+    private int? campaignsCount;
     private IEnumerable<ActivityDto> recentActivities = new List<ActivityDto>();
     private IEnumerable<ProductDto> showcaseProducts = new List<ProductDto>();
     private IEnumerable<ProductSalesDto> topSellingProducts = new List<ProductSalesDto>();
@@ -83,6 +87,8 @@
         _userReviewService = ScopedServices.GetRequiredService<IUserReviewService>();
         _activityService = ScopedServices.GetRequiredService<IActivityService>();
         _systemService = ScopedServices.GetRequiredService<ISystemService>();
+        _campaignService = ScopedServices.GetRequiredService<ICampaignService>();
+        _couponService = ScopedServices.GetRequiredService<ICouponService>();
 
         NotificationService.Clear();
         isLoading = true;
@@ -138,7 +144,10 @@
         if (_userReviewService != null) reviewsCount = await _userReviewService.CountAsync(ct);
         if (ct.IsCancellationRequested) return;
 
-        if (_authService != null) rolesCount = await _authService.GetRolesCountAsync(ct);
+        if (_campaignService != null) campaignsCount = await _campaignService.CountOfActiveAsync(ct);
+        if (ct.IsCancellationRequested) return;
+
+        if (_couponService != null) couponsCount = await _couponService.CountOfActiveAsync(ct);
         if (ct.IsCancellationRequested) return;
 
         if (_activityService != null) recentActivities = await _activityService.GetRecentAsync(5, ct);

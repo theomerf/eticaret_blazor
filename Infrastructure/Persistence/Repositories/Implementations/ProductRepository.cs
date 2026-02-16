@@ -205,7 +205,6 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                         })
                         .ToList()
                 })
-                .AsNoTracking()
                 .FirstOrDefaultAsync();
 
             if (dbResult == null) return null;

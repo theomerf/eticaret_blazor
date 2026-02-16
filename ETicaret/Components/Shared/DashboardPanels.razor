@@ -33,7 +33,7 @@
                   CreateLink="/admin/users/create"
                   IsLoading="@IsLoading" />
 
-        <StatCard Title="Siparişler (Bekleyen)"
+        <StatCard Title="Aktif Siparişler"
                   Value="@(OrdersInProcessCount.HasValue ? OrdersInProcessCount.ToString() : "0")"
                   Icon="fa-shopping-cart"
                   Color="indigo"
@@ -51,14 +51,24 @@
                   ManageLink="/admin/reviews"
                   IsLoading="@IsLoading" />
 
-        <StatCard Title="Roller"
-                  Value="@(RolesCount.HasValue ? RolesCount.ToString() : "0")"
-                  Icon="fa-user-shield"
+        <StatCard Title="Kuponlar"
+                  Value="@(CouponsCount.HasValue ? CouponsCount.ToString() : "0")"
+                  Icon="fa-ticket-alt"
                   Color="sky"
                   WeeklyData="@(new [] { 1, 1, 2, 1, 3, 2, 1 })"
-                  Description="Rol güncelleme aktiviteleri"
-                  ManageLink="/admin/roles"
-                  CreateLink="/admin/roles/create"
+                  Description="Kupon oluşturma aktiviteleri"
+                  ManageLink="/admin/coupons"
+                  CreateLink="/admin/coupons/create"
+                  IsLoading="@IsLoading" />
+
+        <StatCard Title="Kampanyalar"
+                  Value="@(CampaignsCount.HasValue ? CampaignsCount.ToString() : "0")"
+                  Icon="fa-bullhorn"
+                  Color="slate"
+                  WeeklyData="@(new [] { 3, 5, 2, 8, 6, 12, 15 })"
+                  Description="Kampanya performansı"
+                  ManageLink="/admin/campaigns"
+                  CreateLink="/admin/campaigns/create"
                   IsLoading="@IsLoading" />
 
         <StatCard Title="Bildirimler"
@@ -69,15 +79,6 @@
                   Description="Sistem bildirim trafiği"
                   ManageLink="/admin/notifications"
                   CreateLink="/admin/notifications/create"
-                  IsLoading="@IsLoading" />
-
-        <StatCard Title="İçerikler"
-                  Value="95"
-                  Icon="fa-file-alt"
-                  Color="slate"
-                  WeeklyData="@(new [] { 3, 5, 2, 8, 6, 12, 15 })"
-                  Description="İçerik üretim performansı"
-                  ManageLink="/admin/contents"
                   IsLoading="@IsLoading" />
     </div>
 
@@ -509,7 +510,9 @@
     [Parameter]
     public int? ReviewsCount { get; set; }
     [Parameter]
-    public int? RolesCount { get; set; }
+    public int? CouponsCount { get; set; }
+    [Parameter]
+    public int? CampaignsCount { get; set; }
     [Parameter]
     public bool IsLoading { get; set; } = false;
 

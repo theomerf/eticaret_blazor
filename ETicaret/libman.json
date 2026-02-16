@@ -1,0 +1,17 @@
+{
+  "version": "3.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "font-awesome@7.0.1",
+      "destination": "wwwroot/lib/font-awesome/",
+      "files": [
+        "css/all.min.css",
+        "webfonts/fa-brands-400.woff2",
+        "webfonts/fa-regular-400.woff2",
+        "webfonts/fa-solid-900.woff2",
+        "webfonts/fa-v4compatibility.woff2"
+      ]
+    }
+  ]
+}

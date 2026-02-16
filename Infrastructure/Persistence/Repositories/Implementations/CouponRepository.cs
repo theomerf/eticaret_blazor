@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 using Application.Repositories.Interfaces;
+using Application.Queries.RequestParameters;
+using Infrastructure.Persistence.Extensions;
 
 namespace Infrastructure.Persistence.Repositories.Implementations
 {
@@ -10,13 +12,47 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<IEnumerable<Coupon>> GetAllAsync(bool trackChanges)
+        public async Task<(IEnumerable<Coupon> coupons, int count)> GetAllAdminAsync(CouponRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
-            var allCoupons = await FindAll(trackChanges)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
+            var query = FindAll(trackChanges)
+                .FilterBy(p.IsActive, c => c.IsActive, FilterOperator.Equal)
+                .FilterBy(p.Scope, c => c.Scope, FilterOperator.Equal)
+                .FilterBy(p.Type, c => c.Type, FilterOperator.Equal);
 
-            return allCoupons;
+            if (!string.IsNullOrWhiteSpace(p.SearchTerm))
+            {
+                var searchLower = p.SearchTerm.ToLower();
+                query = query.Where(c => c.Code.ToLower().Contains(searchLower));
+            }
+
+            var count = await query.CountAsync(ct);
+
+            query = p.SortBy switch
+            {
+                "code_asc" => query.OrderBy(c => c.Code),
+                "code_desc" => query.OrderByDescending(c => c.Code),
+                "date_asc" => query.OrderBy(c => c.CreatedAt),
+                "end_asc" => query.OrderBy(c => c.EndsAt),
+                "usage_desc" => query.OrderByDescending(c => c.UsedCount),
+                _ => query.OrderByDescending(c => c.CreatedAt)
+            };
+
+            var coupons = await query
+                .ToPaginate(p.PageNumber, p.PageSize)
+                .ToListAsync(ct);
+
+            return (coupons, count);
+        }
+
+        public async Task<int> CountOfActiveAsync(CancellationToken ct = default)
+        {
+            var count = await FindAllByCondition(
+                c => c.IsActive && c.StartsAt <= DateTime.UtcNow && c.EndsAt >= DateTime.UtcNow,
+                false
+            )
+            .CountAsync(ct);
+
+            return count;
         }
 
         public async Task<Coupon?> GetByIdAsync(int couponId, bool trackChanges)

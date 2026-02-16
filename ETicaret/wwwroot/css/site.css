@@ -3419,6 +3419,10 @@ a:hover {
   height: 300px;
 }
 
+.h-\[320px\] {
+  height: 320px;
+}
+
 .h-\[3rem\] {
   height: 3rem;
 }
@@ -3803,6 +3807,14 @@ a:hover {
 
 .max-w-sm {
   max-width: 24rem;
+}
+
+.max-w-\[220px\] {
+  max-width: 220px;
+}
+
+.max-w-5xl {
+  max-width: 64rem;
 }
 
 .flex-1 {
@@ -6038,6 +6050,10 @@ a:hover {
   padding-top: 1.5rem;
 }
 
+.pt-7 {
+  padding-top: 1.75rem;
+}
+
 .text-left {
   text-align: left;
 }
@@ -6551,6 +6567,10 @@ a:hover {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+
+.text-white\/90 {
+  color: rgb(255 255 255 / 0.9);
 }
 
 .text-yellow-300 {
