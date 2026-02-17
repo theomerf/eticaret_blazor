@@ -5,7 +5,7 @@
     <nav class="bg-primary relative w-full py-2.5 lg:py-5 z-[1060] border-b border-white/5 bg-primary" 
          id="mainNavbar"
          style="backdrop-filter: blur(10px);">
-        <div class="mx-auto px-4 sm:px-6 lg:px-24 xl:px-48">
+        <div class="container mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 max-w-[1440px]">
             <div class="flex items-center justify-between w-full">
                 <a class="flex items-center font-bold text-white no-underline flex-shrink-0" href="/">
                     <img src="~/images/logo.png" class="w-32 sm:w-40 lg:w-64 h-auto object-contain brightness-110 saturate-120" alt="Logo" />
@@ -15,7 +15,7 @@
                     var searchTerm = Context.Request.Query["searchTerm"].ToString();
                 }
 
-                <div class="hidden lg:flex flex-1 mx-8 xl:mx-24">
+                <div class="hidden lg:flex w-2/5">
                     <form method="get" asp-controller="Products" asp-action="Index" id="navbarSearchForm" class="w-full">
                         <div class="relative rounded-full overflow-hidden">
                             <input name="searchTerm" 
@@ -207,7 +207,7 @@
     <nav class="bg-primary py-2 lg:py-3 transition-all duration-500 relative w-full z-[1050] border-b border-white/5 rounded-b-3xl" 
          style="backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);"
          id="categoryNavbar">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="container mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 max-w-[1440px]">
             <div class="hidden lg:block">
                 <ul class="flex flex-wrap justify-between items-center w-full">
                     <li class="relative" id="categoryDropdownWrapper">

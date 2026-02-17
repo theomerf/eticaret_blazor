@@ -140,10 +140,8 @@ namespace ETicaret.Migrations
                     b.HasKey("AddressId");
 
                     b.HasIndex("UserId")
-                        .HasDatabaseName("IX_Addresses_UserId");
-
-                    b.HasIndex("UserId", "IsDefault", "IsDeleted")
-                        .HasDatabaseName("IX_Addresses_UserId_IsDefault")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Addresses_User_Default")
                         .HasFilter("\"IsDefault\" = true AND \"IsDeleted\" = false");
 
                     b.ToTable("Addresses");

@@ -44,7 +44,7 @@
               "RelativeDocumentMoniker": "Application\\Services\\Implementations\\AuthManager.cs",
               "ToolTip": "C:\\Users\\omerf\\OneDrive\\Masa\u00FCst\u00FC\\Projeler\\.net\\eticaret_blazor\\Application\\Services\\Implementations\\AuthManager.cs",
               "RelativeToolTip": "Application\\Services\\Implementations\\AuthManager.cs",
-              "ViewState": "AgIAAFUBAAAAAAAAAAA6wLQBAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAAFYBAAAAAAAAAAAiwLQBAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-02-17T16:26:19.775Z",
               "EditorCaption": ""
@@ -59,8 +59,7 @@
               "RelativeToolTip": "ETicaret\\Controllers\\AccountController.cs",
               "ViewState": "AgIAADcBAAAAAAAAAAAkwLQAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-17T16:27:11.996Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-02-17T16:27:11.996Z"
             }
           ]
         }
