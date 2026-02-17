@@ -12,14 +12,14 @@ namespace ETicaret.Controllers.Api
     public class AccountApiController : ControllerBase
     {
         private readonly INotificationService _notificationService;
-        private readonly IAuthService _authService;
+        private readonly IUserService _userService;
         private readonly IUserReviewService _userReviewService;
         private readonly IFileService _fileService;
 
-        public AccountApiController(INotificationService notificationService, IAuthService authService, IUserReviewService userReviewService, IFileService fileService)
+        public AccountApiController(INotificationService notificationService, IUserService authService, IUserReviewService userReviewService, IFileService fileService)
         {
             _notificationService = notificationService;
-            _authService = authService;
+            _userService = authService;
             _userReviewService = userReviewService;
             _fileService = fileService;
         }
@@ -34,7 +34,7 @@ namespace ETicaret.Controllers.Api
 
             if (userId != null)
             {
-                var user = await _authService.GetOneUsersFavouritesAsync(userName!);
+                var user = await _userService.GetOneUsersFavouritesAsync(userName!);
                 favouritesCount = user.FavouriteProductVariantsId.Count();
             }
 
@@ -92,7 +92,7 @@ namespace ETicaret.Controllers.Api
                 });
             }
 
-            var result = await _authService.AddToFavouritesAsync(productVariantId);
+            var result = await _userService.AddToFavouritesAsync(productVariantId);
 
             if (!result.IsSuccess)
             {
@@ -129,7 +129,7 @@ namespace ETicaret.Controllers.Api
                 });
             }
 
-            var result = await _authService.RemoveFromFavouritesAsync(productVariantId);
+            var result = await _userService.RemoveFromFavouritesAsync(productVariantId);
 
             if (!result.IsSuccess)
             {

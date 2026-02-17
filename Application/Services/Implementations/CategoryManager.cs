@@ -55,12 +55,12 @@ namespace Application.Services.Implementations
             );
         }
 
-        public async Task<(IEnumerable<CategoryDto> categories, int count)> GetAllAdminAsync(RequestParametersAdmin p, CancellationToken ct = default)
+        public async Task<(IEnumerable<CategoryDto> categories, int count, int featuredCount)> GetAllAdminAsync(RequestParametersAdmin p, CancellationToken ct = default)
         {
             var result = await _manager.Category.GetAllAdminAsync(p, false, ct);
             var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(result.categories);
 
-            return (categoriesDto, result.count);
+            return (categoriesDto, result.count, result.featuredCount);
         }
 
         public async Task<int> CountAsync(CancellationToken ct = default)

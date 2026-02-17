@@ -17,9 +17,9 @@
         <div class="col-span-1 grid grid-cols-2 gap-3 mb-6">
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
                 <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2">
-                    <i class="fas fa-ticket-alt"></i>
+                    <i class="fas fa-clipboard-list"></i>
                 </div>
-                <div class="text-xs text-gray-500 font-medium">Toplam Kupon</div>
+                <div class="text-xs text-gray-500 font-medium">Toplam</div>
                 @if (isLoading)
                 {
                     <div class="flex items-center mt-2">
@@ -35,7 +35,7 @@
                 <div class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-2">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="text-xs text-gray-500 font-medium">Aktif Kupon</div>
+                <div class="text-xs text-gray-500 font-medium">Aktif</div>
                 @if (isLoading)
                 {
                     <div class="flex items-center mt-2">
@@ -463,9 +463,6 @@
         _cts = new CancellationTokenSource();
         await LoadCampaigns(_cts.Token);
 
-        _cts = new CancellationTokenSource();
-        activeCampaignCount = await Service.CountOfActiveAsync(_cts.Token);
-
         isLoading = false;
         Navigation.LocationChanged += OnLocationChanged;
     }
@@ -523,6 +520,8 @@
             TotalCount = result.count,
             FilterParams = model.FilterParams
         };
+
+        activeCampaignCount = result.activeCount;
     }
 
     private void UpdateUrl()

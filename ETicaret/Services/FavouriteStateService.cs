@@ -16,7 +16,7 @@ namespace ETicaret.Services
 
     public class FavouriteStateService : IFavouriteStateService
     {
-        private readonly IAuthService _authService;
+        private readonly IUserService _userService;
         private readonly IJSRuntime _jsRuntime;
         private readonly IHttpContextAccessor _httpContextAccessor;
         public List<int> FavouriteIds { get; private set; } = new();
@@ -24,11 +24,11 @@ namespace ETicaret.Services
         public event Action? OnChange;
 
         public FavouriteStateService(
-            IAuthService authService,
+            IUserService userService,
             IJSRuntime jsRuntime,
             IHttpContextAccessor httpContextAccessor)
         {
-            _authService = authService;
+            _userService = userService;
             _jsRuntime = jsRuntime;
             _httpContextAccessor = httpContextAccessor;
         }
@@ -49,7 +49,7 @@ namespace ETicaret.Services
 
         public async Task AddToFavouritesAsync(int productId)
         {
-            var result = await _authService.AddToFavouritesAsync(productId);
+            var result = await _userService.AddToFavouritesAsync(productId);
             if (result.IsSuccess && result.Data != null)
             {
                 FavouriteIds = result.Data.FavouriteProductVariantsId.ToList();
@@ -60,7 +60,7 @@ namespace ETicaret.Services
 
         public async Task RemoveFromFavouritesAsync(int productId)
         {
-            var result = await _authService.RemoveFromFavouritesAsync(productId);
+            var result = await _userService.RemoveFromFavouritesAsync(productId);
             if (result.IsSuccess && result.Data != null)
             {
                 FavouriteIds = result.Data.FavouriteProductVariantsId.ToList();

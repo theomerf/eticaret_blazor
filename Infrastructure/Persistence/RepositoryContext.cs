@@ -29,6 +29,7 @@ namespace Infrastructure.Persistence
         public DbSet<OrderLinePaymentTransaction> OrderLinePaymentTransactions { get; set; }
         public DbSet<Activity> Activities { get; set; }
         public DbSet<CategoryVariantAttribute> CategoryVariantAttributes { get; set; }
+        public DbSet<UserReviewVote> UserReviewVotes { get; set; }
 
         public RepositoryContext(DbContextOptions<RepositoryContext> options)
             : base(options)

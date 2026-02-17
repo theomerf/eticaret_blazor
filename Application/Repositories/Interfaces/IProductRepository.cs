@@ -7,7 +7,7 @@ namespace Application.Repositories.Interfaces
     public interface IProductRepository : IRepositoryBase<Product>
     {
         Task<(IEnumerable<Product> products, int count)> GetAllAsync(ProductRequestParameters p, bool trackChanges);
-        Task<(IEnumerable<Product> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
+        Task<(IEnumerable<Product> products, int count, int showcaseCount)> GetAllAdminAsync(ProductRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
         Task<int> CountAsync(CancellationToken ct = default);
         Task<int> CountBySlugAsync(string slug);
         Task<Product?> GetByIdAsync(int productId, bool forUpdate, bool trackChanges);

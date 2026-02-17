@@ -1,0 +1,607 @@
+@page "/admin/reviews"
+@attribute [Authorize(Roles = "Admin")]
+@using Application.DTOs
+@using Application.Queries.RequestParameters
+@using ETicaret.Extensions
+@using ETicaret.Models
+@using Microsoft.AspNetCore.Components.Web
+@inherits OwningComponentBase<IUserReviewService>
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@layout AdminLayout
+@implements IDisposable
+
+<div class="flex flex-col">
+    <div class="hidden lg:grid lg:grid-cols-5 gap-x-2">
+        <div class="col-span-1 grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="text-xs text-gray-500 font-medium">Toplam</div>
+                @if (isLoading)
+                {
+                    <div class="flex items-center mt-2">
+                        <div class="w-5 h-5 border-4 border-gray-200 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-lg font-bold text-gray-800">@model.TotalCount</div>
+                }
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                <div class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-2">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="text-xs text-gray-500 font-medium">Onaylanan</div>
+                @if (isLoading)
+                {
+                    <div class="flex items-center mt-2">
+                        <div class="w-5 h-5 border-4 border-gray-200 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-lg font-bold text-gray-800">@approvedReviewCount</div>
+                }
+            </div>
+        </div>
+
+        <div class="lg:col-span-4 lg:flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div>
+                <div id="reviews-list-top"></div>
+                <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-secondary flex items-center justify-center text-lg">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    Değerlendirme Yönetimi
+                </h1>
+                <p class="text-gray-500 text-sm mt-1 ml-[52px]">Kullanıcı değerlendirmelerini görüntüleyin, onaylayın ve yönetin.</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!isLoading)
+    {
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 p-5">
+            <div class="flex flex-col md:flex-row gap-4 items-end justify-between">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Onay Durumu</label>
+                        <select value="@GetIsApprovedFilterValue()" @onchange="OnIsApprovedFilterChange" class="block w-full h-11 rounded-lg border-gray-300 bg-gray-50 text-gray-900 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="">Tümü</option>
+                            <option value="true">Onaylı</option>
+                            <option value="false">Onaysız</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Öne Çıkan</label>
+                        <select value="@GetIsFeaturedFilterValue()" @onchange="OnIsFeaturedFilterChange" class="block w-full h-11 rounded-lg border-gray-300 bg-gray-50 text-gray-900 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="">Tümü</option>
+                            <option value="true">Öne Çıkan</option>
+                            <option value="false">Öne Çıkmayan</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Başlangıç Tarihi</label>
+                        <InputDate TValue="DateTime?" @bind-Value="model.FilterParams.StartDate" class="block w-full h-11 rounded-lg border-gray-300 bg-gray-50 text-gray-900 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Bitiş Tarihi</label>
+                        <InputDate TValue="DateTime?" @bind-Value="model.FilterParams.EndDate" class="block w-full h-11 rounded-lg border-gray-300 bg-gray-50 text-gray-900 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+                    </div>
+                </div>
+
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button @onclick="ApplyFilters" class="flex-1 md:flex-none h-11 bg-button hover:bg-button-hover text-white font-medium px-6 rounded-lg transition-all hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2">
+                        <i class="fas fa-filter"></i> Filtrele
+                    </button>
+                    <button @onclick="ClearFilters" class="flex-1 md:flex-none h-11 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 rounded-lg transition-all hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2">
+                        <i class="fas fa-times"></i> Temizle
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="flex justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="flex flex-col items-center gap-3">
+                <div class="w-10 h-10 border-4 border-gray-200 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-gray-500 font-medium">Yükleniyor...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <AdminTable TItem="UserReviewDto"
+                    Items="model.UserReviews"
+                    Pagination="model.Pagination"
+                    OnPageChange="HandlePageChange"
+                    PageSize="@(model.FilterParams.PageSize)"
+                    OnPageSizeChange="HandlePageSizeChange">
+            <ToolbarContent>
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="relative flex-1 sm:max-w-md">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                               placeholder="Urun ID veya degerlendiren ara..."
+                               value="@searchTerm"
+                               @oninput="OnSearchInput"
+                               @onkeydown="HandleSearchKeyDown">
+                    </div>
+
+                    <div class="hidden lg:flex items-center gap-2">
+                        <label for="reviewSortOptions" class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                            <i class="fa-solid fa-sort mr-1 text-gray-400"></i>Sırala:
+                        </label>
+                        <select id="reviewSortOptions"
+                                class="block w-auto pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                                value="@model.FilterParams.SortBy"
+                                @onchange="HandleSortChange">
+                            <option value="date_desc">En Yeni</option>
+                            <option value="date_asc">En Eski</option>
+                            <option value="rating_desc">Puan (Yüksek-Düşük)</option>
+                            <option value="rating_asc">Puan (Düşük-Yüksek)</option>
+                            <option value="helpful_desc">En Çok Yardımcı Olarak İşaretlenen</option>
+                                <option value="helpful_asc">En Az Yardımcı Olarak İşaretlenen</option>
+                            <option value="nothelpful_desc">En Çok Yardımcı Olmayan Olarak İşaretlenen</option>
+                            <option value="nothelpful_asc">En Az Yardımcı Olmayan Olarak İşaretlenen</option>
+                        </select>
+                    </div>
+                </div>
+            </ToolbarContent>
+
+            <HeaderTemplate>
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Değerlendirme</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Ürün / Kullanıcı</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Puan</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Yardımcı/Y. Olmayan</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">Tarih</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlemler</th>
+                </tr>
+            </HeaderTemplate>
+
+            <RowTemplate Context="review">
+                <td class="px-4 py-3">
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate">@GetTitle(review)</p>
+                        <p class="text-xs text-gray-500 truncate">@GetSnippet(review)</p>
+                    </div>
+                </td>
+
+                <td class="px-4 py-3 hidden md:table-cell">
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-gray-700 truncate">@(review.Product?.ProductName ?? $"Urun #{review.ProductId}")</p>
+                        <p class="text-xs text-gray-500 truncate">@review.ReviewerName</p>
+                    </div>
+                </td>
+
+                <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+                        <i class="fas fa-star mr-1"></i>@review.Rating/5
+                    </span>
+                </td>
+
+                <td class="px-4 py-3">
+                    <span class="text-sm text-gray-700 font-medium">@review.HelpfulCount / @review.NotHelpfulCount</span>
+                </td>
+
+                <td class="px-4 py-3 hidden xl:table-cell">
+                    <span class="text-sm text-gray-600">@review.ReviewDate.ToString("dd.MM.yyyy HH:mm")</span>
+                </td>
+
+                <td class="px-4 py-3 text-center">
+                    <span class="px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full @(review.IsApproved ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-700")">
+                        @(review.IsApproved ? "Onaylı" : "Onaysız")
+                    </span>
+                </td>
+
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex items-center justify-end gap-2">
+                        <button @onclick="() => OpenDetailModal(review)" class="tooltip p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" data-tooltip="Detay">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button @onclick="() => ToggleApprove(review)" class="tooltip p-2 @(review.IsApproved ? "bg-orange-50 text-orange-600 hover:bg-orange-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100") rounded-lg transition-colors" data-tooltip="@(review.IsApproved ? "Onayı Kaldır" : "Onayla")">
+                            <i class="@(review.IsApproved ? "fas fa-rotate-left" : "fas fa-check")"></i>
+                        </button>
+                        <button @onclick="() => ToggleFeatured(review)" class="tooltip p-2 @(review.IsFeatured ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100" : "bg-gray-100 text-gray-600 hover:bg-gray-200") rounded-lg transition-colors" data-tooltip="@(review.IsFeatured ? "Öne Çıkarmayı Kaldır" : "Öne Çıkar")">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        <button @onclick="() => DeleteReview(review)" class="tooltip p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" data-tooltip="Sil">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </RowTemplate>
+        </AdminTable>
+    }
+</div>
+
+@if (showDetailModal && selectedReview != null)
+{
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" @onclick="CloseModals">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] overflow-y-auto" @onclick:stopPropagation>
+            <div class="px-6 py-4 border-b border-primary/80 bg-primary flex items-center justify-between sticky top-0">
+                <h3 class="text-lg font-bold text-white">Değerlendirme Detayı</h3>
+                <button @onclick="CloseModals" class="p-1.5 rounded-lg hover:bg-white/10 text-white/90">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                        <p class="text-xs text-gray-500">Ürün</p>
+                        <p class="text-sm font-semibold text-gray-800 mt-1">@(selectedReview.Product?.ProductName ?? $"Ürün #{selectedReview.ProductId}")</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                        <p class="text-xs text-gray-500">Değerlendiren</p>
+                        <p class="text-sm font-semibold text-gray-800 mt-1">@selectedReview.ReviewerName</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                        <p class="text-xs text-gray-500">Puan</p>
+                        <p class="text-sm font-semibold text-gray-800 mt-1">@selectedReview.Rating/5</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                        <p class="text-xs text-gray-500">Yardımcı / Y. Olmayan</p>
+                        <p class="text-sm font-semibold text-gray-800 mt-1">@selectedReview.HelpfulCount / @selectedReview.NotHelpfulCount</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                        <p class="text-xs text-gray-500">Oluşturma</p>
+                        <p class="text-sm font-semibold text-gray-800 mt-1">@selectedReview.ReviewDate.ToString("dd.MM.yyyy HH:mm")</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                        <p class="text-xs text-gray-500">Güncelleme</p>
+                        <p class="text-sm font-semibold text-gray-800 mt-1">@selectedReview.ReviewUpdateDate.ToString("dd.MM.yyyy HH:mm")</p>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Başlık</p>
+                    <p class="text-sm font-semibold text-gray-800">@GetTitle(selectedReview)</p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Yorum İçeriği</p>
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap break-words">@GetFullText(selectedReview)</div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(selectedReview.ReviewPictureUrl))
+                {
+                    <div>
+                        <p class="text-xs text-gray-500 mb-2">Görsel</p>
+                        <img src="@selectedReview.ReviewPictureUrl" alt="Değerlendirme görseli" class="max-h-72 rounded-xl border border-gray-200 object-contain bg-white" />
+                    </div>
+                }
+
+                <div class="flex justify-end gap-3 pt-1">
+                    <button type="button" @onclick="CloseModals" class="px-4 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div id="loadingOverlay"
+     class="fixed inset-0 bg-black/30 z-[9999] flex justify-center items-center backdrop-blur-sm transition-opacity duration-300 @(showLoadingOverlay ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")">
+    <div class="bg-white rounded-2xl p-6 text-center shadow-2xl transform transition-transform duration-300 @(showLoadingOverlay ? "scale-100" : "scale-95")">
+        <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <div class="text-gray-800 font-semibold">Filtreler uygulanıyor...</div>
+    </div>
+</div>
+
+@code {
+    private UserReviewListViewModelAdmin model = new();
+    private UserReviewRequestParametersAdmin _lastParams = new();
+    private Timer? _debounceTimer;
+    private CancellationTokenSource? _cts;
+
+    private bool isLoading = true;
+    private bool showLoadingOverlay = false;
+    private string searchTerm = "";
+
+    private int approvedReviewCount;
+
+    private bool showDetailModal;
+    private UserReviewDto? selectedReview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        model.FilterParams = Navigation.BindFromQuery<UserReviewRequestParametersAdmin>();
+        if (string.IsNullOrWhiteSpace(model.FilterParams.SortBy))
+            model.FilterParams.SortBy = "date_desc";
+
+        searchTerm = model.FilterParams.SearchTerm ?? "";
+
+        _cts = new CancellationTokenSource();
+        await LoadReviews(_cts.Token);
+
+        isLoading = false;
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var newParams = Navigation.BindFromQuery<UserReviewRequestParametersAdmin>();
+
+        if (_lastParams.Equals(newParams))
+            return;
+
+        _lastParams = newParams with { };
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        await InvokeAsync(async () =>
+        {
+            showLoadingOverlay = true;
+            StateHasChanged();
+
+            model.FilterParams = newParams;
+            if (string.IsNullOrWhiteSpace(model.FilterParams.SortBy))
+                model.FilterParams.SortBy = "date_desc";
+            searchTerm = model.FilterParams.SearchTerm ?? "";
+
+            await LoadReviews(token);
+
+            if (token.IsCancellationRequested)
+                return;
+
+            showLoadingOverlay = false;
+            StateHasChanged();
+
+            await JSRuntime.InvokeVoidAsync("scrollToElement", "reviews-list-top");
+        });
+    }
+
+    private async Task LoadReviews(CancellationToken ct)
+    {
+        try
+        {
+            if (model.FilterParams.PageSize == 0) model.FilterParams.PageSize = 10;
+
+            var result = await Service.GetAllAdminAsync(model.FilterParams, false, ct);
+
+            if (ct.IsCancellationRequested)
+                return;
+
+            var pagination = new Pagination
+            {
+                CurrentPage = model.FilterParams.PageNumber,
+                ItemsPerPage = model.FilterParams.PageSize,
+                TotalItems = result.count
+            };
+
+            model = new UserReviewListViewModelAdmin()
+            {
+                UserReviews = result.reviews,
+                Pagination = pagination,
+                TotalCount = result.count,
+                FilterParams = model.FilterParams
+            };
+
+            approvedReviewCount = result.approvedCount;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void UpdateUrl()
+    {
+        var url = model.FilterParams.ToQueryString("/admin/reviews");
+        Navigation.NavigateTo(url!);
+    }
+
+    private async Task ApplyFilters()
+    {
+        model.FilterParams = model.FilterParams with { PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task ClearFilters()
+    {
+        model.FilterParams = new UserReviewRequestParametersAdmin { SortBy = "date_desc" };
+        searchTerm = "";
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSortChange(ChangeEventArgs e)
+    {
+        model.FilterParams = model.FilterParams with { SortBy = e.Value?.ToString(), PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageChange(int page)
+    {
+        model.FilterParams = model.FilterParams with { PageNumber = page };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageSizeChange(int size)
+    {
+        model.FilterParams = model.FilterParams with { PageSize = size, PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(async _ =>
+        {
+            await InvokeAsync(() =>
+            {
+                model.FilterParams = model.FilterParams with { SearchTerm = searchTerm, PageNumber = 1 };
+                UpdateUrl();
+            });
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            model.FilterParams = model.FilterParams with { SearchTerm = searchTerm, PageNumber = 1 };
+            UpdateUrl();
+            await Task.CompletedTask;
+        }
+    }
+
+    private string GetIsApprovedFilterValue() => model.FilterParams.IsApproved.HasValue ? model.FilterParams.IsApproved.Value.ToString().ToLower() : "";
+    private string GetIsFeaturedFilterValue() => model.FilterParams.IsFeatured.HasValue ? model.FilterParams.IsFeatured.Value.ToString().ToLower() : "";
+
+    private void OnIsApprovedFilterChange(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        model.FilterParams = model.FilterParams with { IsApproved = string.IsNullOrWhiteSpace(value) ? null : bool.Parse(value) };
+    }
+
+    private void OnIsFeaturedFilterChange(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        model.FilterParams = model.FilterParams with { IsFeatured = string.IsNullOrWhiteSpace(value) ? null : bool.Parse(value) };
+    }
+
+    private void OpenDetailModal(UserReviewDto review)
+    {
+        selectedReview = review;
+        showDetailModal = true;
+    }
+
+    private async Task ToggleApprove(UserReviewDto review)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("showConfirm",
+            review.IsApproved
+                ? "Bu degerlendirmenin onayini kaldirmak istediginize emin misiniz?"
+                : "Bu degerlendirmeyi onaylamak istediginize emin misiniz?");
+
+        if (!confirmed)
+            return;
+
+        var result = review.IsApproved
+            ? await Service.UnapproveAsync(review.UserReviewId)
+            : await Service.ApproveAsync(review.UserReviewId);
+
+        await JSRuntime.InvokeVoidAsync("showToast", result.Message, result.IsSuccess ? "success" : "error");
+
+        if (!result.IsSuccess)
+            return;
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        await LoadReviews(_cts.Token);
+
+        if (selectedReview?.UserReviewId == review.UserReviewId)
+        {
+            selectedReview = model.UserReviews.FirstOrDefault(r => r.UserReviewId == review.UserReviewId);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleFeatured(UserReviewDto review)
+    {
+        var result = await Service.UpdateFeaturedStatusAsync(review.UserReviewId);
+        await JSRuntime.InvokeVoidAsync("showToast", result.Message, result.IsSuccess ? "success" : "error");
+
+        if (!result.IsSuccess)
+            return;
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        await LoadReviews(_cts.Token);
+
+        if (selectedReview?.UserReviewId == review.UserReviewId)
+        {
+            selectedReview = model.UserReviews.FirstOrDefault(r => r.UserReviewId == review.UserReviewId);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task DeleteReview(UserReviewDto review)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu degerlendirmeyi silmek istediginize emin misiniz? Bu islem geri alinamaz.");
+        if (!confirmed)
+            return;
+
+        var result = await Service.DeleteAdminAsync(review.UserReviewId);
+        await JSRuntime.InvokeVoidAsync("showToast", result.Message, result.IsSuccess ? "success" : "error");
+
+        if (!result.IsSuccess)
+            return;
+
+        if (showDetailModal && selectedReview?.UserReviewId == review.UserReviewId)
+        {
+            await CloseModals();
+        }
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        await LoadReviews(_cts.Token);
+
+        StateHasChanged();
+    }
+
+    private async Task CloseModals()
+    {
+        showDetailModal = false;
+        selectedReview = null;
+        await Task.CompletedTask;
+    }
+
+    private static string GetTitle(UserReviewDto review)
+    {
+        if (!string.IsNullOrWhiteSpace(review.ReviewTitle))
+            return review.ReviewTitle;
+
+        return "Basliksiz degerlendirme";
+    }
+
+    private static string GetSnippet(UserReviewDto review)
+    {
+        if (string.IsNullOrWhiteSpace(review.ReviewText))
+            return "Icerik yok";
+
+        return review.ReviewText.Length > 80
+            ? review.ReviewText[..80] + "..."
+            : review.ReviewText;
+    }
+
+    private static string GetFullText(UserReviewDto review)
+    {
+        return string.IsNullOrWhiteSpace(review.ReviewText) ? "Icerik yok" : review.ReviewText;
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        _debounceTimer?.Dispose();
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

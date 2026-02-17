@@ -6,7 +6,7 @@ namespace Application.Repositories.Interfaces
 {
     public interface ICampaignRepository
     {
-        Task<(IEnumerable<Campaign> campaigns, int count)> GetAllAdminAsync(CampaignRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
+        Task<(IEnumerable<Campaign> campaigns, int count, int activeCount)> GetAllAdminAsync(CampaignRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
         Task<int> CountOfActiveAsync(CancellationToken ct = default);
         Task<Campaign?> GetByIdAsync(int campaignId, bool trackChanges);
         Task<IEnumerable<Campaign>> GetActiveAsync(bool trackChanges);

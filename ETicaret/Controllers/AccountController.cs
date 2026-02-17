@@ -1,4 +1,5 @@
-﻿using Application.DTOs;
+﻿using Application.Common.Models;
+using Application.DTOs;
 using Application.Services.Interfaces;
 using Domain.Entities;
 using ETicaret.Extensions;
@@ -8,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Net;
 using System.Security.Claims;
 
 namespace ETicaret.Controllers
@@ -26,6 +26,7 @@ namespace ETicaret.Controllers
         private readonly ICaptchaService _captchaService;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
+        private readonly IUserService _userService;
 
         public AccountController(
             ICartService cartService,
@@ -38,7 +39,8 @@ namespace ETicaret.Controllers
             IEmailService emailService,
             ICaptchaService captchaService,
             IConfiguration configuration,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IUserService userService)
         {
             _cartService = cartService;
             _authService = authService;
@@ -51,6 +53,7 @@ namespace ETicaret.Controllers
             _captchaService = captchaService;
             _configuration = configuration;
             _env = env;
+            _userService = userService;
         }
 
         public IActionResult Login([FromQuery(Name = "ReturnUrl")] string ReturnUrl = "/")
@@ -67,172 +70,99 @@ namespace ETicaret.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [EnableRateLimiting("login")] 
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login([FromForm] UserModel model)
         {
             ViewData["RecaptchaSiteKey"] = _configuration["ReCaptcha:SiteKey"];
 
             if (model?.Login == null || !ModelState.IsValid)
+                return View(model);
+
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+            var result = await _authService.AuthenticateAsync(new AuthRequest
             {
+                Email = model.Login.Email,
+                Password = model.Login.Password,
+                RememberMe = model.Login.RememberMe,
+                IpAddress = ipAddress,
+                CaptchaToken = model.Login.CaptchaToken,
+                SkipCaptcha = _env.IsDevelopment()
+            });
+
+            if (!result.Succeeded)
+            {
+                AddModelErrorFromResult(result);
                 return View(model);
             }
 
-            if (!_env.IsDevelopment() && !await _captchaService.ValidateAsync(model.Login.CaptchaToken))
-            {
-                ModelState.AddModelError("", "CAPTCHA doğrulaması başarısız.");
+            var claims = await _authService.BuildClaimsAsync(result.UserId!);
+            var claimsIdentity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
+            await HttpContext.SignInAsync(
+                IdentityConstants.ApplicationScheme,
+                new ClaimsPrincipal(claimsIdentity));
 
-                return View(model);
+            var sessionCartDto = SessionCart.GetCartDto(HttpContext.Session);
+            var mergedCart = await _cartService.MergeCartsAsync(result.UserId!, sessionCartDto);
+            HttpContext.Session.SetJson("cart", mergedCart);
+
+            await SetFavouriteProductsCookie(result.UserId!);
+
+            return Redirect(model.ReturnUrl ?? "/");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [EnableRateLimiting("register")]
+        public async Task<IActionResult> Register([FromForm] UserModel model)
+        {
+            ViewData["RecaptchaSiteKey"] = _configuration["ReCaptcha:SiteKey"];
+
+            if (model.Register is null || !ModelState.IsValid)
+            {
+                model.IsRegister = true;
+                return View("Login", model);
             }
 
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
-            if (await _securityLogService.IsIpBlockedAsync(ipAddress))
+            var confirmationLinkTemplate = Url.Action(
+                "ConfirmEmail",
+                "Account",
+                new { userId = "{userId}", token = "{token}" },
+                protocol: Request.Scheme)!;
+
+            var dto = new RegisterDto
             {
-                await _securityLogService.LogFailedLoginAsync(
-                    email: model.Login.Email,
-                    failureReason: "IP blocked due to too many failed attempts"
-                );
+                Email = model.Register.Email,
+                Password = model.Register.Password,
+                FirstName = model.Register.FirstName,
+                LastName = model.Register.LastName,
+                PhoneNumber = model.Register.PhoneNumber,
+                BirthDate = model.Register.BirthDate,
+                AcceptTerms = model.Register.AcceptTerms,
+                AcceptMarketing = model.Register.AcceptMarketing
+            };
 
-                ModelState.AddModelError("", "Çok fazla başarısız giriş denemesi tespit edildi. Lütfen 15 dakika sonra tekrar deneyin.");
+            var result = await _authService.RegisterAsync(new RegisterRequest
+            {
+                RegisterDto = dto,
+                IpAddress = ipAddress,
+                CaptchaToken = model.Register.CaptchaToken,
+                SkipCaptcha = _env.IsDevelopment(),
+                ConfirmationLinkTemplate = confirmationLinkTemplate
+            });
 
-                return View(model);
+            if (!result.Succeeded)
+            {
+                AddModelErrorFromRegisterResult(result);
+                model.IsRegister = true;
+                return View("Login", model);
             }
 
-            var user = await _userManager.FindByEmailAsync(model.Login.Email);
-
-            if (user != null && user.Email != null && user.UserName != null)
-            {
-                if (!user.EmailConfirmed)
-                {
-                    ModelState.AddModelError("", "E-posta adresinizi doğrulamanız gerekmektedir.");
-
-                    return View(model);
-                }
-
-                if (user.IsDeleted)
-                {
-                    ModelState.AddModelError("", "Bu hesap silinmiştir.");
-
-                    return View(model);
-                }
-
-                if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.UtcNow)
-                {
-                    var remainingTime = user.LockoutEnd.Value - DateTimeOffset.UtcNow;
-                    ModelState.AddModelError("", $"Hesabınız {remainingTime.Minutes} dakika daha kilitli.");
-
-                    return View(model);
-                }
-
-                await _signInManager.SignOutAsync();
-
-                var result = await _signInManager.PasswordSignInAsync(
-                    model.Login.Email,
-                    model.Login.Password,
-                    model.Login.RememberMe,
-                    lockoutOnFailure: true
-                );
-
-                if (result.Succeeded)
-                {
-                    user.LastLoginDate = DateTime.UtcNow;
-                    user.LastLoginIpAddress = ipAddress;
-                    user.LastFailedLoginDate = null;
-                    await _userManager.UpdateAsync(user);
-
-                    await _userManager.ResetAccessFailedCountAsync(user);
-
-                    var sessionCartDto = SessionCart.GetCartDto(HttpContext.Session);
-                    var mergedCart = await _cartService.MergeCartsAsync(user.Id, sessionCartDto);
-                    HttpContext.Session.SetJson("cart", mergedCart);
-
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, user.UserName),
-                        new Claim(ClaimTypes.NameIdentifier, user.Id),
-                        new Claim("first_name", user.FirstName),
-                        new Claim("last_name", user.LastName),
-                        new Claim("identity_number", user.IdentityNumber)
-                    };
-
-                    var roles = await _userManager.GetRolesAsync(user);
-                    foreach (var role in roles)
-                    {
-                        claims.Add(new Claim(ClaimTypes.Role, role));
-                    }
-
-                    if (user.FavouriteProductVariantsId != null && user.FavouriteProductVariantsId.Any())
-                    {
-                        var favouriteProductVariantIdsString = string.Join("|", user.FavouriteProductVariantsId);
-                        Response.Cookies.Append("FavouriteProducts", favouriteProductVariantIdsString, new CookieOptions
-                        {
-                            Expires = DateTimeOffset.Now.AddYears(1),
-                            Path = "/",
-                            SameSite = SameSiteMode.Lax,
-                            HttpOnly = false,
-                            Secure = Request.IsHttps,
-                            IsEssential = true
-                        });
-                    }
-                    else
-                    {
-                        Response.Cookies.Delete("FavouriteProducts");
-                        Response.Cookies.Append("FavouriteProducts", "", new CookieOptions
-                        {
-                            Expires = DateTimeOffset.Now.AddYears(1),
-                            Path = "/",
-                            SameSite = SameSiteMode.Lax,
-                            HttpOnly = false,
-                            Secure = Request.IsHttps,
-                            IsEssential = true
-                        });
-                    }
-
-                    var claimsIdentity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
-                    await HttpContext.SignInAsync(
-                        IdentityConstants.ApplicationScheme,
-                        new ClaimsPrincipal(claimsIdentity)
-                    );
-
-                    await _securityLogService.LogLoginAsync(
-                        userId: user.Id,
-                        userName: user.UserName!,
-                        email: user.Email!,
-                        isSuccess: true
-                    );
-
-                    return Redirect(model.ReturnUrl ?? "/");
-                }
-                else if (result.IsLockedOut)
-                {
-                    await _securityLogService.LogFailedLoginAsync(
-                        email: model.Login.Email,
-                        failureReason: "Account locked out"
-                    );
-
-                    ModelState.AddModelError("", "Hesabınız çok fazla başarısız giriş denemesi nedeniyle kilitlenmiştir. Lütfen daha sonra tekrar deneyin.");
-
-                    return View(model);
-                }
-                else
-                {
-                    user!.LastFailedLoginDate = DateTime.UtcNow;
-                    await _userManager.UpdateAsync(user);
-
-                    ModelState.AddModelError("Login.Name", "Kullanıcı adı veya şifre hatalı.");
-                }
-            }
-            else
-            {
-                ModelState.AddModelError("Login.Name", "Kullanıcı adı veya şifre hatalı.");
-            }
-
-            await _securityLogService.LogFailedLoginAsync(
-                email: model.Login.Email,
-                failureReason: "Invalid credentials"
-            );
-
-            return View(model);
+            TempData["toastContent"] = "Kayıt başarılı! Lütfen e-postanızı kontrol edin.";
+            TempData["toastType"] = "success";
+            return RedirectToAction("Login");
         }
 
         [Authorize]
@@ -242,18 +172,45 @@ namespace ETicaret.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userName = User.FindFirstValue(ClaimTypes.Name);
 
-            var currentCart = SessionCart.GetCartDto(HttpContext.Session);
-
-            if (userId != null && userName != null)
+            if (userId is not null && userName is not null)
             {
                 Response.Cookies.Delete("FavouriteProducts");
                 HttpContext.Session.Clear();
 
                 await _signInManager.SignOutAsync();
-                await _securityLogService.LogLogoutAsync(userId, userName);
+
+                await _authService.LogoutAsync(userId, userName);
             }
 
             return Redirect(ReturnUrl);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+            {
+                TempData["toastContent"] = "Geçersiz doğrulama linki.";
+                TempData["toastType"] = "error";
+                return RedirectToAction("Login");
+            }
+
+            var result = await _authService.ConfirmEmailAsync(userId, token);
+
+            if (result.Succeeded)
+            {
+                TempData["toastContent"] = "E-posta adresiniz başarıyla doğrulandı!";
+                TempData["toastType"] = "success";
+                return RedirectToAction("Login");
+            }
+
+            var message = result.UserNotFound
+                ? "Kullanıcı bulunamadı."
+                : "E-posta doğrulama başarısız. Lütfen tekrar deneyin.";
+
+            TempData["toastContent"] = message;
+            TempData["toastType"] = "error";
+            return RedirectToAction("Login");
         }
 
         [Authorize(Roles = "Admin")]
@@ -263,34 +220,27 @@ namespace ETicaret.Controllers
         {
             var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            // Prevent self-impersonation
-            if (adminId == userId)
-            {
-                TempData["toastContent"] = "Kendi hesabınıza geçiş yapamazsınız.";
-                TempData["toastType"] = "error";
-                return RedirectToAction("Index", "Account");
-            }
+            var result = await _authService.StartImpersonationAsync(
+                targetUserId: userId,
+                adminId: adminId);
 
-            var result = await _authService.BuildImpersonationClaimsAsync(userId, adminId);
-            if (!result.IsSuccess)
+            if (!result.Succeeded)
             {
-                TempData["toastContent"] = result.Message;
+                TempData["toastContent"] = result.ErrorMessage;
                 TempData["toastType"] = "error";
                 return Redirect("/admin/users");
             }
 
-            // Sign out admin
             await _signInManager.SignOutAsync();
             HttpContext.Session.Clear();
             Response.Cookies.Delete("FavouriteProducts");
 
-            // Sign in as target user with impersonation claims
-            var claimsIdentity = new ClaimsIdentity(result.Data!, IdentityConstants.ApplicationScheme);
+            var claimsIdentity = new ClaimsIdentity(result.Claims!, IdentityConstants.ApplicationScheme);
             await HttpContext.SignInAsync(
                 IdentityConstants.ApplicationScheme,
-                new ClaimsPrincipal(claimsIdentity)
-            );
-                return Redirect("/");
+                new ClaimsPrincipal(claimsIdentity));
+
+            return Redirect("/");
         }
 
         [Authorize]
@@ -306,165 +256,33 @@ namespace ETicaret.Controllers
             }
 
             var originalAdminId = User.FindFirstValue("OriginalAdminId");
-            var impersonatedUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
             if (string.IsNullOrEmpty(originalAdminId))
             {
                 await _signInManager.SignOutAsync();
                 return Redirect("/account/login");
             }
 
-            var adminUser = await _userManager.FindByIdAsync(originalAdminId);
-            if (adminUser == null)
+            var result = await _authService.StopImpersonationAsync(originalAdminId);
+
+            if (!result.Succeeded)
             {
                 await _signInManager.SignOutAsync();
                 return Redirect("/account/login");
             }
 
-            // Sign out impersonated session
             await _signInManager.SignOutAsync();
             HttpContext.Session.Clear();
             Response.Cookies.Delete("FavouriteProducts");
 
-            // Rebuild admin claims (same as Login flow)
-            var adminClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, adminUser.UserName ?? adminUser.Email ?? ""),
-                new Claim(ClaimTypes.NameIdentifier, adminUser.Id),
-                new Claim("first_name", adminUser.FirstName),
-                new Claim("last_name", adminUser.LastName),
-                new Claim("identity_number", adminUser.IdentityNumber ?? "")
-            };
-
-            var adminRoles = await _userManager.GetRolesAsync(adminUser);
-            foreach (var role in adminRoles)
-            {
-                adminClaims.Add(new Claim(ClaimTypes.Role, role));
-            }
-
-            var claimsIdentity = new ClaimsIdentity(adminClaims, IdentityConstants.ApplicationScheme);
+            var claimsIdentity = new ClaimsIdentity(result.Claims!, IdentityConstants.ApplicationScheme);
             await HttpContext.SignInAsync(
                 IdentityConstants.ApplicationScheme,
-                new ClaimsPrincipal(claimsIdentity)
-            );
-
-            // Audit log stop
-            await _securityLogService.LogLoginAsync(
-                userId: adminUser.Id,
-                userName: adminUser.UserName!,
-                email: adminUser.Email!,
-                isSuccess: true
-            );
+                new ClaimsPrincipal(claimsIdentity));
 
             TempData["toastContent"] = "Admin oturumuna geri dönüldü.";
             TempData["toastType"] = "success";
 
             return Redirect("/admin/users");
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [EnableRateLimiting("register")]
-        public async Task<IActionResult> Register([FromForm] UserModel model)
-        {
-            ViewData["RecaptchaSiteKey"] = _configuration["ReCaptcha:SiteKey"];
-
-            if (model.Register == null || !ModelState.IsValid)
-            {
-                model.IsRegister = true;
-                return View("Login", model);
-            }
-
-            if (!_env.IsDevelopment() && !await _captchaService.ValidateAsync(model.Register.CaptchaToken))
-            {
-                ModelState.AddModelError("", "CAPTCHA doğrulaması başarısız.");
-                model.IsRegister = true;
-                return View("Login", model);
-            }
-
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-
-            var user = new User
-            {
-                UserName = model.Register!.Email,
-                FirstName = model.Register!.FirstName,
-                LastName = model.Register!.LastName,
-                PhoneNumber = model.Register!.PhoneNumber,
-                BirthDate = model.Register!.BirthDate,
-                Email = model.Register!.Email,
-                RegistrationIpAddress = ipAddress,
-                AcceptedTerms = model.Register!.AcceptTerms,
-                TermsAcceptedDate = DateTime.UtcNow,
-                AcceptedMarketing = model.Register!.AcceptMarketing,
-                MarketingAcceptedDate = model.Register.AcceptMarketing ? DateTime.UtcNow : null,
-            };
-
-            var result = await _userManager.CreateAsync(user, model.Register!.Password);
-
-            if (result.Succeeded)
-            {
-                var roleResult = await _userManager.AddToRoleAsync(user, "User");
-
-                var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirmationLink = Url.Action(
-                    "ConfirmEmail",
-                    "Account",
-                    new { userId = user.Id, token = emailToken },
-                    protocol: Request.Scheme
-                );
-
-                await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink!);
-
-                if (roleResult.Succeeded)
-                {
-                    TempData["toastContent"] = "Kayıt başarılı! Lütfen e-postanızı kontrol edin.";
-                    TempData["toastType"] = "success";
-                    return RedirectToAction("Login");
-                }
-            }
-            else
-            {
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
-
-                model.IsRegister = true;
-            }
-
-            return View("Login", model);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> ConfirmEmail(string userId, string token)
-        {
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
-                return BadRequest("Geçersiz doğrulama linki.");
-
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-                return NotFound("Kullanıcı bulunamadı.");
-
-            var result = await _userManager.ConfirmEmailAsync(user, token);
-
-            if (result.Succeeded && user.Email != null)
-            {
-                await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName);
-
-                TempData["toastContent"] = "E-posta adresiniz başarıyla doğrulandı!";
-                TempData["toastType"] = "success";
-                return RedirectToAction("Login");
-            }
-
-            TempData["toastContent"] = "E-posta doğrulama başarısız. Lütfen tekrar deneyin.";
-            TempData["toastType"] = "error";
-
-            return RedirectToAction("Login");
-        }
-
-        public IActionResult AccessDenied([FromQuery(Name = "ReturnUrl")] string returnUrl)
-        {
-            return View();
         }
 
         [Authorize]
@@ -491,6 +309,89 @@ namespace ETicaret.Controllers
             return View();
         }
 
+        [Authorize]
+        public async Task<IActionResult> Favourites()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await _userService.GetOneUsersFavouritesAsync(userId!);
+            ViewBag.FavouriteIds = user.FavouriteProductVariantsId;
+
+            UpdateFavoritesCookie(user.FavouriteProductVariantsId);
+
+            var favouriteProducts = await _productService.GetFavouritesAsync(user);
+
+            return View(favouriteProducts);
+        }
+
+        [Authorize]
+        public async Task<IActionResult> Notifications()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var notifications = await _notificationService.GetByUserIdAsync(userId!);
+
+            return View(notifications);
+        }
+
+        // Helpers
+        private void AddModelErrorFromResult(AuthResult result)
+        {
+            var errorKey = result.InvalidCredentials ? "Login.Name" : string.Empty;
+
+            var message = result switch
+            {
+                { CaptchaFailed: true } => "CAPTCHA doğrulaması başarısız.",
+                { IpBlocked: true } => "Çok fazla başarısız giriş denemesi tespit edildi. Lütfen 15 dakika sonra tekrar deneyin.",
+                { RequiresEmailConfirmation: true } => "E-posta adresinizi doğrulamanız gerekmektedir.",
+                { IsDeleted: true } => "Bu hesap silinmiştir.",
+                { IsLockedOut: true, RemainingLockoutMinutes: > 0 } => $"Hesabınız {result.RemainingLockoutMinutes} dakika daha kilitli.",
+                { IsLockedOut: true } => "Hesabınız çok fazla başarısız giriş denemesi nedeniyle kilitlenmiştir. Lütfen daha sonra tekrar deneyin.",
+                { InvalidCredentials: true } => "Kullanıcı adı veya şifre hatalı.",
+                _ => "Bilinmeyen bir hata oluştu."
+            };
+
+            ModelState.AddModelError(errorKey, message);
+        }
+
+        private async Task SetFavouriteProductsCookie(string userId)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                Expires = DateTimeOffset.Now.AddYears(1),
+                Path = "/",
+                SameSite = SameSiteMode.Lax,
+                HttpOnly = false,
+                Secure = Request.IsHttps,
+                IsEssential = true
+            };
+
+            var favouriteIds = await _userService.GetOneUsersFavouritesAsync(userId);
+
+
+            Response.Cookies.Delete("FavouriteProducts");
+
+            if (favouriteIds.FavouriteProductVariantsId != null && favouriteIds.FavouriteProductVariantsId.Count != 0)
+            {
+                var favouriteProductVariantIdsString = string.Join("|", favouriteIds);
+                Response.Cookies.Append("FavouriteProducts", favouriteProductVariantIdsString, cookieOptions);
+            }
+        }
+
+        private void AddModelErrorFromRegisterResult(RegisterResult result)
+        {
+            if (result.CaptchaFailed)
+            {
+                ModelState.AddModelError(string.Empty, "CAPTCHA doğrulaması başarısız.");
+                return;
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+        }
+
+
         private void UpdateFavoritesCookie(ICollection<int> favoriteIds)
         {
             var cookieValue = favoriteIds.Any()
@@ -515,29 +416,6 @@ namespace ETicaret.Controllers
             {
                 Response.Cookies.Append("FavouriteProducts", cookieValue, cookieOptions);
             }
-        }
-
-        [Authorize]
-        public async Task<IActionResult> Favourites()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            var user = await _authService.GetOneUsersFavouritesAsync(userId!);
-            ViewBag.FavouriteIds = user.FavouriteProductVariantsId;
-
-            UpdateFavoritesCookie(user.FavouriteProductVariantsId);
-
-            var favouriteProducts = await _productService.GetFavouritesAsync(user);
-
-            return View(favouriteProducts);
-        }
-
-        public async Task<IActionResult> Notifications()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var notifications = await _notificationService.GetByUserIdAsync(userId!);
-
-            return View(notifications);
         }
     }
 }

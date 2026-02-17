@@ -1,3 +1,5 @@
+using System.Data;
+
 namespace Application.Repositories.Interfaces
 {
     public interface IRepositoryManager{
@@ -24,5 +26,15 @@ namespace Application.Repositories.Interfaces
         Task SaveAsync();
         void ClearTracker();
         Task CanConnectAsync();
+
+        Task ExecuteInTransactionAsync(
+            Func<CancellationToken, Task> action,
+            IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default);
+
+        Task<T> ExecuteInTransactionAsync<T>(
+            Func<CancellationToken, Task<T>> action,
+            IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default);
     }
 }

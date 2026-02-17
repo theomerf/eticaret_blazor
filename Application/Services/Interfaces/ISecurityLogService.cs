@@ -17,5 +17,8 @@ namespace Application.Services.Interfaces
         Task LogRateLimitViolationAsync(string? userId, string ipAddress, string endpoint, int requestCount);
         Task LogPaymentAnomalyAsync(string? userId, string orderNumber, string anomalyType, string details);
         Task<int> CountOfPaymentAttemptsFromIpAsync(string ipAddress, TimeSpan timeWindow);
+
+        Task LogImpersonationStartAsync(string adminId, string adminUserName, string targetUserId, string targetUserName);
+        Task LogImpersonationStopAsync(string adminId, string adminUserName);
     }
 }

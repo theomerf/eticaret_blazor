@@ -13,9 +13,10 @@ namespace Domain.Entities
         public DateTime? LastLoginDate { get; set; }
         public ICollection<Address>? Addresses { get; set; }
         public ICollection<UserReview>? UserReviews { get; set; }
-        public ICollection<int> FavouriteProductVariantsId { get; set; } = new List<int>();
+        public ICollection<UserReviewVote> Votes { get; set; } = [];
+        public ICollection<int> FavouriteProductVariantsId { get; set; } = [];
 
-        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public ICollection<UserRole> UserRoles { get; set; } = [];
 
         public string? LastLoginIpAddress { get; set; }
         public string? RegistrationIpAddress { get; set; }

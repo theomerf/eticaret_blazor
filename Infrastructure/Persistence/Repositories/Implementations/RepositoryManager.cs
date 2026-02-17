@@ -1,4 +1,7 @@
 using Application.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories.Implementations
 {
@@ -89,5 +92,64 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         public async Task SaveAsync() => await _context.SaveChangesAsync();
         public void ClearTracker() => _context.ChangeTracker.Clear();
         public async Task CanConnectAsync() => await _context.Database.CanConnectAsync();
+
+        public Task ExecuteInTransactionAsync(
+            Func<CancellationToken, Task> action,
+            IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default)
+        => ExecuteInTransactionInternalAsync<object?>(
+            async token =>
+            {
+                await action(token);
+                return null;
+            },
+            isolationLevel,
+            ct);
+
+        public Task<T> ExecuteInTransactionAsync<T>(
+            Func<CancellationToken, Task<T>> action,
+            IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default)
+            => ExecuteInTransactionInternalAsync(action, isolationLevel, ct);
+
+        private async Task<T> ExecuteInTransactionInternalAsync<T>(
+            Func<CancellationToken, Task<T>> action,
+            IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default)
+        {
+            var existingTx = _context.Database.CurrentTransaction;
+            if (existingTx != null)
+            {
+                return await action(ct);
+            }
+
+            IDbContextTransaction? tx = null;
+            try
+            {
+                tx = isolationLevel.HasValue
+                    ? await _context.Database.BeginTransactionAsync(isolationLevel.Value, ct)
+                    : await _context.Database.BeginTransactionAsync(ct);
+
+                var result = await action(ct);
+
+                await _context.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+
+                return result;
+            }
+            catch
+            {
+                if (tx != null)
+                {
+                    try { await tx.RollbackAsync(ct); } catch { }
+                }
+                throw;
+            }
+            finally
+            {
+                if (tx != null)
+                    await tx.DisposeAsync();
+            }
+        }
     }
 }

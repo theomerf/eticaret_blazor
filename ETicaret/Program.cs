@@ -7,6 +7,7 @@ using Serilog.Events;
 using Serilog.Sinks.PostgreSQL.ColumnWriters;
 using Serilog.Sinks.SystemConsole.Themes;
 using ETicaret.Binders;
+using Infrastructure.BackgroundJobs.Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,7 @@ try
     builder.Services.AddHttpContextAccessor();
 
     builder.Services.ConfigureDbContext(builder.Configuration, builder.Environment);
+    builder.Services.AddHangfireInfrastructure(builder.Configuration);
     builder.Services.ConfigureIdentity();
     builder.Services.ConfigureSession();
     builder.Services.ConfigureRepositoryRegistration();

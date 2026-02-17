@@ -47,12 +47,12 @@ namespace Application.Services.Implementations
         private string GetCurrentUserName() =>
             _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-        public async Task<(IEnumerable<CampaignDto> campaigns, int count)> GetAllAdminAsync(CampaignRequestParametersAdmin p, CancellationToken ct = default)
+        public async Task<(IEnumerable<CampaignDto> campaigns, int count, int activeCount)> GetAllAdminAsync(CampaignRequestParametersAdmin p, CancellationToken ct = default)
         {
             var result = await _manager.Campaign.GetAllAdminAsync(p, false, ct);
             var campaignsDto = _mapper.Map<IEnumerable<CampaignDto>>(result.campaigns);
 
-            return (campaignsDto, result.count);
+            return (campaignsDto, result.count, result.activeCount);
         }
 
         public async Task<int> CountOfActiveAsync(CancellationToken ct = default)

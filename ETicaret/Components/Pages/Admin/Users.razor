@@ -6,7 +6,7 @@
 @using ETicaret.Extensions
 @using Domain.Entities
 @using Microsoft.AspNetCore.Identity
-@inherits OwningComponentBase<IAuthService>
+@inherits OwningComponentBase
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @layout AdminLayout
@@ -17,7 +17,7 @@
         <div class="col-span-1 grid grid-cols-2 gap-3 mb-6">
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
                 <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-clipboard-list"></i>
                 </div>
                 <div class="text-xs text-gray-500 font-medium">Toplam</div>
                 @if (isLoading)
@@ -44,7 +44,7 @@
                 }
                 else
                 {
-                    <div class="text-lg font-bold text-gray-800">@activeCount</div>
+                    <div class="text-lg font-bold text-gray-800">@activeUserCount</div>
                 }
             </div>
         </div>
@@ -433,13 +433,16 @@
 </form>
 
 @code {
+    private IAuthService? _authService;
+    private IUserService? _userService;
+
     private UserListViewModelAdmin model = new();
     private UserRequestParametersAdmin _lastParams = new();
     private IEnumerable<Role>? roles;
     private bool isLoading = true;
     private bool showLoadingOverlay = false;
     private bool isSaving = false;
-    private int activeCount = 0;
+    private int activeUserCount;
     private string? openDropdownId;
     private string searchTerm = "";
     private Timer? _debounceTimer;
@@ -462,6 +465,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _authService = ScopedServices.GetRequiredService<IAuthService>();
+        _userService = ScopedServices.GetRequiredService<IUserService>();
+
         isLoading = true;
         model.FilterParams = Navigation.BindFromQuery<UserRequestParametersAdmin>();
         if (string.IsNullOrWhiteSpace(model.FilterParams.SortBy))
@@ -471,7 +477,7 @@
         await LoadUsers(_cts.Token);
 
         _cts = new CancellationTokenSource();
-        roles = await Service.GetRolesAsync(_cts.Token);
+        if (_userService != null) roles = await _userService.GetRolesAsync(_cts.Token);
 
         isLoading = false;
         Navigation.LocationChanged += OnLocationChanged;
@@ -513,11 +519,13 @@
 
     private async Task LoadUsers(CancellationToken ct)
     {
+        if (_userService == null) return;
+
         try
         {
             if (model.FilterParams.PageSize == 0) model.FilterParams.PageSize = 10;
 
-            var result = await Service.GetAllUsersAdminAsync(model.FilterParams, ct);
+            var result = await _userService.GetAllUsersAdminAsync(model.FilterParams, ct);
 
             if (ct.IsCancellationRequested) return;
 
@@ -536,7 +544,7 @@
                 FilterParams = model.FilterParams
             };
 
-            activeCount = model.Users.Count(u => u.IsActive);
+            activeUserCount = result.activeCount;
         }
         catch (OperationCanceledException)
         {
@@ -630,12 +638,14 @@
 
     private async Task ToggleActive(UserDto user)
     {
+        if (_userService == null) return;
+
         var confirmed = await JSRuntime.InvokeAsync<bool>("showConfirm",
             $"{user.FirstName} {user.LastName} kullanıcısını {(user.IsActive ? "pasif" : "aktif")} yapmak istediğinize emin misiniz?");
 
         if (!confirmed) return;
 
-        var result = await Service.ToggleUserActiveAsync(user.Id);
+        var result = await _userService.ToggleUserActiveAsync(user.Id);
 
         if (result.IsSuccess)
         {
@@ -654,6 +664,7 @@
 
     private async Task VerifyEmail(UserDto user)
     {
+        if (_authService == null) return;
         CloseDropdown(null);
 
         var confirmed = await JSRuntime.InvokeAsync<bool>("showConfirm",
@@ -661,7 +672,7 @@
 
         if (!confirmed) return;
 
-        var result = await Service.VerifyEmailAsync(user.Id);
+        var result = await _authService.VerifyEmailAsync(user.Id);
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
@@ -679,9 +690,10 @@
 
     private async Task GenerateResetLink(UserDto user)
     {
+        if (_authService == null) return;
         CloseDropdown(null);
 
-        var result = await Service.GeneratePasswordResetLinkAsync(user.Id);
+        var result = await _authService.GeneratePasswordResetLinkAsync(user.Id);
         if (result.IsSuccess)
         {
             resetLink = result.Data;
@@ -696,6 +708,7 @@
 
     private async Task DeleteUser(UserDto user)
     {
+        if (_userService == null) return;
         CloseDropdown(null);
 
         var confirmed = await JSRuntime.InvokeAsync<bool>("showConfirm",
@@ -703,7 +716,8 @@
 
         if (!confirmed) return;
 
-        var result = await Service.DeleteUserAsync(user.Id);
+        var result = await _userService.DeleteUserAsync(user.Id);
+
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
@@ -737,8 +751,10 @@
 
     private async Task SaveEdit()
     {
+        if (_userService == null) return;
+
         isSaving = true;
-        var result = await Service.EditUserInfoAsync(editModel);
+        var result = await _userService.EditUserInfoAsync(editModel);
         isSaving = false;
 
         if (result.IsSuccess)
@@ -773,10 +789,11 @@
 
     private async Task SaveRoles()
     {
+        if (_userService == null) return;
         if (selectedUser == null) return;
 
         isSaving = true;
-        var result = await Service.ChangeUserRolesAsync(selectedUser.Id, selectedRoles);
+        var result = await _userService.ChangeUserRolesAsync(selectedUser.Id, selectedRoles);
         isSaving = false;
 
         if (result.IsSuccess)
@@ -805,10 +822,11 @@
 
     private async Task SaveNote()
     {
+        if (_userService == null) return;
         if (selectedUser == null) return;
 
         isSaving = true;
-        var result = await Service.UpdateAdminNotesAsync(selectedUser.Id, adminNoteText ?? "");
+        var result = await _userService.UpdateAdminNotesAsync(selectedUser.Id, adminNoteText ?? "");
         isSaving = false;
 
         if (result.IsSuccess)

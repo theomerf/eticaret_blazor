@@ -52,7 +52,7 @@
 
     private IProductService? _productService;
     private ICategoryService? _categoryService;
-    private IAuthService? _authService;
+    private IUserService? _userService;
     private IOrderService? _orderService;
     private IUserReviewService? _userReviewService;
     private IActivityService? _activityService;
@@ -82,7 +82,7 @@
     {
         _productService = ScopedServices.GetRequiredService<IProductService>();
         _categoryService = ScopedServices.GetRequiredService<ICategoryService>();
-        _authService = ScopedServices.GetRequiredService<IAuthService>();
+        _userService = ScopedServices.GetRequiredService<IUserService>();
         _orderService = ScopedServices.GetRequiredService<IOrderService>();
         _userReviewService = ScopedServices.GetRequiredService<IUserReviewService>();
         _activityService = ScopedServices.GetRequiredService<IActivityService>();
@@ -135,7 +135,7 @@
         if (_categoryService != null) categoriesCount = await _categoryService.CountAsync(ct);
         if (ct.IsCancellationRequested) return;
 
-        if (_authService != null) usersCount = await _authService.GetUsersCountAsync(ct);
+        if (_userService != null) usersCount = await _userService.GetUsersCountAsync(ct);
         if (ct.IsCancellationRequested) return;
 
         if (_orderService != null) ordersInProcessCount = await _orderService.CountOfInProcessAsync(ct);

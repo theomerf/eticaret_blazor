@@ -23,7 +23,7 @@ namespace Application.Services.Interfaces
         Task<int> CountByUserIdAsync(string userId);
         Task<decimal> GetUserTotalSpentAsync(string userId);
         Task<IEnumerable<ProductSalesDto>> GetTopSellingProductsAsync(int topN, CancellationToken ct = default);
-        Task<(IEnumerable<OrderDto> orders, int count)> GetAllAdminAsync(OrderRequestParametersAdmin p, CancellationToken ct = default);
+        Task<(IEnumerable<OrderDto> orders, int count, int processingCount)> GetAllAdminAsync(OrderRequestParametersAdmin p, CancellationToken ct = default);
 
         Task<int> CountOfInProcessAsync(CancellationToken ct = default);
         

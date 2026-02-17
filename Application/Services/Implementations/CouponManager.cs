@@ -50,12 +50,12 @@ namespace Application.Services.Implementations
         private string GetCurrentUserName() =>
             _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-        public async Task<(IEnumerable<CouponDto> coupons, int count)> GetAllAdminAsync(CouponRequestParametersAdmin p, CancellationToken ct = default)
+        public async Task<(IEnumerable<CouponDto> coupons, int count, int activeCount)> GetAllAdminAsync(CouponRequestParametersAdmin p, CancellationToken ct = default)
         {
             var result = await _manager.Coupon.GetAllAdminAsync(p, false, ct);
             var couponsDto = _mapper.Map<IEnumerable<CouponDto>>(result.coupons);
 
-            return (couponsDto, result.count);
+            return (couponsDto, result.count, result.activeCount);
         }
 
         public async Task<int> CountOfActiveAsync(CancellationToken ct = default)

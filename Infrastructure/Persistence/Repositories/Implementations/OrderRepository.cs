@@ -13,7 +13,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<(IEnumerable<Order> orders, int count)> GetAllAdminAsync(OrderRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
+        public async Task<(IEnumerable<Order> orders, int count, int processingCount)> GetAllAdminAsync(OrderRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
             var ordersQuery = FindAll(trackChanges)
                 .FilterBy(p.Status, o => o.OrderStatus, FilterOperator.Equal)
@@ -30,6 +30,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             }
 
             var count = await ordersQuery.CountAsync(ct);
+            var processingCount = await ordersQuery.CountAsync(o => o.OrderStatus == OrderStatus.Processing, ct);
 
             ordersQuery = p.SortBy switch
             {
@@ -44,7 +45,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .ToPaginate(p.PageNumber, p.PageSize)
                 .ToListAsync(ct);
 
-            return (orders, count);
+            return (orders, count, processingCount);
         }
 
         public async Task<Order?> GetByIdAsync(int orderId, bool trackChanges)

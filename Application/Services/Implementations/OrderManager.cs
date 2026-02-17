@@ -403,12 +403,12 @@ namespace Application.Services.Implementations
             return ordersDto;
         }
 
-        public async Task<(IEnumerable<OrderDto> orders, int count)> GetAllAdminAsync(OrderRequestParametersAdmin p, CancellationToken ct = default)
+        public async Task<(IEnumerable<OrderDto> orders, int count, int processingCount)> GetAllAdminAsync(OrderRequestParametersAdmin p, CancellationToken ct = default)
         {
             var result = await _manager.Order.GetAllAdminAsync(p, false, ct);
             var ordersDto = _mapper.Map<IEnumerable<OrderDto>>(result.orders);
 
-            return (ordersDto, result.count);
+            return (ordersDto, result.count, result.processingCount);
         }
 
         public async Task<OperationResult<OrderWithDetailsDto>> UpdateStatusAsync(OrderDtoForUpdate orderDto)

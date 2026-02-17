@@ -31,12 +31,13 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return categories;  
         }
 
-        public async Task<(IEnumerable<Category> categories, int count)> GetAllAdminAsync(RequestParametersAdmin p, bool trackChanges, CancellationToken ct)
+        public async Task<(IEnumerable<Category> categories, int count, int featuredCount)> GetAllAdminAsync(RequestParametersAdmin p, bool trackChanges, CancellationToken ct)
         {
             var filteredCategoriesQuery = FindAll(trackChanges)
                 .FilterBy(p.SearchTerm, c => c.CategoryName, FilterOperator.Contains);
 
             var count = await filteredCategoriesQuery.CountAsync(ct);
+            var featuredCount = await filteredCategoriesQuery.CountAsync(c => c.IsFeatured, ct);
 
             var filteredCategories = await filteredCategoriesQuery
                 .OrderBy(c => c.CategoryId)
@@ -53,7 +54,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 })
                 .ToListAsync(ct);
 
-            return (filteredCategories, count);
+            return (filteredCategories, count, featuredCount);
         }
 
         public async Task<int> CountAsync(CancellationToken ct = default) => await CountAsync(false, ct);

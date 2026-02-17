@@ -1,10 +1,7 @@
-﻿using Application.DTOs;
-using Application.Queries.RequestParameters;
+﻿using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
-using AutoMapper;
 using Domain.Entities;
 using Infrastructure.Persistence.Extensions;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories.Implementations
@@ -15,7 +12,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<(IEnumerable<User> users, int count)> GetAllAdminAsync(UserRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
+        public async Task<(IEnumerable<User> users, int count, int activeCount)> GetAllAdminAsync(UserRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
             var query = FindAll(trackChanges)
                 .Include(u => u.UserRoles)
@@ -36,6 +33,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             }
 
             var count = await query.CountAsync(ct);
+            var activeCount = await query.CountAsync(u => u.IsActive, ct);
 
             query = p.SortBy switch
             {
@@ -50,7 +48,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .ToPaginate(p.PageNumber, p.PageSize)
                 .ToListAsync(ct);
 
-            return (users, count);
+            return (users, count, activeCount);
         }
 
         public async Task<User?> GetByIdAsync(string userId, bool trackChanges, CancellationToken ct = default)

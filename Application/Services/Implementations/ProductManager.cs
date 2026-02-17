@@ -55,12 +55,12 @@ namespace Application.Services.Implementations
             return (productsDto, result.count);
         }
 
-        public async Task<(IEnumerable<ProductDto> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, CancellationToken ct = default)
+        public async Task<(IEnumerable<ProductDto> products, int count, int showcaseCount)> GetAllAdminAsync(ProductRequestParametersAdmin p, CancellationToken ct = default)
         {
             var result = await _manager.Product.GetAllAdminAsync(p, false, ct);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(result.products);
 
-            return (productsDto, result.count);
+            return (productsDto, result.count, result.showcaseCount);
         }
 
         public async Task<int> CountAsync(CancellationToken ct = default)

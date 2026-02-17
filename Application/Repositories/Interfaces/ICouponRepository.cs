@@ -5,7 +5,7 @@ namespace Application.Repositories.Interfaces
 {
     public interface ICouponRepository
     {
-        Task<(IEnumerable<Coupon> coupons, int count)> GetAllAdminAsync(CouponRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
+        Task<(IEnumerable<Coupon> coupons, int count, int activeCount)> GetAllAdminAsync(CouponRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
         Task<int> CountOfActiveAsync(CancellationToken ct = default);
         Task<Coupon?> GetByIdAsync(int couponId, bool trackChanges);
         Task<Coupon?> GetByCodeAsync(string code, bool trackChanges);

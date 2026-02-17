@@ -6,7 +6,7 @@ namespace Application.Services.Interfaces
 {
     public interface ICampaignService
     {
-        Task<(IEnumerable<CampaignDto> campaigns, int count)> GetAllAdminAsync(CampaignRequestParametersAdmin p, CancellationToken ct = default);
+        Task<(IEnumerable<CampaignDto> campaigns, int count, int activeCount)> GetAllAdminAsync(CampaignRequestParametersAdmin p, CancellationToken ct = default);
         Task<int> CountOfActiveAsync(CancellationToken ct = default);
         Task<CampaignDto> GetByIdAsync(int campaignId);
         Task<IEnumerable<CampaignDto>> GetActiveAsync();

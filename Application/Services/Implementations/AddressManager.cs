@@ -79,24 +79,17 @@ namespace Application.Services.Implementations
             try
             {
                 _manager.ClearTracker();
-                var address = _mapper.Map<Address>(addressDto);
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                if (addressDto.IsDefault)
-                {
-                    var userAddresses = await _manager.Address.GetByUserIdAsync(userId, true);
-                    foreach (var addr in userAddresses)
-                    {
-                        if (addr.IsDefault)
-                        {
-                            addr.IsDefault = false;
-                            addr.UpdatedAt = DateTime.UtcNow;
-                        }
-                    }
-                }
 
+                var address = _mapper.Map<Address>(addressDto);
                 address.UserId = userId;
 
                 address.ValidateForCreation();
+
+                if (addressDto.IsDefault)
+                {
+                    await _manager.Address.UnsetDefaultForUserAsync(userId);
+                }
 
                 _manager.Address.Create(address);
                 await _manager.SaveAsync();
@@ -118,15 +111,9 @@ namespace Application.Services.Implementations
             {
                 _manager.ClearTracker();
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                var addresses = await _manager.Address.GetByUserIdAsync(userId, true);
-                var addressToMakeDefault = addresses.Where(a => a.AddressId == addressId).FirstOrDefault();
+                var address = await GetOneAddressForServiceAsync(addressId, true);
 
-                if (addressToMakeDefault == null)
-                {
-                    throw new AddressNotFoundException(addressId);
-                }
-
-                if (addressToMakeDefault.UserId != userId)
+                if (address.UserId != userId)
                 {
                     await _securityLogService.LogUnauthorizedAccessAsync(
                         userId: userId,
@@ -135,19 +122,17 @@ namespace Application.Services.Implementations
                     throw new UnauthorizedAccessException("Bunun için yetkiniz yok.");
                 }
 
-                foreach (var addr in addresses)
+                if (address.IsDefault)
                 {
-                    if (addr.IsDefault && addr.AddressId != addressId)
-                    {
-                        addr.IsDefault = false;
-                        addr.UpdatedAt = DateTime.UtcNow;
-                    }
+                    return OperationResult<AddressDto>.Success("Adres zaten varsayılan olarak işaretli.");
                 }
 
-                addressToMakeDefault.IsDefault = true;
-                addressToMakeDefault.UpdatedAt = DateTime.UtcNow;
+                address.ValidateForUpdate();
 
-                addressToMakeDefault.ValidateForUpdate();
+                await _manager.Address.UnsetDefaultForUserAsync(userId);
+
+                address.IsDefault = true;
+                address.UpdatedAt = DateTime.UtcNow;
 
                 await _manager.SaveAsync();
 
@@ -169,18 +154,6 @@ namespace Application.Services.Implementations
                 _manager.ClearTracker();
                 var address = await GetOneAddressForServiceAsync(addressDto.AddressId, true);
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                if (addressDto.IsDefault)
-                {
-                    var userAddresses = await _manager.Address.GetByUserIdAsync(userId, true);
-                    foreach (var addr in userAddresses)
-                    {
-                        if (addr.IsDefault && addr.AddressId != addressDto.AddressId)
-                        {
-                            addr.IsDefault = false;
-                            addr.UpdatedAt = DateTime.UtcNow;
-                        }
-                    }
-                }
 
                 if (address.UserId != userId)
                 {
@@ -195,6 +168,11 @@ namespace Application.Services.Implementations
                 _mapper.Map(addressDto, address);
 
                 address.ValidateForUpdate();
+
+                if (addressDto.IsDefault)
+                {
+                    await _manager.Address.UnsetDefaultForUserAsync(userId);
+                }
 
                 await _manager.SaveAsync();
 
@@ -214,18 +192,9 @@ namespace Application.Services.Implementations
             try
             {
                 _manager.ClearTracker();
-                var address = await GetOneAddressForServiceAsync(addressId, true);
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                if (address.IsDefault)
-                {
-                    var userAddresses = await _manager.Address.GetByUserIdAsync(userId, true);
-                    var addressToMakeDefault = userAddresses.FirstOrDefault(a => a.AddressId != addressId);
-                    if (addressToMakeDefault != null)
-                    {
-                        addressToMakeDefault.IsDefault = true;
-                        addressToMakeDefault.UpdatedAt = DateTime.UtcNow;
-                    }
-                }
+
+                var address = await GetOneAddressForServiceAsync(addressId, true);
 
                 if (address.UserId != userId)
                 {
@@ -234,6 +203,13 @@ namespace Application.Services.Implementations
                         requestPath: _httpContextAccessor.HttpContext?.Request?.Path.ToString() ?? ""
                     );
                     throw new UnauthorizedAccessException("Bunun için yetkiniz yok.");
+                }
+
+                if (address.IsDefault)
+                {
+                    return OperationResult<AddressDto>.Failure(
+                        "Varsayılan adres silinemez. Lütfen önce başka bir adresi varsayılan yapın.",
+                        ResultType.ValidationError);
                 }
 
                 address.SoftDelete(userId);

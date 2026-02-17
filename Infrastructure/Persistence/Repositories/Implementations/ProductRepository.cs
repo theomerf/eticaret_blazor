@@ -80,7 +80,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return (filteredProducts, count);
         }
 
-        public async Task<(IEnumerable<Product> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
+        public async Task<(IEnumerable<Product> products, int count, int showcaseCount)> GetAllAdminAsync(ProductRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
             var filteredProductsQuery = FindAll(trackChanges)
                 .FilteredByCategoryId(p.CategoryId)
@@ -91,6 +91,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .FilteredByDiscount(p.IsDiscount);
 
             var count = await filteredProductsQuery.CountAsync(ct);
+            var showcaseCount = await filteredProductsQuery.CountAsync(p => p.ShowCase == true, ct);
 
             var filteredProducts = await filteredProductsQuery
                 .SortAdmin(p.SortEnum)
@@ -121,7 +122,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 })
                 .ToListAsync(ct);
 
-            return (filteredProducts, count);
+            return (filteredProducts, count, showcaseCount);
         }
 
         public async Task<int> CountAsync(CancellationToken ct) => await CountAsync(false, ct);

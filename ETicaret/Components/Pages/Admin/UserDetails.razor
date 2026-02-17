@@ -357,7 +357,7 @@ else
     public string UserId { get; set; } = null!;
 
     private IOrderService? _orderService;
-    private IAuthService? _authService;
+    private IUserService? _userService;
     private IAddressService? _addressService;
     private IUserReviewService? _userReviewService;
     private ICouponService? _couponService;
@@ -384,18 +384,18 @@ else
     protected override async Task OnInitializedAsync()
     {
         _orderService = ScopedServices.GetRequiredService<IOrderService>();
-        _authService = ScopedServices.GetRequiredService<IAuthService>();
+        _userService = ScopedServices.GetRequiredService<IUserService>();
         _addressService = ScopedServices.GetRequiredService<IAddressService>();
         _userReviewService = ScopedServices.GetRequiredService<IUserReviewService>();
         _couponService = ScopedServices.GetRequiredService<ICouponService>();
 
         try
         {
-            user = await _authService.GetOneUserAsync(UserId);
+            user = await _userService.GetOneUserAsync(UserId);
 
             if (user != null)
             {
-                var userEntity = await _authService.GetOneUserAsync(UserId);
+                var userEntity = await _userService.GetOneUserAsync(UserId);
                 user.Roles = userEntity.Roles;
 
                 orders = await _orderService.GetByUserIdAsync(UserId);

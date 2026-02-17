@@ -7,6 +7,8 @@ using Domain.Entities;
 using ETicaret.Extensions;
 using ETicaret.Models;
 using ETicaret.Services;
+using Hangfire;
+using Infrastructure.BackgroundJobs.Hangfire;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories.Implementations;
 using Infrastructure.Security;
@@ -141,6 +143,7 @@ namespace ETicaret.Extensions
             services.AddScoped<ISystemService, SystemManager>();
             services.AddScoped<IDatabaseHealthService, DatabaseHealthService>();
             services.AddSingleton<ICacheService, CacheManager>();
+            services.AddScoped<IUserService, UserManager>();
         }
 		
         public static void ConfigureApplicationCookie(this IServiceCollection services)

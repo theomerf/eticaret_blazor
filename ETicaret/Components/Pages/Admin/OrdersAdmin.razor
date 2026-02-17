@@ -54,7 +54,7 @@
                         }
                         else
                         {
-                            <div class="text-lg font-bold text-gray-800">@processingCount</div>
+                            <div class="text-lg font-bold text-gray-800">@processingOrderCount</div>
                         }
                     </div>
                 </div>
@@ -224,7 +224,8 @@
     private bool showLoadingOverlay = false;
     private string searchTerm = "";
     private Timer? _debounceTimer;
-    private int processingCount = 0;
+
+    private int processingOrderCount = 0;
 
     private CancellationTokenSource? _cts;
 
@@ -286,10 +287,6 @@
 
             if (ct.IsCancellationRequested) return;
 
-            processingCount = await Service.CountOfInProcessAsync(ct);
-
-            if (ct.IsCancellationRequested) return;
-
             var pagination = new Pagination
             {
                 CurrentPage = model.FilterParams.PageNumber,
@@ -304,6 +301,8 @@
                 TotalCount = result.count,
                 FilterParams = model.FilterParams
             };
+
+            processingOrderCount = result.processingCount;
         }
         catch (OperationCanceledException)
         {

@@ -17,6 +17,7 @@ namespace Domain.Entities
         public bool IsFeatured { get; set; } = false;
         public string ReviewerName { get; set; } = null!;
 
+        public ICollection<UserReviewVote> Votes { get; set; } = [];
         public int HelpfulCount { get; set; } = 0;
         public int NotHelpfulCount { get; set; } = 0;
 

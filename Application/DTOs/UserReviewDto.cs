@@ -12,10 +12,12 @@ namespace Application.DTOs
         public DateTime ReviewDate { get; set; }
         public DateTime ReviewUpdateDate { get; set; }
         public string? ReviewPictureUrl { get; set; }
+        public bool IsApproved { get; set; }
         public bool IsFeatured { get; set; }
         public string ReviewerName { get; set; } = null!;
         public int HelpfulCount { get; set; }
         public int NotHelpfulCount { get; set; }
+        public int ProductId { get; set; }
         public ProductDto? Product { get; set; }
     }
 }

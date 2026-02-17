@@ -12,7 +12,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<(IEnumerable<Coupon> coupons, int count)> GetAllAdminAsync(CouponRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
+        public async Task<(IEnumerable<Coupon> coupons, int count, int activeCount)> GetAllAdminAsync(CouponRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
             var query = FindAll(trackChanges)
                 .FilterBy(p.IsActive, c => c.IsActive, FilterOperator.Equal)
@@ -26,12 +26,14 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             }
 
             var count = await query.CountAsync(ct);
+            var activeCount = await query.CountAsync(c => c.IsActive == true, ct);
 
             query = p.SortBy switch
             {
                 "code_asc" => query.OrderBy(c => c.Code),
                 "code_desc" => query.OrderByDescending(c => c.Code),
                 "date_asc" => query.OrderBy(c => c.CreatedAt),
+                "date_desc" => query.OrderByDescending(c => c.CreatedAt),
                 "end_asc" => query.OrderBy(c => c.EndsAt),
                 "usage_desc" => query.OrderByDescending(c => c.UsedCount),
                 _ => query.OrderByDescending(c => c.CreatedAt)
@@ -41,7 +43,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .ToPaginate(p.PageNumber, p.PageSize)
                 .ToListAsync(ct);
 
-            return (coupons, count);
+            return (coupons, count, activeCount);
         }
 
         public async Task<int> CountOfActiveAsync(CancellationToken ct = default)

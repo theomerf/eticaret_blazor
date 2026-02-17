@@ -13,7 +13,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
         {
         }
 
-        public async Task<(IEnumerable<Campaign> campaigns, int count)> GetAllAdminAsync(CampaignRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
+        public async Task<(IEnumerable<Campaign> campaigns, int count, int activeCount)> GetAllAdminAsync(CampaignRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
             var query = FindAll(trackChanges)
                 .FilterBy(p.IsActive, c => c.IsActive, FilterOperator.Equal)
@@ -29,6 +29,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             }
 
             var count = await query.CountAsync(ct);
+            var activeCount = await query.CountAsync(c => c.IsActive, ct);
 
             query = p.SortBy switch
             {
@@ -45,7 +46,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                 .ToPaginate(p.PageNumber, p.PageSize)
                 .ToListAsync(ct);
 
-            return (campaigns, count);
+            return (campaigns, count, activeCount);
         }
 
         public async Task<int> CountOfActiveAsync(CancellationToken ct = default)

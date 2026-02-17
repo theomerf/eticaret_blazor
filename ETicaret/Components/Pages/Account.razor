@@ -3,6 +3,7 @@
 @using Application.DTOs
 @using ETicaret.Models
 @using System.Text.Json
+@inject IUserService UserService
 @inject IAuthService AuthService
 @inject IFileService FileService
 @inject IJSRuntime JSRuntime
@@ -280,7 +281,7 @@
 
         if (!string.IsNullOrEmpty(userId))
         {
-            model.User = await AuthService.GetOneUserAsync(userId!);
+            model.User = await UserService.GetOneUserAsync(userId!);
         }
         isLoading = false;
     }
@@ -319,10 +320,10 @@
     {
         var userDto = (UserDtoForUpdate)editContext.Model;
 
-        var result = await AuthService.UpdateUserAsync(userDto);
+        var result = await UserService.UpdateUserAsync(userDto);
         if (result.IsSuccess)
         {
-            model.User = await AuthService.GetOneUserAsync(userId!);
+            model.User = await UserService.GetOneUserAsync(userId!);
 
             CloseProfileModal();
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");

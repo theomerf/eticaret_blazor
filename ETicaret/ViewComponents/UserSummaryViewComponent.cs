@@ -5,16 +5,16 @@ namespace ETicaret.ViewComponents
 {
     public class UserSummaryViewComponent : ViewComponent
     {
-        private readonly IAuthService _authService;
+        private readonly IUserService _userService;
 
-        public UserSummaryViewComponent(IAuthService authService)
+        public UserSummaryViewComponent(IUserService userService)
         {
-            _authService = authService;
+            _userService = userService;
         }
 
         public async Task<int> InvokeAsync()
         {
-            var users = await _authService.GetUsersCountAsync();
+            var users = await _userService.GetUsersCountAsync();
 
             return users;
         }

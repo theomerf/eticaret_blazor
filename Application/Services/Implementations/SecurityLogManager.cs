@@ -214,5 +214,53 @@ namespace Application.Services.Implementations
             var count = await _manager.SecurityLog.CountOfPaymentAttemptsAsync(ipAddress, since);
             return count;
         }
+
+        public async Task LogImpersonationStartAsync(string adminId, string adminUserName, string targetUserId, string targetUserName)
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+            var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+            var securityLog = new SecurityLog
+            {
+                EventType = "ImpersonationStart",
+                UserId = adminId,
+                UserName = adminUserName,
+                IpAddress = ipAddress,
+                UserAgent = httpContext?.Request.Headers["User-Agent"].ToString(),
+                IsSuccess = true,
+                AdditionalInfo = $"Admin impersonating user: {targetUserName} (ID: {targetUserId})",
+                Timestamp = DateTime.UtcNow
+            };
+
+            _manager.SecurityLog.Create(securityLog);
+            await _manager.SaveAsync();
+
+            Log.Warning("IMPERSONATION: Admin {AdminUserName} (ID: {AdminId}) started impersonating user {TargetUserName} (ID: {TargetUserId}) from IP {IpAddress}",
+                adminUserName, adminId, targetUserName, targetUserId, ipAddress);
+        }
+
+        public async Task LogImpersonationStopAsync(string adminId, string adminUserName)
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+            var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+            var securityLog = new SecurityLog
+            {
+                EventType = "ImpersonationStop",
+                UserId = adminId,
+                UserName = adminUserName,
+                IpAddress = ipAddress,
+                UserAgent = httpContext?.Request.Headers["User-Agent"].ToString(),
+                IsSuccess = true,
+                AdditionalInfo = "Admin returned to their own session",
+                Timestamp = DateTime.UtcNow
+            };
+
+            _manager.SecurityLog.Create(securityLog);
+            await _manager.SaveAsync();
+
+            Log.Information("IMPERSONATION ENDED: Admin {AdminUserName} (ID: {AdminId}) stopped impersonation from IP {IpAddress}",
+                adminUserName, adminId, ipAddress);
+        }
     }
 }

@@ -1,9 +1,10 @@
-﻿using AutoMapper;
-using Application.Services.Interfaces;
+﻿using Application.Common.Exceptions;
 using Application.DTOs;
-using Domain.Entities;
+using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
-using Application.Common.Exceptions;
+using Application.Services.Interfaces;
+using AutoMapper;
+using Domain.Entities;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,7 @@ namespace Application.Services.Implementations
     public class UserReviewManager : IUserReviewService
     {
         private readonly IRepositoryManager _manager;
-        private readonly IAuthService _authService;
+        private readonly IUserService _userService;
         private readonly IAuditLogService _auditLogService;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -27,7 +28,7 @@ namespace Application.Services.Implementations
 
         public UserReviewManager(
             IRepositoryManager manager,
-            IAuthService authService,
+            IUserService userService,
             IAuditLogService auditLogService,
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
@@ -39,7 +40,7 @@ namespace Application.Services.Implementations
             ICacheService cache)
         {
             _manager = manager;
-            _authService = authService;
+            _userService = userService;
             _auditLogService = auditLogService;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
@@ -51,12 +52,12 @@ namespace Application.Services.Implementations
             _cache = cache;
         }
 
-        public async Task<IEnumerable<UserReviewDto>> GetAllAsync()
+        public async Task<(IEnumerable<UserReviewDto> reviews, int count, int approvedCount)> GetAllAdminAsync(UserReviewRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default)
         {
-            var reviews = await _manager.UserReview.GetAllAsync(false);
-            var reviewsDto = _mapper.Map<IEnumerable<UserReviewDto>>(reviews);
+            var result = await _manager.UserReview.GetAllAdminAsync(p, trackChanges, ct);
+            var reviewsDto = _mapper.Map<IEnumerable<UserReviewDto>>(result.reviews);
 
-            return reviewsDto;
+            return (reviewsDto, result.count, result.approvedCount);
         }
 
         public async Task<int> CountAsync(CancellationToken ct = default) 
@@ -72,6 +73,20 @@ namespace Application.Services.Implementations
                 ct: ct
             );
         } 
+
+        public async Task<int> CountApprovedAsync(CancellationToken ct = default)
+        {
+            return await _cache.GetOrCreateAsync(
+                "userReviews:count:approved",
+                async token =>
+                {
+                    return await _manager.UserReview.CountApprovedAsync(token);
+                },
+                absoluteExpiration: TimeSpan.FromMinutes(5),
+                slidingExpiration: TimeSpan.FromMinutes(2),
+                ct: ct
+            );
+        }
 
         public async Task<UserReview> GetOneUserReviewForServiceAsync(int id, bool trackChanges)
         {
@@ -123,7 +138,7 @@ namespace Application.Services.Implementations
                 var userReview = _mapper.Map<UserReview>(userReviewDto);
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
 
-                var user = await _authService.GetOneUserAsync(userId);
+                var user = await _userService.GetOneUserAsync(userId);
 
                 userReview.UserId = userId;
                 userReview.ReviewerName = user.FirstName;
@@ -154,23 +169,25 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<UserReviewDto>> ApproveAsync(int id)
+        public async Task<OperationResult<UserReviewDto>> ApproveAsync(int userReviewId)
         {
             _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(id, true);
+            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
 
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-            var product = await _productService.GetByIdAsync(userReview.ProductId);
+            var product = await _manager.Product.GetByIdAsync(userReview.ProductId, true, true);
+
+            if (product == null) 
+            {
+                throw new ProductNotFoundException(userReview.ProductId);
+            }
 
             userReview.Approve();
 
             product.AverageRating = ((product.AverageRating * product.ReviewCount) + userReview.Rating) / (product.ReviewCount + 1);
             product.ReviewCount += 1;
-
-            var productEntity = _mapper.Map<Product>(product);
-            _manager.Product.UpdateEntity(productEntity);
 
             await _manager.SaveAsync();
 
@@ -179,20 +196,49 @@ namespace Application.Services.Implementations
                 userName: userName,
                 action: "Approve",
                 entityName: "UserReview",
-                entityId: id.ToString()
+                entityId: userReviewId.ToString()
             );
 
             _logger.LogInformation(
                 "User review approved. ReviewId: {ReviewId}, ApprovedBy: {UserId}",
-                id, userId);
+                userReviewId, userId);
 
             return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla onaylandı.");
         }
 
-        public async Task<OperationResult<UserReviewDto>> UpdateFeaturedStatusAsync(int id)
+        public async Task<OperationResult<UserReviewDto>> UnapproveAsync(int userReviewId)
         {
             _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(id, true);
+            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
+
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+
+            var product = await _productService.GetByIdAsync(userReview.ProductId);
+
+            userReview.Unapprove();
+
+            await _manager.SaveAsync();
+
+            await _auditLogService.LogAsync(
+                userId: userId,
+                userName: userName,
+                action: "Unapprove",
+                entityName: "UserReview",
+                entityId: userReviewId.ToString()
+            );
+
+            _logger.LogInformation(
+                "User review unapproved. ReviewId: {ReviewId}, UnapprovedBy: {UserId}",
+                userReviewId, userId);
+
+            return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla onaylanmadı.");
+        }
+
+        public async Task<OperationResult<UserReviewDto>> UpdateFeaturedStatusAsync(int userReviewId)
+        {
+            _manager.ClearTracker();
+            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
@@ -205,12 +251,12 @@ namespace Application.Services.Implementations
                 userName: userName,
                 action: userReview.IsFeatured ? "Feature" : "Unfeature",
                 entityName: "UserReview",
-                entityId: id.ToString()
+                entityId: userReviewId.ToString()
             );
 
             _logger.LogInformation(
                 "User review featured status updated. ReviewId: {ReviewId}, IsFeatured: {IsFeatured}",
-                id, userReview.IsFeatured);
+                userReviewId, userReview.IsFeatured);
 
             return OperationResult<UserReviewDto>.Success(
                 userReview.IsFeatured ? "Değerlendirme başarıyla öne çıkarıldı." : "Değerlendirmenin öne çıkarılması başarıyla iptal edildi.");
@@ -379,6 +425,90 @@ namespace Application.Services.Implementations
 
             await _cache.RemoveByPrefixAsync("userReviews:");
             return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
+        }
+
+        public async Task<OperationResult<(VoteType?, int, int)>> SetVoteAsync(int userReviewId, VoteType? desired, CancellationToken ct = default)
+        {
+            var result = await _manager.ExecuteInTransactionAsync(async ct =>
+            {
+                _manager.ClearTracker();
+
+                var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
+
+                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+                if (userId == "System")
+                    return OperationResult<(VoteType?, int, int)>.Failure("Giriş yapmalısınız.", ResultType.Unauthorized);
+
+                if (userReview.UserId == userId)
+                {
+                    return OperationResult<(VoteType?, int, int)>.Failure(
+                        "Kendi yorumunuzu oylayamazsınız.",
+                        ResultType.ValidationError);
+                }
+
+                var existingVote = await _manager.UserReview.GetVoteByUserIdAndReviewIdAsync(userId, userReviewId, true);
+
+                int helpfulDelta = 0;
+                int notHelpfulDelta = 0;
+
+                if (desired == null)
+                {
+                    if (existingVote != null)
+                    {
+                        if (existingVote.VoteType == VoteType.Helpful) helpfulDelta -= 1;
+                        else notHelpfulDelta -= 1;
+
+                        _manager.UserReview.DeleteVote(existingVote);
+                    }
+                }
+                else
+                {
+                    if (existingVote == null)
+                    {
+                        _manager.UserReview.AddVote(new UserReviewVote
+                        {
+                            UserId = userId,
+                            UserReviewId = userReviewId,
+                            VoteType = desired.Value,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        });
+
+                        if (desired.Value == VoteType.Helpful) helpfulDelta += 1;
+                        else notHelpfulDelta += 1;
+                    }
+                    else if (existingVote.VoteType != desired.Value)
+                    {
+                        if (existingVote.VoteType == VoteType.Helpful) helpfulDelta -= 1;
+                        else notHelpfulDelta -= 1;
+
+                        if (desired.Value == VoteType.Helpful) helpfulDelta += 1;
+                        else notHelpfulDelta += 1;
+
+                        existingVote.VoteType = desired.Value;
+                        existingVote.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                    }
+                }
+
+                if (helpfulDelta != 0 || notHelpfulDelta != 0)
+                {
+                    userReview.HelpfulCount = Math.Max(0, userReview.HelpfulCount + helpfulDelta);
+                    userReview.NotHelpfulCount = Math.Max(0, userReview.NotHelpfulCount + notHelpfulDelta);
+                }
+
+                VoteType? current = desired;
+
+                _logger.LogInformation(
+                    "User review vote set. ReviewId: {ReviewId}, UserId: {UserId}, Desired: {Desired}, Current: {Current}",
+                    userReviewId, userId, desired, current);
+
+                return OperationResult<(VoteType?, int, int)>.Success((current, userReview.HelpfulCount, userReview.NotHelpfulCount), "Değerlendirme güncellendi.");
+            }, ct: ct);
+
+            return result;
         }
     }
 }

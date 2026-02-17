@@ -13,7 +13,7 @@
     <!-- Mobil Header / Toolbar -->
     <div class="lg:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30 px-4 py-3 flex justify-between items-center">
         <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <i class="fa-solid fa-box text-primary"></i> Kategoriler
+            <i class="fa-solid fa-layer-group text-primary"></i> Kategoriler
         </h1>
         @if (!isLoading)
         {
@@ -29,7 +29,7 @@
                 <div class="col-span-1 grid grid-cols-2 gap-3 mb-6">
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
                         <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2">
-                            <i class="fas fa-box"></i>
+                            <i class="fas fa-clipboard-list"></i>
                         </div>
                         <div class="text-xs text-gray-500 font-medium">Toplam</div>
                         @if (isLoading)
@@ -56,7 +56,7 @@
                         }
                         else
                         {
-                            <div class="text-lg font-bold text-gray-800">@model.Categories?.Count(p => p.IsFeatured)</div>
+                            <div class="text-lg font-bold text-gray-800">@featuredCategoryCount</div>
                         }
                     </div>
                 </div>
@@ -66,7 +66,7 @@
                         <div id="categories-list-top"></div>
                         <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-primary/10 text-secondary flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-gears"></i>
+                                <i class="fa-solid fa-layer-group"></i>
                             </div>
                             Kategori Yönetimi
                         </h1>
@@ -183,6 +183,8 @@
     private string searchTerm = "";
     private Timer? _debounceTimer;
 
+    private int featuredCategoryCount;
+
     private CancellationTokenSource? _cts;
 
     protected override async Task OnInitializedAsync()
@@ -253,6 +255,8 @@
                 TotalCount = result.count,
                 FilterParams = model.FilterParams
             };
+
+            featuredCategoryCount = result.featuredCount;
         }
         catch (OperationCanceledException)
         {

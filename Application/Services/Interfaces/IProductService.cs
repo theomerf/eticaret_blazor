@@ -7,7 +7,7 @@ namespace Application.Services.Interfaces
     public interface IProductService
     {
         Task<(IEnumerable<ProductDto> products, int count)> GetAllAsync(ProductRequestParameters p);
-        Task<(IEnumerable<ProductDto> products, int count)> GetAllAdminAsync(ProductRequestParametersAdmin p, CancellationToken ct = default);
+        Task<(IEnumerable<ProductDto> products, int count, int showcaseCount)> GetAllAdminAsync(ProductRequestParametersAdmin p, CancellationToken ct = default);
         Task<int> CountAsync(CancellationToken ct = default);
         Task<ProductWithDetailsDto> GetByIdAsync(int productId, bool forUpdate = false);
         Task<ProductVariantDto> GetVariantByIdAsync(int variantId, bool includeImages);

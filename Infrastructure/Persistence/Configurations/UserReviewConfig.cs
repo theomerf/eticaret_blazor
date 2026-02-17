@@ -54,6 +54,10 @@ namespace Infrastructure.Persistence.Configurations
                 .WithMany(p => p.UserReviews)
                 .HasForeignKey(ur => ur.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(r => r.Votes)
+                .WithOne(v => v.UserReview)
+                .HasForeignKey(v => v.UserReviewId);
         }
     }
 }

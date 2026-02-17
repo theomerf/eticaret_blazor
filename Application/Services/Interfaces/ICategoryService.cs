@@ -7,7 +7,7 @@ namespace Application.Services.Interfaces
     public interface ICategoryService
     {
         Task<IEnumerable<CategoryDto>> GetAllAsync(CancellationToken ct = default);
-        Task<(IEnumerable<CategoryDto> categories, int count)> GetAllAdminAsync(RequestParametersAdmin p, CancellationToken ct = default);
+        Task<(IEnumerable<CategoryDto> categories, int count, int featuredCount)> GetAllAdminAsync(RequestParametersAdmin p, CancellationToken ct = default);
         Task<int> CountAsync(CancellationToken ct = default);
         Task<CategoryWithDetailsDto> GetByIdAsync(int id);
         Task<IEnumerable<CategoryDto>> GetParentsAsync();

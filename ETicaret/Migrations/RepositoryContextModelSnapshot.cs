@@ -1874,6 +1874,34 @@ namespace ETicaret.Migrations
                     b.ToTable("UserReviews");
                 });
 
+            modelBuilder.Entity("Domain.Entities.UserReviewVote", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserReviewId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VoteType")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId", "UserReviewId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UserReviewVotes_UserId");
+
+                    b.HasIndex("UserReviewId")
+                        .HasDatabaseName("IX_UserReviewVotes_UserReviewId");
+
+                    b.ToTable("UserReviewVotes");
+                });
+
             modelBuilder.Entity("Domain.Entities.UserRole", b =>
                 {
                     b.Property<string>("UserId")
@@ -2207,6 +2235,25 @@ namespace ETicaret.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.UserReviewVote", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany("Votes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.UserReview", "UserReview")
+                        .WithMany("Votes")
+                        .HasForeignKey("UserReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("UserReview");
+                });
+
             modelBuilder.Entity("Domain.Entities.UserRole", b =>
                 {
                     b.HasOne("Domain.Entities.Role", "Role")
@@ -2314,6 +2361,13 @@ namespace ETicaret.Migrations
                     b.Navigation("UserReviews");
 
                     b.Navigation("UserRoles");
+
+                    b.Navigation("Votes");
+                });
+
+            modelBuilder.Entity("Domain.Entities.UserReview", b =>
+                {
+                    b.Navigation("Votes");
                 });
 #pragma warning restore 612, 618
         }

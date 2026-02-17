@@ -46,18 +46,22 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_Accounts_IsDeleted_Filtered");
 
             builder.HasMany(u => u.UserReviews)
-                   .WithOne(ur => ur.User)
-                   .HasForeignKey(ur => ur.UserId)
-                   .OnDelete(DeleteBehavior.Cascade);
+                .WithOne(ur => ur.User)
+                .HasForeignKey(ur => ur.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(u => u.Addresses)
-                   .WithOne(a => a.User)
-                   .HasForeignKey(a => a.UserId)
-                   .OnDelete(DeleteBehavior.Cascade);
+                .WithOne(a => a.User)
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(u => u.UserRoles)
-                   .WithOne(ur => ur.User)
-                   .HasForeignKey(ur => ur.UserId);
+                .WithOne(ur => ur.User)
+                .HasForeignKey(ur => ur.UserId);
+
+            builder.HasMany(u => u.Votes)
+                .WithOne(v => v.User)
+                .HasForeignKey(v => v.UserId);
         }
     }
 }
