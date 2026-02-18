@@ -15,6 +15,7 @@ namespace Application.Repositories.Interfaces
         Task<IEnumerable<Order>> GetByPaymentStatusAsync(PaymentStatus status, bool trackChanges);
         Task<(IEnumerable<Order> orders, int count)> GetPagedAsync(int pageNumber, int pageSize, bool trackChanges);
         Task<IEnumerable<Order>> GetPaymentPendingAsync(bool trackChanges);
+        Task<IReadOnlyList<Order>> GetPaymentPendingBeforeAsync(DateTime utcBefore, int take, bool trackChanges);
 
         Task<int> CountAsync();
         Task<int> CountByUserIdAsync(string userId);

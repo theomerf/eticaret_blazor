@@ -30,15 +30,15 @@ function initNotificationsPage() {
 						showToast(result.message || 'Tüm bildirimler okundu olarak işaretlendi.', 'success');
 					}
 
-					const unreadCards = document.querySelectorAll('.notifications-card.unread');
+					const unreadCards = document.querySelectorAll('.notif-card.unread');
 					unreadCards.forEach(function (card) {
 						card.classList.remove('unread');
 						card.classList.add('read');
 
-						const statusBadge = card.querySelector('.notifications-status');
+						const statusBadge = card.querySelector('.notif-badge');
 						if (statusBadge) {
-							statusBadge.classList.remove('unread-badge');
-							statusBadge.classList.add('read-badge');
+							statusBadge.classList.remove('badge-unread');
+							statusBadge.classList.add('badge-read');
 							statusBadge.textContent = 'Okundu';
 						}
 
@@ -48,7 +48,7 @@ function initNotificationsPage() {
 						}
 					});
 
-					const countElements = document.querySelectorAll('.notifications-count');
+					const countElements = document.querySelectorAll('.notif-count');
 					countElements.forEach(function (el) {
 						el.textContent = '0';
 					});

@@ -22,6 +22,7 @@ namespace Domain.Entities
         public int UsedCount { get; set; }
 
         public bool IsActive { get; set; } = true;
+        public uint RowVersion { get; private set; }
 
         public ICollection<CouponUsage> Usages { get; set; } = new List<CouponUsage>();
 

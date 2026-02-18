@@ -166,7 +166,7 @@ namespace ETicaret.Services
                 var sessionCart = session.GetJson<SessionCart>("cart") ?? new SessionCart();
                 sessionCart.Session = session;
 
-                var product = sessionCart.Lines.FirstOrDefault(l => l.ProductId == productId);
+                var product = sessionCart.Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == variantId);
 
                 if (product != null)
                 {
@@ -257,6 +257,8 @@ namespace ETicaret.Services
                 if (session == null)
                 {
                     SetError("Session bulunamadı");
+                    SetLoading(false);
+                    NotifyStateChanged();
                     return;
                 }
 
@@ -268,12 +270,17 @@ namespace ETicaret.Services
                 if (product == null)
                 {
                     SetError("Ürün bulunamadı");
+                    SetLoading(false);
+                    NotifyStateChanged();
                     return;
                 }
 
                 if (product.Variants.FirstOrDefault(v => v.ProductVariantId == variantId) == null)
                 {
                     SetError("Geçersiz ürün varyantı");
+                    SetLoading(false);
+                    NotifyStateChanged();
+                    return;
                 }
 
                 var variantDto = await _productService.GetVariantByIdAsync(variantId, true);
@@ -281,6 +288,8 @@ namespace ETicaret.Services
                 if (variantDto == null)
                 {
                     SetError("Varyant bulunamadı");
+                    SetLoading(false);
+                    NotifyStateChanged();
                     return;
                 }
 
@@ -319,6 +328,8 @@ namespace ETicaret.Services
                 if (variantEntity == null)
                 {
                     SetError("Ürün varyant verisi eksik");
+                    SetLoading(false);
+                    NotifyStateChanged();
                     return; 
                 }
 

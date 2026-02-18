@@ -3524,6 +3524,10 @@ a:hover {
   max-height: 100%;
 }
 
+.max-h-36 {
+  max-height: 9rem;
+}
+
 .min-h-0 {
   min-height: 0px;
 }
@@ -3598,6 +3602,10 @@ a:hover {
 
 .w-2\.5 {
   width: 0.625rem;
+}
+
+.w-2\/5 {
+  width: 40%;
 }
 
 .w-20 {
@@ -3707,10 +3715,6 @@ a:hover {
 
 .w-full {
   width: 100%;
-}
-
-.w-2\/5 {
-  width: 40%;
 }
 
 .\!min-w-\[30px\] {
@@ -4305,6 +4309,10 @@ a:hover {
 
 .overflow-y-auto {
   overflow-y: auto;
+}
+
+.overflow-x-hidden {
+  overflow-x: hidden;
 }
 
 .truncate {
@@ -6249,6 +6257,10 @@ a:hover {
 
 .leading-tight {
   line-height: 1.25;
+}
+
+.leading-6 {
+  line-height: 1.5rem;
 }
 
 .tracking-tight {
@@ -10137,11 +10149,6 @@ a:hover {
     padding: 2rem;
   }
 
-  .lg\:px-24 {
-    padding-left: 6rem;
-    padding-right: 6rem;
-  }
-
   .lg\:px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -10235,11 +10242,6 @@ a:hover {
 }
 
 @media (min-width: 1280px) {
-  .xl\:mx-24 {
-    margin-left: 6rem;
-    margin-right: 6rem;
-  }
-
   .xl\:table-cell {
     display: table-cell;
   }
@@ -10258,11 +10260,6 @@ a:hover {
 
   .xl\:gap-16 {
     gap: 4rem;
-  }
-
-  .xl\:px-48 {
-    padding-left: 12rem;
-    padding-right: 12rem;
   }
 
   .xl\:px-6 {

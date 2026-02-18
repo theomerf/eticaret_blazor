@@ -1,15 +1,12 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Polly;
-using Polly.Retry;
 using Application.Services.Interfaces;
 using Application.DTOs;
 using Domain.Entities;
 using Application.Repositories.Interfaces;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace Application.Services.Implementations
 {
@@ -18,7 +15,6 @@ namespace Application.Services.Implementations
         private readonly IRepositoryManager _manager;
         private readonly IMapper _mapper;
         private readonly ILogger<CartManager> _logger;
-        private readonly ResiliencePipeline _retryPipeline;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ISecurityLogService _securityLogService;
 
@@ -26,7 +22,6 @@ namespace Application.Services.Implementations
             IRepositoryManager manager,
             IMapper mapper,
             ILogger<CartManager> logger,
-            Cart sessionCart,
             IHttpContextAccessor httpContextAccessor,
             ISecurityLogService securityLogService)
         {
@@ -35,25 +30,6 @@ namespace Application.Services.Implementations
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
             _securityLogService = securityLogService;
-
-            _retryPipeline = new ResiliencePipelineBuilder()
-                .AddRetry(new RetryStrategyOptions
-                {
-                    MaxRetryAttempts = 3,
-                    Delay = TimeSpan.FromMilliseconds(100),
-                    BackoffType = DelayBackoffType.Exponential,
-                    UseJitter = true,
-                    ShouldHandle = new PredicateBuilder().Handle<DbUpdateConcurrencyException>()
-                        .Handle<DbUpdateException>()
-                        .Handle<TimeoutException>(),
-                    OnRetry = args =>
-                    {
-                        _logger.LogWarning("{Exception} hatası nedeniyle işlem {Duration}ms sonra {RetryCount}. kez tekrar ediliyor.", args.Outcome.Exception?.Message, args.RetryDelay.TotalMilliseconds, args.AttemptNumber);
-
-                        return ValueTask.CompletedTask;
-                    }
-                })
-                .Build();
         }
 
         private void ValidateUserAccess(string? requestedUserId)
@@ -85,12 +61,7 @@ namespace Application.Services.Implementations
         {
             var version = await _manager.Cart.GetVersionAsync(userId);
 
-            if (version == 0 || version == null)
-            {
-                throw new KeyNotFoundException("Sepet bulunamadı");
-            }
-
-            return version.Value;
+            return version ?? 0;
         }
 
         public async Task<CartOperationResult> SetQuantityAsync(string? userId, int productId, int productVariantId, int newQuantity)
@@ -101,8 +72,7 @@ namespace Application.Services.Implementations
             {
                 return CartOperationResult.Success("Miktar güncellendi");
             }
-
-            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            try
             {
                 _manager.ClearTracker();
                 var cart = await GetOrCreateCartAsync(userId, true);
@@ -141,14 +111,23 @@ namespace Application.Services.Implementations
                 }
 
                 return result;
-            }, CancellationToken.None);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "SetQuantityAsync concurrency hatası. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+                return CartOperationResult.Failure("Sepetiniz başka bir işlemle güncellendi. Lütfen tekrar deneyin.");
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "SetQuantityAsync veritabanı hatası. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+                return CartOperationResult.Failure("Sepet güncellenirken bir veritabanı hatası oluştu.");
+            }
         }
 
         public async Task<CartOperationResult> AddOrUpdateItemAsync(string? userId, int productId, int productVariantId, int quantity)
         {
             ValidateUserAccess(userId);
-
-            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            try
             {
                 _manager.ClearTracker();
                 var dbProduct = await _manager.Product.GetByIdAsync(productId, false, false);
@@ -184,35 +163,33 @@ namespace Application.Services.Implementations
                 var cart = await GetOrCreateCartAsync(userId, true);
 
                 var existingLine = cart.Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == productVariantId);
-
-                if (existingLine != null)
+                var requestedTotal = (existingLine?.Quantity ?? 0) + quantity;
+                if (requestedTotal > availableStock)
                 {
-                    existingLine.Quantity += quantity;
-                    existingLine.Price = dbProductVariant.Price;
-                    existingLine.DiscountPrice = dbProductVariant.DiscountPrice;
+                    return CartOperationResult.Failure($"Yetersiz stok. Mevcut: {availableStock}");
                 }
-                else
+
+                var cartResult = cart.AddOrUpdateItem(dbProduct, dbProductVariant, requestedTotal);
+                if (!cartResult.IsSuccess)
                 {
-                    cart.Lines.Add(new CartLine
-                    {
-                        ProductId = productId,
-                        ProductName = dbProduct.ProductName,
-                        ImageUrl = dbProductVariant.Images?.FirstOrDefault()?.ImageUrl,
-                        Price = dbProductVariant.Price,
-                        DiscountPrice = dbProductVariant.DiscountPrice,
-                        Quantity = quantity,
-                        ProductVariantId = productVariantId,
-                        SelectedColor = dbProductVariant.Color,
-                        SelectedSize = dbProductVariant.Size,
-                        SpecificationsJson = dbProductVariant.VariantSpecificationsJson
-                    });
+                    return cartResult;
                 }
 
                 await _manager.SaveAsync();
                 _logger.LogInformation("Ürün eklendi. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
 
                 return CartOperationResult.Success("Ürün sepete eklendi", cart.Lines.Count, quantity);
-            }, CancellationToken.None);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "AddOrUpdateItemAsync concurrency hatası. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+                return CartOperationResult.Failure("Sepetiniz başka bir işlemle güncellendi. Lütfen tekrar deneyin.");
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "AddOrUpdateItemAsync veritabanı hatası. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+                return CartOperationResult.Failure("Sepete ürün eklenirken bir veritabanı hatası oluştu.");
+            }
         }
 
         public async Task<CartOperationResult> RemoveItemAsync(string? userId, int productId, int productVariantId)
@@ -223,25 +200,32 @@ namespace Application.Services.Implementations
             {
                 return CartOperationResult.Success("Ürün sepetten kaldırıldı");
             }
-
-            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            try
             {
                 _manager.ClearTracker();
                 var cart = await GetOrCreateCartAsync(userId, true);
 
-                var lineToRemove = cart.Lines.FirstOrDefault(l => l.ProductId == productId && l.ProductVariantId == productVariantId);
-
-                if (lineToRemove == null)
+                var result = cart.RemoveItem(productId, productVariantId);
+                if (!result.IsSuccess)
                 {
-                    return CartOperationResult.Failure("Ürün sepette bulunamadı");
+                    return result;
                 }
 
-                cart.Lines.Remove(lineToRemove);
                 await _manager.SaveAsync();
                 _logger.LogInformation("Ürün kaldırıldı. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
 
-                return CartOperationResult.Success("Ürün sepetten kaldırıldı");
-            }, CancellationToken.None);
+                return result;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "RemoveItemAsync concurrency hatası. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+                return CartOperationResult.Failure("Sepetiniz başka bir işlemle güncellendi. Lütfen tekrar deneyin.");
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "RemoveItemAsync veritabanı hatası. Kullanıcı: {UserId}, Ürün: {ProductId}, Varyant: {VariantId}", userId, productId, productVariantId);
+                return CartOperationResult.Failure("Sepetten ürün kaldırılırken bir veritabanı hatası oluştu.");
+            }
         }
 
         public async Task<CartOperationResult> ClearAsync(string? userId)
@@ -252,8 +236,7 @@ namespace Application.Services.Implementations
             {
                 return CartOperationResult.Success("Sepet temizlendi");
             }
-
-            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            try
             {
                 _manager.ClearTracker();
                 var cart = await GetOrCreateCartAsync(userId, true);
@@ -263,7 +246,17 @@ namespace Application.Services.Implementations
                 _logger.LogInformation("Sepet temizlendi. Kullanıcı: {UserId}", userId);
 
                 return CartOperationResult.Success("Sepet temizlendi");
-            }, CancellationToken.None);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "ClearAsync concurrency hatası. Kullanıcı: {UserId}", userId);
+                return CartOperationResult.Failure("Sepetiniz başka bir işlemle güncellendi. Lütfen tekrar deneyin.");
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "ClearAsync veritabanı hatası. Kullanıcı: {UserId}", userId);
+                return CartOperationResult.Failure("Sepet temizlenirken bir veritabanı hatası oluştu.");
+            }
         }
 
         public async Task<CartDto> GetByUserIdAsync(string? userId, bool validate = false)
@@ -304,8 +297,7 @@ namespace Application.Services.Implementations
         public async Task<CartDto> MergeCartsAsync(string userId, CartDto sessionCart)
         {
             ValidateUserAccess(userId);
-
-            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            try
             {
                 _manager.ClearTracker();
 
@@ -319,28 +311,29 @@ namespace Application.Services.Implementations
 
                 foreach (var sessionLine in sessionCart.Lines)
                 {
-                    var dbLine = cart.Lines.FirstOrDefault(l => l.ProductId == sessionLine.ProductId && l.ProductVariantId == sessionLine.ProductVariantId);
+                    var dbProduct = await _manager.Product.GetByIdAsync(sessionLine.ProductId, false, false);
+                    var dbVariant = await _manager.ProductVariant.GetByIdAsync(sessionLine.ProductVariantId, false, false);
 
-                    if (dbLine != null)
+                    if (dbProduct == null || dbVariant == null || dbVariant.ProductId != sessionLine.ProductId)
                     {
-                        dbLine.Quantity += sessionLine.Quantity;
-                        hasChanges = true;
+                        continue;
                     }
-                    else
+
+                    var dbLine = cart.Lines.FirstOrDefault(l => l.ProductId == sessionLine.ProductId && l.ProductVariantId == sessionLine.ProductVariantId);
+                    var requestedTotal = (dbLine?.Quantity ?? 0) + sessionLine.Quantity;
+                    if (requestedTotal <= 0)
                     {
-                        cart.Lines.Add(new CartLine
-                        {
-                            ProductId = sessionLine.ProductId,
-                            ProductName = sessionLine.ProductName,
-                            ImageUrl = sessionLine.ImageUrl,
-                            Price = sessionLine.Price,
-                            DiscountPrice = sessionLine.DiscountPrice,
-                            Quantity = sessionLine.Quantity,
-                            ProductVariantId = sessionLine.ProductVariantId,
-                            SelectedColor = sessionLine.SelectedColor,
-                            SelectedSize = sessionLine.SelectedSize,
-                            SpecificationsJson = JsonSerializer.Serialize(sessionLine.VariantSpecifications.Select(x => new Application.DTOs.ProductSpecificationDto { Key = x.Key, Value = x.Value }), (JsonSerializerOptions?)null)
-                        });
+                        continue;
+                    }
+
+                    if (requestedTotal > dbVariant.Stock)
+                    {
+                        requestedTotal = dbVariant.Stock;
+                    }
+
+                    var result = cart.AddOrUpdateItem(dbProduct, dbVariant, requestedTotal);
+                    if (result.IsSuccess)
+                    {
                         hasChanges = true;
                     }
                 }
@@ -353,7 +346,17 @@ namespace Application.Services.Implementations
                 }
 
                 return _mapper.Map<CartDto>(cart);
-            }, CancellationToken.None);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "MergeCartsAsync concurrency hatası. Kullanıcı: {UserId}", userId);
+                return await GetByUserIdAsync(userId, false);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "MergeCartsAsync veritabanı hatası. Kullanıcı: {UserId}", userId);
+                return await GetByUserIdAsync(userId, false);
+            }
         }
 
         public async Task<bool> ValidateAsync(string? userId)
@@ -361,21 +364,31 @@ namespace Application.Services.Implementations
             ValidateUserAccess(userId);
 
             if (string.IsNullOrEmpty(userId)) return false;
-
-            return await _retryPipeline.ExecuteAsync(async cancellationToken =>
+            try
             {
                 _manager.ClearTracker();
                 var cart = await _manager.Cart.GetByUserIdAsync(userId, true);
-                if (cart == null) return true;
+                if (cart == null) return false;
 
                 return await ValidateCartItemsAsync(cart);
-            }, CancellationToken.None);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "ValidateAsync concurrency hatası. Kullanıcı: {UserId}", userId);
+                return false;
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "ValidateAsync veritabanı hatası. Kullanıcı: {UserId}", userId);
+                return false;
+            }
         }
 
         public async Task<bool> ValidateCartItemsAsync(Cart cart)
         {
             bool hasChanges = false;
             var itemsToRemove = new List<CartLine>();
+            bool requiresVersionTouch = false;
 
             foreach (var line in cart.Lines)
             {
@@ -401,6 +414,7 @@ namespace Application.Services.Implementations
                 {
                     line.Quantity = variant.Stock;
                     hasChanges = true;
+                    requiresVersionTouch = true;
                     if (line.Quantity == 0) itemsToRemove.Add(line);
                 }
 
@@ -409,25 +423,31 @@ namespace Application.Services.Implementations
                     line.Price = variant.Price;
                     line.DiscountPrice = variant.DiscountPrice;
                     hasChanges = true;
+                    requiresVersionTouch = true;
                 }
 
                 if (line.SpecificationsJson != variant.VariantSpecificationsJson)
                 {
                     line.SpecificationsJson = variant.VariantSpecificationsJson;
                     hasChanges = true;
+                    requiresVersionTouch = true;
                 }
             }
 
             foreach (var item in itemsToRemove)
             {
                 cart.Lines.Remove(item);
+                requiresVersionTouch = true;
             }
 
             if (hasChanges)
             {
-                await _manager.SaveAsync();
+                if (requiresVersionTouch)
+                {
+                    cart.MarkUpdated();
+                }
 
-                var cartDto = _mapper.Map<CartDto>(cart);
+                await _manager.SaveAsync();
             }
 
             return hasChanges;

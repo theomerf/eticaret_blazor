@@ -15,6 +15,8 @@ namespace Domain.Entities
         public bool IsSystemGenerated { get; set; } = true; // Sistem mi oluşturdu, admin mi?
         public DateTime? ScheduledFor { get; set; } // Zamanlanmış bildirim
         public bool IsSent { get; set; } = false; // Gönderildi mi?
+        public string? NotificationGroupId { get; set; }
+        public bool SentToAllActiveUsers { get; set; } = false;
 
         #region Validation Methods
 

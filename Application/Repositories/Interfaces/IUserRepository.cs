@@ -1,4 +1,4 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 using Application.Queries.RequestParameters;
 using Domain.Entities;
 
@@ -8,5 +8,7 @@ namespace Application.Repositories.Interfaces
     {
         Task<(IEnumerable<User> users, int count, int activeCount)> GetAllAdminAsync(UserRequestParametersAdmin p, bool trackChanges, CancellationToken ct = default);
         Task<User?> GetByIdAsync(string userId, bool trackChanges, CancellationToken ct = default);
+        Task<IReadOnlyList<string>> GetActiveUserIdsBatchAsync(int pageNumber, int pageSize, bool trackChanges, CancellationToken ct = default);
+        Task<IReadOnlyList<UserEmailLookupDto>> SearchEmailLookupAsync(string searchTerm, int take, bool trackChanges, CancellationToken ct = default);
     }
 }

@@ -34,8 +34,7 @@ namespace Application.Services.Implementations
             IAuditLogService auditLogService,
             IActivityService activityService,
             ILogger<ProductManager> logger,
-            IHtmlSanitizerService htmlSanitizer,
-            IFileService fileService)
+            IHtmlSanitizerService htmlSanitizer)
         {
             _manager = manager;
             _mapper = mapper;
@@ -212,101 +211,109 @@ namespace Application.Services.Implementations
         {
             try
             {
-                var product = _mapper.Map<Product>(productDto);
-
-                if (!string.IsNullOrWhiteSpace(product.LongDescription))
-                    product.LongDescription = _htmlSanitizer.Sanitize(product.LongDescription);
-
-                product.Slug = !string.IsNullOrWhiteSpace(productDto.Slug)
-                    ? SlugHelper.GenerateSlug(productDto.Slug)
-                    : SlugHelper.GenerateSlug(product.ProductName);
-
-                var existingCount = await _manager.Product.CountBySlugAsync(product.Slug);
-                if (existingCount > 0)
-                    product.Slug = SlugHelper.MakeUnique(product.Slug, existingCount + 1);
-
-                if (string.IsNullOrWhiteSpace(product.MetaTitle))
-                    product.MetaTitle = SeoMetaHelper.GenerateProductMetaTitle(product.ProductName, productDto.Brand);
-
-                if (string.IsNullOrWhiteSpace(product.MetaDescription))
-                    product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
-                        product.ProductName,
-                        productDto.Summary,
-                        product.MinPrice,
-                        productDto.Brand);
-
-                await EnsureCategoryAttributesExist(productDto.CategoryId, productDto.Variants, productDto.NewAttributeDefinitions);
-
-                var attributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(product.CategoryId, false);
-
-                foreach (var variant in product.Variants)
-                {
-                    variant.ValidateStock();
-
-                    variant.CombinationKey = GenerateCombinationKey(variant, attributes);
-
-                    if (string.IsNullOrWhiteSpace(variant.CombinationKey))
-                        throw new ProductValidationException("Varyant belirleyici alanlar boş olamaz.");
-
-                    var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                    variant.CreatedByUserId = userId;
-                    variant.UpdatedByUserId = userId;
-                    variant.CreatedAt = DateTime.UtcNow;
-                    variant.UpdatedAt = DateTime.UtcNow;
-                }
-
-                product.ValidateForCreation();
-
-                ValidateVariantConsistency(product.Variants, attributes);
-
-                var duplicateKeys = product.Variants
-                    .GroupBy(v => v.CombinationKey)
-                    .Where(g => g.Count() > 1)
-                    .Select(g => g.Key)
-                    .ToList();
-
-                if (duplicateKeys.Any())
-                    throw new ProductValidationException("Aynı varyant kombinasyonu birden fazla oluşturulamaz.");
-
                 var userIdLog = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+                Product? product = null;
 
-                product.CreatedByUserId = userIdLog;
-                product.UpdatedByUserId = userIdLog;
+                await _manager.ExecuteInTransactionAsync(async ct =>
+                {
+                    product = _mapper.Map<Product>(productDto);
 
-                _manager.Product.Create(product);
-                await _manager.SaveAsync();
+                    if (!string.IsNullOrWhiteSpace(product.LongDescription))
+                        product.LongDescription = _htmlSanitizer.Sanitize(product.LongDescription);
+
+                    product.Slug = !string.IsNullOrWhiteSpace(productDto.Slug)
+                        ? SlugHelper.GenerateSlug(productDto.Slug)
+                        : SlugHelper.GenerateSlug(product.ProductName);
+
+                    var existingCount = await _manager.Product.CountBySlugAsync(product.Slug);
+                    if (existingCount > 0)
+                        product.Slug = SlugHelper.MakeUnique(product.Slug, existingCount + 1);
+
+                    if (string.IsNullOrWhiteSpace(product.MetaTitle))
+                        product.MetaTitle = SeoMetaHelper.GenerateProductMetaTitle(product.ProductName, productDto.Brand);
+
+                    if (string.IsNullOrWhiteSpace(product.MetaDescription))
+                        product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
+                            product.ProductName,
+                            productDto.Summary,
+                            product.MinPrice,
+                            productDto.Brand);
+
+                    await EnsureCategoryAttributesExist(productDto.CategoryId, productDto.Variants, productDto.NewAttributeDefinitions);
+
+                    var attributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(product.CategoryId, false);
+
+                    foreach (var variant in product.Variants)
+                    {
+                        variant.ValidateStock();
+
+                        variant.CombinationKey = GenerateCombinationKey(variant, attributes);
+
+                        if (string.IsNullOrWhiteSpace(variant.CombinationKey))
+                            throw new ProductValidationException("Varyant belirleyici alanlar boş olamaz.");
+
+                        variant.CreatedByUserId = userIdLog;
+                        variant.UpdatedByUserId = userIdLog;
+                        variant.CreatedAt = DateTime.UtcNow;
+                        variant.UpdatedAt = DateTime.UtcNow;
+                    }
+
+                    product.ValidateForCreation();
+
+                    ValidateVariantConsistency(product.Variants, attributes);
+
+                    var duplicateKeys = product.Variants
+                        .GroupBy(v => v.CombinationKey)
+                        .Where(g => g.Count() > 1)
+                        .Select(g => g.Key)
+                        .ToList();
+
+                    if (duplicateKeys.Any())
+                        throw new ProductValidationException("Aynı varyant kombinasyonu birden fazla oluşturulamaz.");
+
+                    product.CreatedByUserId = userIdLog;
+                    product.UpdatedByUserId = userIdLog;
+
+                    _manager.Product.Create(product);
+                    await _manager.SaveAsync();
+                });
+
+                if (product == null)
+                {
+                    return OperationResult<ProductWithDetailsDto>.Failure("Ürün oluşturulamadı.", ResultType.Error);
+                }
 
                 await _auditLogService.LogAsync(
                     userId: userIdLog,
                     userName: userName,
                     action: "Create",
                     entityName: "Product",
-                    entityId: product.ProductId.ToString(),
+                    entityId: product!.ProductId.ToString(),
                     newValues: new
                     {
-                        product.ProductName,
-                        product.MinPrice,
-                        product.MaxPrice,
-                        TotalStock = product.TotalStock,
-                        product.CategoryId,
-                        VariantCount = product.Variants.Count
+                        product!.ProductName,
+                        product!.MinPrice,
+                        product!.MaxPrice,
+                        TotalStock = product!.TotalStock,
+                        product!.CategoryId,
+                        VariantCount = product!.Variants.Count
                     }
                 );
 
                 await _activityService.LogAsync(
                     "Yeni Ürün",
-                    $"{product.ProductName} ürünü eklendi.",
+                    $"{product!.ProductName} ürünü eklendi.",
                     "fa-box",
                     "text-blue-500 bg-blue-100",
-                    $"/admin/products/update/{product.ProductId}"
+                    $"/admin/products/update/{product!.ProductId}"
                 );
 
                 _logger.LogInformation(
                     "Product created successfully. ProductId: {ProductId}, Name: {ProductName}, User: {UserId}",
-                    product.ProductId, product.ProductName, userIdLog);
+                    product!.ProductId, product!.ProductName, userIdLog);
 
-                var productWithDetailsDto = _mapper.Map<ProductWithDetailsDto>(product);
+                var productWithDetailsDto = _mapper.Map<ProductWithDetailsDto>(product!);
 
                 await _cache.RemoveByPrefixAsync("products:");
                 return OperationResult<ProductWithDetailsDto>.Success(productWithDetailsDto, "Ürün başarıyla oluşturuldu.");
@@ -420,176 +427,193 @@ namespace Application.Services.Implementations
         {
             try
             {
-                _manager.ClearTracker();
-                var product = await GetByIdForServiceAsync(productDto.ProductId, true, true);
-
-                var oldValues = new
-                {
-                    product.ProductName,
-                    product.MinPrice,
-                    product.MaxPrice,
-                    product.TotalStock
-                };
-
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
-
-                _mapper.Map(productDto, product);
-
-                if (!string.IsNullOrWhiteSpace(product.LongDescription))
-                    product.LongDescription = _htmlSanitizer.Sanitize(product.LongDescription);
-
-                if (!string.IsNullOrWhiteSpace(productDto.Slug))
+                var txResult = await _manager.ExecuteInTransactionAsync(async ct =>
                 {
-                    product.Slug = SlugHelper.GenerateSlug(productDto.Slug);
-                }
-                else
-                {
-                    product.Slug = SlugHelper.GenerateSlug(product.ProductName);
-                }
+                    _manager.ClearTracker();
+                    var product = await GetByIdForServiceAsync(productDto.ProductId, true, true);
 
-                var existingCount = await _manager.Product.CountBySlugAsync(product.Slug);
-                if (existingCount > 0)
-                {
-                    product.Slug = SlugHelper.MakeUnique(product.Slug, existingCount + 1);
-                }
-
-                if (string.IsNullOrWhiteSpace(product.MetaTitle))
-                {
-                    product.MetaTitle = SeoMetaHelper.GenerateProductMetaTitle(product.ProductName, productDto.Brand);
-                }
-
-                if (string.IsNullOrWhiteSpace(product.MetaDescription))
-                {
-                    product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
-                        product.ProductName,
-                        product.Summary,
-                        product.MinPrice,
-                        productDto.Brand);
-                }
-
-                if (string.IsNullOrWhiteSpace(product.MetaDescription))
-                {
-                    product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
-                        product.ProductName,
-                        product.Summary,
-                        product.MinPrice,
-                        productDto.Brand);
-                }
-
-                _mapper.Map(productDto, product);
-
-                await EnsureCategoryAttributesExist(product.CategoryId, productDto.Variants, productDto.NewAttributeDefinitions);
-
-                var attributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(product.CategoryId, false);
-
-                if (productDto.Variants != null && productDto.Variants.Any())
-                {
-                    var existingVariants = await _manager.ProductVariant.GetByProductIdAsync(product.ProductId, true);
-                    var existingVariantsList = existingVariants.ToList();
-
-                    var incomingVariantIds = productDto.Variants
-                        .Where(v => v.ProductVariantId > 0)
-                        .Select(v => v.ProductVariantId)
-                        .ToList();
-
-                    var variantsToDelete = existingVariantsList
-                        .Where(ev => !incomingVariantIds.Contains(ev.ProductVariantId))
-                        .ToList();
-
-                    foreach (var variantToDelete in variantsToDelete)
+                    var oldValues = new
                     {
-                        _manager.ProductVariant.Delete(variantToDelete);
-                        _logger.LogInformation("Variant deleted. ProductVariantId: {VariantId}", variantToDelete.ProductVariantId);
+                        product.ProductName,
+                        product.MinPrice,
+                        product.MaxPrice,
+                        product.TotalStock
+                    };
+                    var previousSlug = product.Slug;
+
+                    _mapper.Map(productDto, product);
+
+                    if (!string.IsNullOrWhiteSpace(product.LongDescription))
+                        product.LongDescription = _htmlSanitizer.Sanitize(product.LongDescription);
+
+                    if (!string.IsNullOrWhiteSpace(productDto.Slug))
+                    {
+                        product.Slug = SlugHelper.GenerateSlug(productDto.Slug);
+                    }
+                    else
+                    {
+                        product.Slug = SlugHelper.GenerateSlug(product.ProductName);
                     }
 
-                    foreach (var variantDto in productDto.Variants)
+                    if (!string.Equals(previousSlug, product.Slug, StringComparison.OrdinalIgnoreCase))
                     {
-                        ProductVariant? targetVariant;
-                        
-                        if (variantDto.ProductVariantId > 0)
+                        var existingCount = await _manager.Product.CountBySlugAsync(product.Slug);
+                        if (existingCount > 0)
                         {
-                            targetVariant = existingVariantsList
-                                .FirstOrDefault(ev => ev.ProductVariantId == variantDto.ProductVariantId);
+                            product.Slug = SlugHelper.MakeUnique(product.Slug, existingCount + 1);
+                        }
+                    }
 
-                            if (targetVariant != null)
+                    if (string.IsNullOrWhiteSpace(product.MetaTitle))
+                    {
+                        product.MetaTitle = SeoMetaHelper.GenerateProductMetaTitle(product.ProductName, productDto.Brand);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(product.MetaDescription))
+                    {
+                        product.MetaDescription = SeoMetaHelper.GenerateProductMetaDescription(
+                            product.ProductName,
+                            product.Summary,
+                            product.MinPrice,
+                            productDto.Brand);
+                    }
+
+                    await EnsureCategoryAttributesExist(product.CategoryId, productDto.Variants, productDto.NewAttributeDefinitions);
+
+                    var attributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(product.CategoryId, false);
+                    if (productDto.Variants != null && productDto.Variants.Any())
+                    {
+                        var uniqueCombinationKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var variantDto in productDto.Variants)
+                        {
+                            var tempVariant = new ProductVariant
                             {
-                                targetVariant.Color = variantDto.Color;
-                                targetVariant.Size = variantDto.Size;
-                                targetVariant.Price = variantDto.Price;
-                                targetVariant.DiscountPrice = variantDto.DiscountPrice;
-                                targetVariant.Stock = variantDto.Stock;
-                                targetVariant.Sku = variantDto.Sku;
-                                targetVariant.Gtin = variantDto.Gtin;
-                                targetVariant.IsActive = variantDto.IsActive;
-                                targetVariant.IsDefault = variantDto.IsDefault;
-                                targetVariant.UpdatedAt = DateTime.UtcNow;
-                                targetVariant.VariantSpecificationsJson = JsonSerializer.Serialize(variantDto.VariantSpecifications);
+                                Color = variantDto.Color,
+                                Size = variantDto.Size,
+                                VariantSpecificationsJson = JsonSerializer.Serialize(variantDto.VariantSpecifications)
+                            };
 
-                                targetVariant.WeightOverride = variantDto.WeightOverride;
-                                targetVariant.LengthOverride = variantDto.LengthOverride;
-                                targetVariant.WidthOverride = variantDto.WidthOverride;
-                                targetVariant.HeightOverride = variantDto.HeightOverride;
+                            var combinationKey = GenerateCombinationKey(tempVariant, attributes);
+                            if (string.IsNullOrWhiteSpace(combinationKey))
+                            {
+                                throw new ProductValidationException("Varyant belirleyici alanlar boş olamaz.");
+                            }
 
-                                _manager.ProductVariant.Update(targetVariant);
-                                _logger.LogInformation("Variant updated. ProductVariantId: {VariantId}", targetVariant.ProductVariantId);
+                            if (!uniqueCombinationKeys.Add(combinationKey))
+                            {
+                                throw new ProductValidationException("Aynı varyant kombinasyonu birden fazla oluşturulamaz.");
+                            }
+                        }
+                    }
+
+                    if (productDto.Variants != null && productDto.Variants.Any())
+                    {
+                        var existingVariants = await _manager.ProductVariant.GetByProductIdAsync(product.ProductId, true);
+                        var existingVariantsList = existingVariants.ToList();
+
+                        var incomingVariantIds = productDto.Variants
+                            .Where(v => v.ProductVariantId > 0)
+                            .Select(v => v.ProductVariantId)
+                            .ToList();
+
+                        var variantsToDelete = existingVariantsList
+                            .Where(ev => !incomingVariantIds.Contains(ev.ProductVariantId))
+                            .ToList();
+
+                        foreach (var variantToDelete in variantsToDelete)
+                        {
+                            _manager.ProductVariant.Delete(variantToDelete);
+                            _logger.LogInformation("Variant deleted. ProductVariantId: {VariantId}", variantToDelete.ProductVariantId);
+                        }
+
+                        foreach (var variantDto in productDto.Variants)
+                        {
+                            ProductVariant? targetVariant;
+
+                            if (variantDto.ProductVariantId > 0)
+                            {
+                                targetVariant = existingVariantsList
+                                    .FirstOrDefault(ev => ev.ProductVariantId == variantDto.ProductVariantId);
+
+                                if (targetVariant != null)
+                                {
+                                    targetVariant.Color = variantDto.Color;
+                                    targetVariant.Size = variantDto.Size;
+                                    targetVariant.Price = variantDto.Price;
+                                    targetVariant.DiscountPrice = variantDto.DiscountPrice;
+                                    targetVariant.Stock = variantDto.Stock;
+                                    targetVariant.Sku = variantDto.Sku;
+                                    targetVariant.Gtin = variantDto.Gtin;
+                                    targetVariant.IsActive = variantDto.IsActive;
+                                    targetVariant.IsDefault = variantDto.IsDefault;
+                                    targetVariant.UpdatedAt = DateTime.UtcNow;
+                                    targetVariant.VariantSpecificationsJson = JsonSerializer.Serialize(variantDto.VariantSpecifications);
+
+                                    targetVariant.WeightOverride = variantDto.WeightOverride;
+                                    targetVariant.LengthOverride = variantDto.LengthOverride;
+                                    targetVariant.WidthOverride = variantDto.WidthOverride;
+                                    targetVariant.HeightOverride = variantDto.HeightOverride;
+
+                                    _manager.ProductVariant.Update(targetVariant);
+                                    _logger.LogInformation("Variant updated. ProductVariantId: {VariantId}", targetVariant.ProductVariantId);
+                                }
+                                else
+                                {
+                                    continue;
+                                }
                             }
                             else
                             {
-                                continue;
+                                targetVariant = new ProductVariant
+                                {
+                                    ProductId = product.ProductId,
+                                    Color = variantDto.Color,
+                                    Size = variantDto.Size,
+                                    Price = variantDto.Price,
+                                    DiscountPrice = variantDto.DiscountPrice,
+                                    Stock = variantDto.Stock,
+                                    Sku = variantDto.Sku,
+                                    Gtin = variantDto.Gtin,
+                                    IsActive = variantDto.IsActive,
+                                    IsDefault = variantDto.IsDefault,
+                                    CreatedAt = DateTime.UtcNow,
+                                    UpdatedAt = DateTime.UtcNow,
+                                    VariantSpecificationsJson = JsonSerializer.Serialize(variantDto.VariantSpecifications),
+
+                                    WeightOverride = variantDto.WeightOverride,
+                                    LengthOverride = variantDto.LengthOverride,
+                                    WidthOverride = variantDto.WidthOverride,
+                                    HeightOverride = variantDto.HeightOverride
+                                };
+
+                                _manager.ProductVariant.Create(targetVariant);
+
+                                _logger.LogInformation("New variant added. Color: {Color}, Size: {Size}", targetVariant.Color, targetVariant.Size);
                             }
+
+                            targetVariant.ValidateStock();
+                            targetVariant.CombinationKey = GenerateCombinationKey(targetVariant, attributes);
+
+                            if (string.IsNullOrWhiteSpace(targetVariant.CombinationKey))
+                                throw new ProductValidationException("Varyant belirleyici alanlar boş olamaz.");
+
+                            targetVariant.UpdatedByUserId = userId;
+                            if (targetVariant.ProductVariantId == 0) targetVariant.CreatedByUserId = userId;
                         }
-                        else
-                        {
-                            targetVariant = new ProductVariant
-                            {
-                                ProductId = product.ProductId,
-                                Color = variantDto.Color,
-                                Size = variantDto.Size,
-                                Price = variantDto.Price,
-                                DiscountPrice = variantDto.DiscountPrice,
-                                Stock = variantDto.Stock,
-                                Sku = variantDto.Sku,
-                                Gtin = variantDto.Gtin,
-                                IsActive = variantDto.IsActive,
-                                IsDefault = variantDto.IsDefault,
-                                CreatedAt = DateTime.UtcNow,
-                                UpdatedAt = DateTime.UtcNow,
-                                VariantSpecificationsJson = JsonSerializer.Serialize(variantDto.VariantSpecifications),
-
-                                WeightOverride = variantDto.WeightOverride,
-                                LengthOverride = variantDto.LengthOverride,
-                                WidthOverride = variantDto.WidthOverride,
-                                HeightOverride = variantDto.HeightOverride
-                            };
-                            
-                            _manager.ProductVariant.Create(targetVariant);
-                            
-                            _logger.LogInformation("New variant added. Color: {Color}, Size: {Size}", targetVariant.Color, targetVariant.Size);
-                        }
-
-                        targetVariant.ValidateStock();
-                        targetVariant.CombinationKey = GenerateCombinationKey(targetVariant, attributes);
-
-                        if (string.IsNullOrWhiteSpace(targetVariant.CombinationKey))
-                             throw new ProductValidationException("Varyant belirleyici alanlar boş olamaz.");
-
-                        targetVariant.UpdatedByUserId = userId;
-                        if(targetVariant.ProductVariantId == 0) targetVariant.CreatedByUserId = userId;
                     }
-                }
 
-                product.ValidateForCreation();
+                    product.ValidateForCreation();
 
-                 var duplicateKeys = (productDto.Variants ?? Enumerable.Empty<ProductVariantDtoForCreation>())
-                    .Select(v => {
-                        return 0; 
-                    }).ToList();
-                
-                product.UpdatedAt = DateTime.UtcNow;
-                product.UpdatedByUserId = userId;
+                    product.UpdatedAt = DateTime.UtcNow;
+                    product.UpdatedByUserId = userId;
 
-                await _manager.SaveAsync();
+                    await _manager.SaveAsync();
+
+                    return (product, (object)oldValues);
+                });
 
                 await _auditLogService.LogAsync(
                     userId: userId,
@@ -597,7 +621,7 @@ namespace Application.Services.Implementations
                     action: "Update",
                     entityName: "Product",
                     entityId: productDto.ProductId.ToString(),
-                    oldValues: oldValues,
+                    oldValues: txResult.Item2,
                     newValues: new
                     {
                         productDto.ProductName,
@@ -606,9 +630,9 @@ namespace Application.Services.Implementations
 
                 _logger.LogInformation(
                     "Product updated successfully. ProductId: {ProductId}, User: {UserId}",
-                    product.ProductId, userId);
+                    txResult.Item1.ProductId, userId);
 
-                await _cache.RemoveAsync("products:showcase");
+                await _cache.RemoveByPrefixAsync("products:");
                 return OperationResult<ProductWithDetailsDto>.Success("Ürün başarıyla güncellendi.");
             }
             catch (ProductValidationException ex)

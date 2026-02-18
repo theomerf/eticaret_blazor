@@ -109,7 +109,7 @@
     private ClaimsPrincipal? user;
     private bool isProcessing = false;
 
-    private bool IsInCart => CartState.CurrentCart?.Lines?.Any(l => l.ProductId == Model.ProductId) ?? false;
+    private bool IsInCart => CartState.CurrentCart?.Lines?.Any(l => l.ProductId == Model.ProductId && l.ProductVariantId == Model.DefaultVariantId) ?? false;
 
     protected override async Task OnInitializedAsync()
     {

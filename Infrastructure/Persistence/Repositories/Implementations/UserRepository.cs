@@ -60,5 +60,43 @@ namespace Infrastructure.Persistence.Repositories.Implementations
 
             return user;
         }
+
+        public async Task<IReadOnlyList<string>> GetActiveUserIdsBatchAsync(int pageNumber, int pageSize, bool trackChanges, CancellationToken ct = default)
+        {
+            if (pageNumber < 1)
+                pageNumber = 1;
+
+            if (pageSize < 1)
+                pageSize = 1000;
+
+            return await FindAllByCondition(u => u.IsActive, trackChanges)
+                .OrderBy(u => u.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => u.Id)
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<Application.DTOs.UserEmailLookupDto>> SearchEmailLookupAsync(string searchTerm, int take, bool trackChanges, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return [];
+
+            var normalized = searchTerm.Trim().ToLower();
+            var limit = Math.Clamp(take, 1, 50);
+
+            return await FindAllByCondition(u => u.IsActive, trackChanges)
+                .Where(u =>
+                    u.Email != null &&
+                    u.Email.ToLower().Contains(normalized))
+                .OrderBy(u => u.Email)
+                .Select(u => new Application.DTOs.UserEmailLookupDto
+                {
+                    Id = u.Id,
+                    Email = u.Email!
+                })
+                .Take(limit)
+                .ToListAsync(ct);
+        }
     }
 }

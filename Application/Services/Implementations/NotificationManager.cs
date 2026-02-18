@@ -1,5 +1,6 @@
-﻿using Application.Common.Exceptions;
+using Application.Common.Exceptions;
 using Application.DTOs;
+using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
 using Application.Services.Interfaces;
 using AutoMapper;
@@ -17,6 +18,7 @@ namespace Application.Services.Implementations
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ISecurityLogService _securityLogService;
+        private readonly INotificationQueueService _notificationQueueService;
         private readonly ILogger<NotificationManager> _logger;
 
         public NotificationManager(
@@ -24,13 +26,29 @@ namespace Application.Services.Implementations
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             ISecurityLogService securityLogService,
+            INotificationQueueService notificationQueueService,
             ILogger<NotificationManager> logger)
         {
             _manager = manager;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
             _securityLogService = securityLogService;
+            _notificationQueueService = notificationQueueService;
             _logger = logger;
+        }
+
+        public async Task<(IReadOnlyList<NotificationAdminGroupDto> notifications, int count, int sentCount, int pendingCount)> GetAllAdminAsync(NotificationRequestParametersAdmin p, CancellationToken ct = default)
+        {
+            var result = await _manager.Notification.GetAllAdminAsync(p, false, ct);
+            return (result.notifications, result.count, result.sentCount, result.pendingCount);
+        }
+
+        public async Task<IReadOnlyList<NotificationRecipientDto>> GetGroupRecipientsAsync(string groupId, int take = 200, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(groupId))
+                return [];
+
+            return await _manager.Notification.GetGroupRecipientsAsync(groupId, take, false, ct);
         }
 
         public async Task<IEnumerable<NotificationDto>> GetByUserIdAsync(string userId)
@@ -165,40 +183,47 @@ namespace Application.Services.Implementations
             try
             {
                 var adminId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                var notifications = new List<Notification>();
+                var userIds = notificationDto.SendToAllUsers
+                    ? []
+                    : notificationDto.UserIds
+                        .Where(id => !string.IsNullOrWhiteSpace(id))
+                        .Distinct()
+                        .ToList();
 
-                foreach (var userId in notificationDto.UserIds)
+                if (!notificationDto.SendToAllUsers && !userIds.Any())
                 {
-                    var notification = new Notification
-                    {
-                        NotificationType = notificationDto.NotificationType,
-                        Title = notificationDto.Title,
-                        Description = notificationDto.Description,
-                        UserId = userId,
-                        IsSystemGenerated = false, 
-                        CreatedByUserId = adminId,
-                        UpdatedByUserId = adminId,
-                        ScheduledFor = notificationDto.ScheduledFor,
-                        IsSent = notificationDto.ScheduledFor == null // Zamanlanmışsa henüz gönderilmedi
-                    };
-
-                    notification.ValidateForCreation();
-
-                    notifications.Add(notification);
+                    return OperationResult<NotificationDto>.Failure("En az bir geçerli kullanıcı seçilmelidir.", ResultType.ValidationError);
                 }
 
-                foreach (var notification in notifications)
+                var validationProbe = new Notification
                 {
-                    _manager.Notification.Create(notification);
-                }
+                    NotificationType = notificationDto.NotificationType,
+                    Title = notificationDto.Title,
+                    Description = notificationDto.Description,
+                    UserId = notificationDto.SendToAllUsers ? "probe-user-id" : userIds[0]
+                };
+                validationProbe.ValidateForCreation();
 
-                await _manager.SaveAsync();
+                var queuedDto = new NotificationDtoForBulkCreation
+                {
+                    NotificationType = notificationDto.NotificationType,
+                    Title = notificationDto.Title,
+                    Description = notificationDto.Description,
+                    UserIds = userIds,
+                    SendToAllUsers = notificationDto.SendToAllUsers,
+                    BatchSize = notificationDto.BatchSize,
+                    ScheduledFor = notificationDto.ScheduledFor
+                };
+
+                _notificationQueueService.EnqueueCreateBulk(queuedDto, adminId);
 
                 _logger.LogInformation(
-                    "Bulk notifications created by admin. AdminId: {AdminId}, Count: {Count}, Scheduled: {IsScheduled}",
-                    adminId, notifications.Count, notificationDto.ScheduledFor != null);
+                    "Bulk notifications queued by admin. AdminId: {AdminId}, SendToAll: {SendToAll}, Count: {Count}, BatchSize: {BatchSize}, Scheduled: {IsScheduled}",
+                    adminId, notificationDto.SendToAllUsers, userIds.Count, notificationDto.BatchSize, notificationDto.ScheduledFor != null);
 
-                return OperationResult<NotificationDto>.Success($"{notifications.Count} bildirim başarıyla oluşturuldu.");
+                return notificationDto.SendToAllUsers
+                    ? OperationResult<NotificationDto>.Success("Tüm aktif kullanıcılar için bildirim kuyruğa alındı.")
+                    : OperationResult<NotificationDto>.Success($"{userIds.Count} bildirim kuyruğa alındı.");
             }
             catch (NotificationValidationException ex)
             {

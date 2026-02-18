@@ -31,6 +31,12 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(n => n.IsSent)
                 .HasDefaultValue(false);
 
+            builder.Property(n => n.NotificationGroupId)
+                .HasMaxLength(64);
+
+            builder.Property(n => n.SentToAllActiveUsers)
+                .HasDefaultValue(false);
+
             builder.Property(p => p.CreatedByUserId)
                 .HasMaxLength(450);
 
@@ -49,6 +55,10 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasIndex(n => new { n.ScheduledFor, n.IsSent })
                 .HasFilter("\"ScheduledFor\" IS NOT NULL AND \"IsSent\" = false")
                 .HasDatabaseName("IX_Notifications_Scheduled");
+
+            builder.HasIndex(n => n.NotificationGroupId)
+                .HasFilter("\"NotificationGroupId\" IS NOT NULL")
+                .HasDatabaseName("IX_Notifications_GroupId");
 
             builder.HasOne(n => n.User)
                 .WithMany()

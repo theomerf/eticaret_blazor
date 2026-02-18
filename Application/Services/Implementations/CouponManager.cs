@@ -1,5 +1,3 @@
-using Application.Common.Exceptions;
-using Application.Common.Models;
 using Application.DTOs;
 using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
@@ -153,7 +151,7 @@ namespace Application.Services.Implementations
                     "Coupon created successfully. CouponId: {CouponId}, Code: {Code}, User: {UserId}",
                     coupon.CouponId, coupon.Code, userId);
 
-                await _cache.RemoveByPrefixAsync("campaigns:");
+                await _cache.RemoveByPrefixAsync("coupons:");
                 return OperationResult<int>.Success(coupon.CouponId, "Kupon başarıyla oluşturuldu.");
             }
             catch (CouponValidationException ex)
@@ -243,7 +241,7 @@ namespace Application.Services.Implementations
                     coupon.CouponId, userId);
 
                 var updatedCouponDto = _mapper.Map<CouponDto>(coupon);
-                await _cache.RemoveByPrefixAsync("campaigns:");
+                await _cache.RemoveByPrefixAsync("coupons:");
                 return OperationResult<CouponDto>.Success(updatedCouponDto, "Kupon başarıyla güncellendi.");
             }
             catch (CouponValidationException ex)
@@ -280,6 +278,7 @@ namespace Application.Services.Implementations
                 "Coupon soft deleted. CouponId: {CouponId}, User: {UserId}",
                 couponId, userId);
 
+            await _cache.RemoveByPrefixAsync("coupons:");
             return OperationResult<CouponDto>.Success("Kupon başarıyla silindi.");
         }
 
@@ -316,7 +315,7 @@ namespace Application.Services.Implementations
                 couponId, userId);
 
             var couponDto = _mapper.Map<CouponDto>(coupon);
-            await _cache.RemoveByPrefixAsync("campaigns:");
+            await _cache.RemoveByPrefixAsync("coupons:");
             return OperationResult<CouponDto>.Success(couponDto, "Kupon aktif edildi.");
         }
 
@@ -353,7 +352,7 @@ namespace Application.Services.Implementations
                 couponId, userId);
 
             var couponDto = _mapper.Map<CouponDto>(coupon);
-            await _cache.RemoveByPrefixAsync("campaigns:");
+            await _cache.RemoveByPrefixAsync("coupons:");
             return OperationResult<CouponDto>.Success(couponDto, "Kupon deaktif edildi.");
         }
 
@@ -372,6 +371,15 @@ namespace Application.Services.Implementations
             if (!coupon.IsValid())
             {
                 return OperationResult<decimal>.Failure("Kupon geçerli değil veya süresi dolmuş.", ResultType.ValidationError);
+            }
+
+            if (coupon.IsSingleUsePerUser)
+            {
+                var usageCount = await _manager.Coupon.GetUserCouponUsageCountAsync(coupon.CouponId, userId);
+                if (usageCount > 0)
+                {
+                    return OperationResult<decimal>.Failure("Bu kuponu daha once kullandiniz.", ResultType.ValidationError);
+                }
             }
 
             if (!coupon.CanBeUsedBy(userId, orderAmount))
@@ -402,6 +410,15 @@ namespace Application.Services.Implementations
             if (!coupon.IsValid())
             {
                 return OperationResult<Coupon>.Failure("Kupon geçerli değil veya süresi dolmuş.", ResultType.ValidationError);
+            }
+
+            if (coupon.IsSingleUsePerUser)
+            {
+                var usageCount = await _manager.Coupon.GetUserCouponUsageCountAsync(coupon.CouponId, userId);
+                if (usageCount > 0)
+                {
+                    return OperationResult<Coupon>.Failure("Bu kuponu daha once kullandiniz.", ResultType.ValidationError);
+                }
             }
 
             if (!coupon.CanBeUsedBy(userId, orderAmount))

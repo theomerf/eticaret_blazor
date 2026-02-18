@@ -970,8 +970,6 @@ function updateActiveStates(key, value) {
 				btn.disabled = true;
 			});
 
-			updateCounter('cart-summary', -1);
-
 			try {
 				const variantInput = document.getElementById('selectedVariantId');
 				let variantId = variantInput?.value ? parseInt(variantInput.value) : null;
@@ -1001,8 +999,13 @@ function updateActiveStates(key, value) {
 						btn.disabled = false;
 					});
 
-					if (typeof updateCartCounter === 'function') updateCartCounter('cart-summary', -1);
-					else if (typeof dispatchCartUpdatedEvent === 'function') dispatchCartUpdatedEvent();
+					if (result.cart && Array.isArray(result.cart.lines)) {
+						if (typeof setCounter === 'function') {
+							setCounter('cart-summary', result.cart.lines.length);
+						}
+					} else if (typeof dispatchCartUpdatedEvent === 'function') {
+						dispatchCartUpdatedEvent();
+					}
 
 					if (typeof showToast === 'function') showToast(result.message || 'Ürün sepetten kaldırıldı!', 'success');
 				} else {
@@ -1011,7 +1014,6 @@ function updateActiveStates(key, value) {
 						const btnRemove = btn.querySelector('.btn-remove');
 						resetButtonState(btn, btnContent, btnRemove, true);
 					});
-					updateCounter('cart-summary', +1);
 					if (typeof showToast === 'function') showToast('Hata oluştu', 'danger');
 				}
 			} catch (error) {
@@ -1021,7 +1023,6 @@ function updateActiveStates(key, value) {
 					const btnRemove = btn.querySelector('.btn-remove');
 					resetButtonState(btn, btnContent, btnRemove, true);
 				});
-				updateCounter('cart-summary', +1);
 				if (typeof showToast === 'function') showToast('Hata oluştu', 'danger');
 			}
 			return;
@@ -1040,8 +1041,6 @@ function updateActiveStates(key, value) {
 			btn.classList.add('loading');
 			btn.disabled = true;
 		});
-
-		updateCounter('cart-summary', +1);
 
 		try {
 			const quantityInput = document.getElementById('productQuantity');
@@ -1062,7 +1061,6 @@ function updateActiveStates(key, value) {
 					btn.classList.remove('loading');
 					btn.disabled = false;
 				});
-				updateCounter('cart-summary', -1);
 				return;
 			}
 
@@ -1097,8 +1095,13 @@ function updateActiveStates(key, value) {
 					btn.disabled = false;
 				});
 
-				if (typeof updateCartCounter === 'function') updateCartCounter('cart-summary', quantity);
-				else if (typeof dispatchCartUpdatedEvent === 'function') dispatchCartUpdatedEvent();
+				if (result.cart && Array.isArray(result.cart.lines)) {
+					if (typeof setCounter === 'function') {
+						setCounter('cart-summary', result.cart.lines.length);
+					}
+				} else if (typeof dispatchCartUpdatedEvent === 'function') {
+					dispatchCartUpdatedEvent();
+				}
 
 				if (typeof showToast === 'function') showToast(result.message || `Ürün sepete eklendi!`, 'success');
 			} else {
@@ -1107,7 +1110,6 @@ function updateActiveStates(key, value) {
 					const btnRemove = btn.querySelector('.btn-remove');
 					resetButtonState(btn, btnContent, btnRemove, false);
 				});
-				updateCounter('cart-summary', -1);
 				if (typeof showToast === 'function') showToast(result.message || 'Hata oluştu', 'danger');
 			}
 		} catch (error) {
@@ -1117,7 +1119,6 @@ function updateActiveStates(key, value) {
 				const btnRemove = btn.querySelector('.btn-remove');
 				resetButtonState(btn, btnContent, btnRemove, false);
 			});
-			updateCounter('cart-summary', -1);
 			if (typeof showToast === 'function') showToast(error.message || 'Hata oluştu', 'danger');
 		}
 	});

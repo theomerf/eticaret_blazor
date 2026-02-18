@@ -14,6 +14,9 @@ namespace Infrastructure.Persistence.Configurations
                 .IsRequired()
                 .HasMaxLength(450);
 
+            builder.Property(c => c.Version)
+                .IsConcurrencyToken();
+
             builder.HasMany(c => c.Lines)
                 .WithOne(cl => cl.Cart)
                 .HasForeignKey(cl => cl.CartId)

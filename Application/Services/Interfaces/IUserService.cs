@@ -12,9 +12,9 @@ namespace Application.Services.Interfaces
         Task<IEnumerable<Role>> GetRolesAsync(CancellationToken ct = default);
         Task<int> GetRolesCountAsync(CancellationToken ct = default);
         Task<UserDto> GetOneUserAsync(string userId, CancellationToken ct = default);
-        Task<OperationResult<UserDto>> CreateUserAsync(UserDtoForCreation userDto);
+        Task<OperationResult<UserDto>> CreateUserAsync(UserDtoForCreation userDto, CancellationToken ct = default);
         Task<OperationResult<UserDto>> UpdateUserAsync(UserDtoForUpdate userDtoForUpdate);
-        Task<OperationResult<UserDto>> UpdateUserForAdminAsync(UserDtoForUpdateAdmin userDtoForUpdate);
+        Task<OperationResult<UserDto>> UpdateUserForAdminAsync(UserDtoForUpdateAdmin userDtoForUpdate, CancellationToken ct = default);
         Task<OperationResult<UserDto>> DeleteUserAsync(string userId);
         Task<FavouriteResultDto> GetOneUsersFavouritesAsync(string userId);
         Task<OperationResult<FavouriteResultDto>> AddToFavouritesAsync(int productId);
@@ -24,5 +24,6 @@ namespace Application.Services.Interfaces
         Task<OperationResult<UserDto>> ChangeUserRolesAsync(string userId, HashSet<string> roles);
         Task<OperationResult<UserDto>> UpdateAdminNotesAsync(string userId, string notes);
         Task<OperationResult<UserDto>> EditUserInfoAsync(UserDtoForAdminEdit dto);
+        Task<IReadOnlyList<UserEmailLookupDto>> SearchUserEmailLookupAsync(string searchTerm, int take = 10, CancellationToken ct = default);
     }
 }

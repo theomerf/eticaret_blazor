@@ -59,6 +59,7 @@ namespace Domain.Entities
         public string? LastFourDigits { get; set; } // Son 4 hane
         
         public bool GiftWrap { get; set; }
+        public uint RowVersion { get; private set; }
         
         public string? CustomerNotes { get; set; }
         public string? AdminNotes { get; set; }

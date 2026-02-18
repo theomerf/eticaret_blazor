@@ -320,6 +320,7 @@ namespace ETicaret.Migrations
                         .HasColumnType("character varying(450)");
 
                     b.Property<int>("Version")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer");
 
                     b.HasKey("CartId");
@@ -377,11 +378,12 @@ namespace ETicaret.Migrations
 
                     b.HasKey("CartLineId");
 
-                    b.HasIndex("CartId");
-
                     b.HasIndex("ProductId");
 
                     b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("CartId", "ProductVariantId")
+                        .IsUnique();
 
                     b.ToTable("CartLines");
                 });
@@ -592,6 +594,12 @@ namespace ETicaret.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.Property<int>("Scope")
                         .HasColumnType("integer");
 
@@ -672,6 +680,7 @@ namespace ETicaret.Migrations
                         .HasDatabaseName("IX_CouponUsages_UserId");
 
                     b.HasIndex("CouponId", "UserId")
+                        .IsUnique()
                         .HasDatabaseName("IX_CouponUsages_Coupon_User");
 
                     b.ToTable("CouponUsages");
@@ -720,11 +729,20 @@ namespace ETicaret.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("NotificationGroupId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<int>("NotificationType")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("ScheduledFor")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("SentToAllActiveUsers")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -744,6 +762,10 @@ namespace ETicaret.Migrations
                         .HasColumnType("character varying(450)");
 
                     b.HasKey("NotificationId");
+
+                    b.HasIndex("NotificationGroupId")
+                        .HasDatabaseName("IX_Notifications_GroupId")
+                        .HasFilter("\"NotificationGroupId\" IS NOT NULL");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("IX_Notifications_UserId");
@@ -895,6 +917,12 @@ namespace ETicaret.Migrations
                     b.Property<string>("PostalCode")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<DateTime?>("ShippedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1484,6 +1512,12 @@ namespace ETicaret.Migrations
 
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<string>("Size")
                         .HasMaxLength(50)

@@ -59,6 +59,8 @@ namespace Application.Mappings
                .ForMember(dest => dest.SpecificationsJson, opt => opt.MapFrom(src =>
                     JsonSerializer.Serialize(src.VariantSpecifications, (JsonSerializerOptions?)null)));
             CreateMap<Notification, NotificationDto>();
+            CreateMap<Notification, NotificationAdminDto>()
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null));
             CreateMap<NotificationDtoForCreation, Notification>();
             CreateMap<NotificationDtoForBulkCreation, Notification>();
             CreateMap<Address, AddressDto>();

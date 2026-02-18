@@ -304,7 +304,7 @@ namespace Infrastructure.Services.Implementations
             {
                 basketItems.Add(new
                 {
-                    id = line.ProductId.ToString(),
+                    id = line.OrderLineId.ToString(),
                     price = line.LineTotal.ToString("F2", CultureInfo.InvariantCulture),
                     name = line.ProductName,
                     category1 = line.CategoryName,

@@ -11,12 +11,18 @@ namespace Application.Services.Implementations
         private readonly IRepositoryManager _manager;
         private readonly IMapper _mapper;
         private readonly ICacheService _cache;
+        private readonly IActivityQueueService _activityQueueService;
 
-        public ActivityManager(IRepositoryManager manager, IMapper mapper, ICacheService cache)
+        public ActivityManager(
+            IRepositoryManager manager,
+            IMapper mapper,
+            ICacheService cache,
+            IActivityQueueService activityQueueService)
         {
             _manager = manager;
             _mapper = mapper;
             _cache = cache;
+            _activityQueueService = activityQueueService;
         }
 
         public async Task<IEnumerable<ActivityDto>> GetRecentAsync(int count = 5, CancellationToken ct = default)
@@ -36,19 +42,26 @@ namespace Application.Services.Implementations
 
         public async Task LogAsync(string title, string description, string icon, string colorClass, string? link = null)
         {
-            var activity = new Activity
+            try
             {
-                Title = title,
-                Description = description,
-                Icon = icon,
-                ColorClass = colorClass,
-                Link = link,
-                CreatedAt = DateTime.UtcNow
-            };
+                _activityQueueService.EnqueueLog(title, description, icon, colorClass, link);
+            }
+            catch
+            {
+                var activity = new Activity
+                {
+                    Title = title,
+                    Description = description,
+                    Icon = icon,
+                    ColorClass = colorClass,
+                    Link = link,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-            _manager.Activity.Create(activity);
-            await _manager.SaveAsync();
-            await _cache.RemoveByPrefixAsync("activities:");
+                _manager.Activity.Create(activity);
+                await _manager.SaveAsync();
+                await _cache.RemoveByPrefixAsync("activities:");
+            }
         }
     }
 }

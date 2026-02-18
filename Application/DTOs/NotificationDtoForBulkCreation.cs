@@ -1,10 +1,10 @@
-﻿using Application.Common.Validation.Attributes;
+using Application.Common.Validation.Attributes;
 using Domain.Entities;
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.DTOs
 {
-    public record NotificationDtoForBulkCreation
+    public record NotificationDtoForBulkCreation : IValidatableObject
     {
         [Required(ErrorMessage = "Bildirim tipi gereklidir.")]
         public NotificationType NotificationType { get; set; }
@@ -21,10 +21,23 @@ namespace Application.DTOs
         [NoXss]
         public string Description { get; set; } = null!;
 
-        [Required(ErrorMessage = "En az bir kullanıcı seçilmelidir.")]
-        [MinLength(1, ErrorMessage = "En az bir kullanıcı seçilmelidir.")]
         public List<string> UserIds { get; set; } = new();
 
+        public bool SendToAllUsers { get; set; } = false;
+
+        [Range(100, 5000, ErrorMessage = "Batch boyutu 100-5000 aralığında olmalıdır.")]
+        public int BatchSize { get; set; } = 1000;
+
         public DateTime? ScheduledFor { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (!SendToAllUsers && (UserIds == null || UserIds.Count == 0))
+            {
+                yield return new ValidationResult(
+                    "En az bir kullanıcı seçilmelidir.",
+                    [nameof(UserIds)]);
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ using Serilog.Sinks.PostgreSQL.ColumnWriters;
 using Serilog.Sinks.SystemConsole.Themes;
 using ETicaret.Binders;
 using Infrastructure.BackgroundJobs.Hangfire;
+using Infrastructure.BackgroundJobs.Hangfire.Scheduling;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -146,6 +147,8 @@ try
     app.MapBlazorHub();
     app.MapRazorPages();
     app.MapFallbackToPage("/admin/{**path}", "/_Host");
+
+    StartupJobs.Register(app.Services);
 
     app.ConfigureAndCheckMigration();
     app.ConfigureLocalization();

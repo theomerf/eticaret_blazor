@@ -24,6 +24,9 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(cl => cl.DiscountPrice)
                    .HasPrecision(18, 2);
 
+            builder.HasIndex(cl => new { cl.CartId, cl.ProductVariantId })
+                .IsUnique();
+
             builder.HasOne(cl => cl.Product)
                 .WithMany()
                 .HasForeignKey(cl => cl.ProductId)

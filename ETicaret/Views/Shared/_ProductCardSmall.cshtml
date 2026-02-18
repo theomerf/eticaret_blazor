@@ -7,7 +7,7 @@
     var favouriteIds = ViewBag.FavouriteIds as List<int>;
 
     var cart = Context.RequestServices.GetRequiredService<Cart>();
-    var isInCart = cart?.Lines?.Any(l => l.ProductId == Model?.ProductId) ?? false;
+    var isInCart = cart?.Lines?.Any(l => l.ProductId == Model?.ProductId && l.ProductVariantId == Model?.DefaultVariantId) ?? false;
 }
 
 <div class="my-2 px-0.5 sm:px-2 [perspective:1000px] product-wrapper w-full">

@@ -114,119 +114,99 @@ namespace Application.Services.Implementations
         {
             try
             {
-                var category = _mapper.Map<Category>(categoryDto);
-
-                category.Slug = SlugHelper.GenerateSlug(category.CategoryName);
-
-                var existingCount = await _manager.Category.CountBySlugAsync(category.Slug);
-                if (existingCount > 0)
-                {
-                    category.Slug = SlugHelper.MakeUnique(category.Slug, existingCount + 1);
-                }
-
-                if (string.IsNullOrWhiteSpace(category.MetaTitle))
-                {
-                    category.MetaTitle = SeoMetaHelper.GenerateCategoryMetaTitle(category.CategoryName);
-                }
-
-                if (string.IsNullOrWhiteSpace(category.MetaDescription))
-                {
-                    category.MetaDescription = SeoMetaHelper.GenerateCategoryMetaDescription(
-                        category.CategoryName,
-                        categoryDto.Description);
-                }
-
-                category.ValidateForCreation();
-
-                if (category.ParentId.HasValue)
-                {
-                    var allCategories = await _manager.Category.GetAllAsync(false);
-                    if (category.HasCircularReference(category.ParentId.Value, allCategories))
-                    {
-                        throw new CategoryValidationException("Döngüsel referans tespit edildi. Kategori hiyerarşisi geçersiz.");
-                    }
-                }
-
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+                Category? category = null;
 
-                _manager.Category.Create(category);
-
-                // Create Attributes
-                if (categoryDto.NewAttributes != null && categoryDto.NewAttributes.Any())
+                await _manager.ExecuteInTransactionAsync(async ct =>
                 {
-                    foreach (var attrDto in categoryDto.NewAttributes)
+                    category = _mapper.Map<Category>(categoryDto);
+
+                    category.Slug = SlugHelper.GenerateSlug(category.CategoryName);
+
+                    var existingCount = await _manager.Category.CountBySlugAsync(category.Slug);
+                    if (existingCount > 0)
                     {
-                        var attribute = _mapper.Map<CategoryVariantAttribute>(attrDto);
-                        // CategoryId will be set by EF Core when adding to collection, 
-                        // but since we are not adding to category.Attributes collection directly (maybe?), 
-                        // we can rely on EF Core navigation fixup if we were adding to list.
-                        // However, standard Repository Create method adds entity to context.
-                        // Let's add them via valid repository method for Attributes or add to Category's collection if it exists.
-                        // Category entity doesn't seem to have Attributes collection exposed in what I read?
-                        // Let's check repository. 
-                        // Actually better to add them explicitly if we can, or add to category.
-                        
-                        // We will assume we need to set CategoryId after SaveAsync if we don't have navigation property set up heavily.
-                        // But wait, if we add to context before SaveAsync, CategoryId is not generated yet (it's 0).
-                        // So we must save Category FIRST to get ID, then save attributes.
+                        category.Slug = SlugHelper.MakeUnique(category.Slug, existingCount + 1);
                     }
-                }
-                
-                // Saving Category first to get ID
-                await _manager.SaveAsync();
 
-                // Now save attributes
-                if (categoryDto.NewAttributes != null && categoryDto.NewAttributes.Any())
-                {
-                    foreach (var attrDto in categoryDto.NewAttributes)
+                    if (string.IsNullOrWhiteSpace(category.MetaTitle))
                     {
-                        var exists = await _manager.CategoryVariantAttribute.ExistsByKeyAsync(attrDto.Key, category.CategoryId);
-                        if (!exists)
+                        category.MetaTitle = SeoMetaHelper.GenerateCategoryMetaTitle(category.CategoryName);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(category.MetaDescription))
+                    {
+                        category.MetaDescription = SeoMetaHelper.GenerateCategoryMetaDescription(
+                            category.CategoryName,
+                            categoryDto.Description);
+                    }
+
+                    category.ValidateForCreation();
+
+                    if (category.ParentId.HasValue)
+                    {
+                        var allCategories = await _manager.Category.GetAllAsync(false);
+                        if (category.HasCircularReference(category.ParentId.Value, allCategories))
                         {
-                            var attribute = _mapper.Map<CategoryVariantAttribute>(attrDto);
-                            attribute.CategoryId = category.CategoryId;
-                            _manager.CategoryVariantAttribute.Create(attribute);
+                            throw new CategoryValidationException("Döngüsel referans tespit edildi. Kategori hiyerarşisi geçersiz.");
                         }
                     }
+
+                    category.CreatedByUserId = userId;
+                    category.UpdatedByUserId = userId;
+
+                    _manager.Category.Create(category);
                     await _manager.SaveAsync();
+
+                    if (categoryDto.NewAttributes != null && categoryDto.NewAttributes.Any())
+                    {
+                        foreach (var attrDto in categoryDto.NewAttributes)
+                        {
+                            var exists = await _manager.CategoryVariantAttribute.ExistsByKeyAsync(attrDto.Key, category.CategoryId);
+                            if (!exists)
+                            {
+                                var attribute = _mapper.Map<CategoryVariantAttribute>(attrDto);
+                                attribute.CategoryId = category.CategoryId;
+                                _manager.CategoryVariantAttribute.Create(attribute);
+                            }
+                        }
+
+                        await _manager.SaveAsync();
+                    }
+                });
+
+                if (category == null)
+                {
+                    return OperationResult<CategoryWithDetailsDto>.Failure("Kategori oluşturulamadı.", ResultType.Error);
                 }
                 
-                category.CreatedByUserId = userId;
-                category.UpdatedByUserId = userId;
-                
-                // Update user tracking columns on initial save? 
-                // We saved once already. Let's just make sure we save correct info.
-                // The first SaveAsync saved category with CreatedByUserId = null if we didn't set it.
-                // Re-ordering to be safe.
-
-
                 await _auditLogService.LogAsync(
                     userId: userId,
                     userName: userName,
                     action: "Create",
                     entityName: "Category",
-                    entityId: category.CategoryId.ToString(),
+                    entityId: category!.CategoryId.ToString(),
                     newValues: new
                     {
-                        category.CategoryName,
-                        category.ParentId,
-                        category.IsVisible,
-                        category.DisplayOrder
+                        category!.CategoryName,
+                        category!.ParentId,
+                        category!.IsVisible,
+                        category!.DisplayOrder
                     }
                 );
 
                 await _activityService.LogAsync(
                     "Yeni Kategori",
-                    $"{category.CategoryName} kategorisi oluşturuldu.",
+                    $"{category!.CategoryName} kategorisi oluşturuldu.",
                     "fa-folder-plus",
                     "text-indigo-500 bg-indigo-100",
-                    $"/admin/categories/edit/{category.CategoryId}"
+                    $"/admin/categories/edit/{category!.CategoryId}"
                 );
 
                 _logger.LogInformation(
                     "Category created successfully. CategoryId: {CategoryId}, Name: {CategoryName}, User: {UserId}",
-                    category.CategoryId, category.CategoryName, userId);
+                    category!.CategoryId, category!.CategoryName, userId);
 
                 await _cache.RemoveByPrefixAsync("categories:");
                 return OperationResult<CategoryWithDetailsDto>.Success("Kategori başarıyla oluşturuldu.");
@@ -265,7 +245,7 @@ namespace Application.Services.Implementations
 
             _logger.LogInformation(
                 "Category featured status updated. CategoryId: {CategoryId}, Featured: {Featured}",
-                category.IsFeatured, category.IsFeatured);
+                category.CategoryId, category.IsFeatured);
 
             var categoryDto = _mapper.Map<CategoryDto>(category);
 
@@ -279,97 +259,102 @@ namespace Application.Services.Implementations
         {
             try
             {
-                var category = await GetByIdForServiceAsync(categoryDto.CategoryId, true);
-
-                var oldValues = new
-                {
-                    category.CategoryName,
-                    category.ParentId,
-                    category.IsVisible,
-                    category.DisplayOrder
-                };
-
                 var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
                 var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+                (Category category, object oldValues) txResult = default;
 
-                _mapper.Map(categoryDto, category);
-
-                category.Slug = SlugHelper.GenerateSlug(category.CategoryName);
-
-                var existingCount = await _manager.Category.CountBySlugAsync(category.Slug);
-                if (existingCount > 0)
+                txResult = await _manager.ExecuteInTransactionAsync(async ct =>
                 {
-                    category.Slug = SlugHelper.MakeUnique(category.Slug, existingCount + 1);
-                }
+                    _manager.ClearTracker();
+                    var category = await GetByIdForServiceAsync(categoryDto.CategoryId, true);
 
-                if (string.IsNullOrWhiteSpace(category.MetaTitle))
-                {
-                    category.MetaTitle = SeoMetaHelper.GenerateCategoryMetaTitle(category.CategoryName);
-                }
-
-                if (string.IsNullOrWhiteSpace(category.MetaDescription))
-                {
-                    category.MetaDescription = SeoMetaHelper.GenerateCategoryMetaDescription(
+                    var oldValues = new
+                    {
                         category.CategoryName,
-                        categoryDto.Description);
-                }
+                        category.ParentId,
+                        category.IsVisible,
+                        category.DisplayOrder
+                    };
+                    var previousSlug = category.Slug;
 
-                category.ValidateForUpdate();
+                    _mapper.Map(categoryDto, category);
 
-                if (category.ParentId.HasValue)
-                {
-                    var allCategories = await _manager.Category.GetAllAsync(false);
-                    if (category.HasCircularReference(category.ParentId.Value, allCategories))
+                    category.Slug = SlugHelper.GenerateSlug(category.CategoryName);
+
+                    if (!string.Equals(previousSlug, category.Slug, StringComparison.OrdinalIgnoreCase))
                     {
-                        throw new CategoryValidationException("Döngüsel referans tespit edildi. Kategori hiyerarşisi geçersiz.");
-                    }
-                }
-
-                category.UpdatedAt = DateTime.UtcNow;
-                category.UpdatedByUserId = userId;
-
-                // Handle Attributes
-                if (categoryDto.Attributes != null)
-                {
-                    // 1. Get existing attributes
-                    var existingAttributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(category.CategoryId, true);
-                    
-                    // 2. Identify attributes to delete
-                    // Attributes present in DB but NOT in the incoming list (by ID)
-                    var incomingIds = categoryDto.Attributes.Where(a => a.VariantAttributeId > 0).Select(a => a.VariantAttributeId).ToList();
-                    var attributesToDelete = existingAttributes.Where(e => !incomingIds.Contains(e.VariantAttributeId)).ToList();
-                    
-                    foreach(var attr in attributesToDelete)
-                    {
-                        _manager.CategoryVariantAttribute.Delete(attr);
-                    }
-
-                    // 3. Identify attributes to update
-                    var attributesToUpdate = categoryDto.Attributes.Where(a => a.VariantAttributeId > 0).ToList();
-                    foreach (var updateDto in attributesToUpdate)
-                    {
-                        var existingAttr = existingAttributes.FirstOrDefault(e => e.VariantAttributeId == updateDto.VariantAttributeId);
-                        if (existingAttr != null)
+                        var existingCount = await _manager.Category.CountBySlugAsync(category.Slug);
+                        if (existingCount > 0)
                         {
-                            _mapper.Map(updateDto, existingAttr);
+                            category.Slug = SlugHelper.MakeUnique(category.Slug, existingCount + 1);
                         }
                     }
 
-                    // 4. Identify attributes to add
-                    var attributesToAdd = categoryDto.Attributes.Where(a => a.VariantAttributeId == 0).ToList();
-                    foreach (var addDto in attributesToAdd)
+                    if (string.IsNullOrWhiteSpace(category.MetaTitle))
                     {
-                        var exists = await _manager.CategoryVariantAttribute.ExistsByKeyAsync(addDto.Key, category.CategoryId);
-                        if (!exists)
+                        category.MetaTitle = SeoMetaHelper.GenerateCategoryMetaTitle(category.CategoryName);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(category.MetaDescription))
+                    {
+                        category.MetaDescription = SeoMetaHelper.GenerateCategoryMetaDescription(
+                            category.CategoryName,
+                            categoryDto.Description);
+                    }
+
+                    category.ValidateForUpdate();
+
+                    if (category.ParentId.HasValue)
+                    {
+                        var allCategories = await _manager.Category.GetAllAsync(false);
+                        if (category.HasCircularReference(category.ParentId.Value, allCategories))
                         {
-                            var newAttr = _mapper.Map<CategoryVariantAttribute>(addDto);
-                            newAttr.CategoryId = category.CategoryId;
-                            _manager.CategoryVariantAttribute.Create(newAttr);
+                            throw new CategoryValidationException("Döngüsel referans tespit edildi. Kategori hiyerarşisi geçersiz.");
                         }
                     }
-                }
 
-                await _manager.SaveAsync();
+                    category.UpdatedAt = DateTime.UtcNow;
+                    category.UpdatedByUserId = userId;
+
+                    if (categoryDto.Attributes != null)
+                    {
+                        var existingAttributes = await _manager.CategoryVariantAttribute.GetByCategoryIdAsync(category.CategoryId, true);
+
+                        var incomingIds = categoryDto.Attributes.Where(a => a.VariantAttributeId > 0).Select(a => a.VariantAttributeId).ToList();
+                        var attributesToDelete = existingAttributes.Where(e => !incomingIds.Contains(e.VariantAttributeId)).ToList();
+
+                        foreach (var attr in attributesToDelete)
+                        {
+                            _manager.CategoryVariantAttribute.Delete(attr);
+                        }
+
+                        var attributesToUpdate = categoryDto.Attributes.Where(a => a.VariantAttributeId > 0).ToList();
+                        foreach (var updateDto in attributesToUpdate)
+                        {
+                            var existingAttr = existingAttributes.FirstOrDefault(e => e.VariantAttributeId == updateDto.VariantAttributeId);
+                            if (existingAttr != null)
+                            {
+                                _mapper.Map(updateDto, existingAttr);
+                            }
+                        }
+
+                        var attributesToAdd = categoryDto.Attributes.Where(a => a.VariantAttributeId == 0).ToList();
+                        foreach (var addDto in attributesToAdd)
+                        {
+                            var exists = await _manager.CategoryVariantAttribute.ExistsByKeyAsync(addDto.Key, category.CategoryId);
+                            if (!exists)
+                            {
+                                var newAttr = _mapper.Map<CategoryVariantAttribute>(addDto);
+                                newAttr.CategoryId = category.CategoryId;
+                                _manager.CategoryVariantAttribute.Create(newAttr);
+                            }
+                        }
+                    }
+
+                    await _manager.SaveAsync();
+
+                    return (category, (object)oldValues);
+                });
 
                 await _auditLogService.LogAsync(
                     userId: userId,
@@ -377,7 +362,7 @@ namespace Application.Services.Implementations
                     action: "Update",
                     entityName: "Category",
                     entityId: categoryDto.CategoryId.ToString(),
-                    oldValues: oldValues,
+                    oldValues: txResult.oldValues,
                     newValues: new
                     {
                         categoryDto.CategoryName,
@@ -389,7 +374,7 @@ namespace Application.Services.Implementations
 
                 _logger.LogInformation(
                     "Category updated successfully. CategoryId: {CategoryId}, User: {UserId}",
-                    category.CategoryId, userId);
+                    txResult.category.CategoryId, userId);
 
                 await _cache.RemoveAsync("categories:list");
                 return OperationResult<CategoryWithDetailsDto>.Success("Kategori başarıyla güncellendi.");

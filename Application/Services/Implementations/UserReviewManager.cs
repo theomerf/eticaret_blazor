@@ -19,7 +19,6 @@ namespace Application.Services.Implementations
         private readonly IAuditLogService _auditLogService;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IProductService _productService;
         private readonly ISecurityLogService _securityLogService;
         private readonly IActivityService _activityService;
         private readonly ILogger<UserReviewManager> _logger;
@@ -32,7 +31,6 @@ namespace Application.Services.Implementations
             IAuditLogService auditLogService,
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
-            IProductService productService,
             ISecurityLogService securityLogService,
             IActivityService activityService,
             ILogger<UserReviewManager> logger,
@@ -44,7 +42,6 @@ namespace Application.Services.Implementations
             _auditLogService = auditLogService;
             _mapper = mapper;
             _httpContextAccessor = httpContextAccessor;
-            _productService = productService;
             _securityLogService = securityLogService;
             _activityService = activityService;
             _logger = logger;
@@ -77,7 +74,7 @@ namespace Application.Services.Implementations
         public async Task<int> CountApprovedAsync(CancellationToken ct = default)
         {
             return await _cache.GetOrCreateAsync(
-                "userReviews:count:approved",
+                "userReviews:approvedCount",
                 async token =>
                 {
                     return await _manager.UserReview.CountApprovedAsync(token);
@@ -141,7 +138,7 @@ namespace Application.Services.Implementations
                 var user = await _userService.GetOneUserAsync(userId);
 
                 userReview.UserId = userId;
-                userReview.ReviewerName = user.FirstName;
+                userReview.ReviewerName = string.Concat(user.FirstName, " ", user.LastName.FirstOrDefault().ToString(), "***");
 
                 userReview.ValidateForCreation();
 
@@ -169,76 +166,116 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<UserReviewDto>> ApproveAsync(int userReviewId)
+        public async Task<OperationResult<UserReviewDto>> ApproveAsync(int userReviewId, CancellationToken ct = default)
         {
-            _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
-
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-            var product = await _manager.Product.GetByIdAsync(userReview.ProductId, true, true);
-
-            if (product == null) 
+            var result = await _manager.ExecuteInTransactionAsync(async ct =>
             {
-                throw new ProductNotFoundException(userReview.ProductId);
+                _manager.ClearTracker();
+                var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
+
+                if (userReview.IsApproved)
+                    return OperationResult<UserReviewDto>.Failure("Bu değerlendirme zaten onaylı.", ResultType.ValidationError);
+
+                var product = await _manager.Product.GetByIdAsync(userReview.ProductId, true, true);
+
+                if (product == null)
+                    throw new ProductNotFoundException(userReview.ProductId);
+
+                userReview.Approve();
+
+                product.AverageRating = ((product.AverageRating * product.ReviewCount) + userReview.Rating) / (product.ReviewCount + 1);
+                product.ReviewCount += 1;
+
+                await _manager.SaveAsync();
+
+                return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla onaylandı.");
+            }, ct: ct);
+
+            if (result.IsSuccess && !ct.IsCancellationRequested)
+            {
+                await _auditLogService.LogAsync(
+                    userId: userId,
+                    userName: userName,
+                    action: "Approve",
+                    entityName: "UserReview",
+                    entityId: userReviewId.ToString()
+                );
+
+                _logger.LogInformation(
+                    "User review approved. ReviewId: {ReviewId}, ApprovedBy: {UserId}",
+                    userReviewId, userId);
             }
 
-            userReview.Approve();
-
-            product.AverageRating = ((product.AverageRating * product.ReviewCount) + userReview.Rating) / (product.ReviewCount + 1);
-            product.ReviewCount += 1;
-
-            await _manager.SaveAsync();
-
-            await _auditLogService.LogAsync(
-                userId: userId,
-                userName: userName,
-                action: "Approve",
-                entityName: "UserReview",
-                entityId: userReviewId.ToString()
-            );
-
-            _logger.LogInformation(
-                "User review approved. ReviewId: {ReviewId}, ApprovedBy: {UserId}",
-                userReviewId, userId);
-
-            return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla onaylandı.");
+            return result;
         }
 
-        public async Task<OperationResult<UserReviewDto>> UnapproveAsync(int userReviewId)
+        public async Task<OperationResult<UserReviewDto>> UnapproveAsync(int userReviewId, CancellationToken ct = default)
         {
-            _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
-
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
-            var product = await _productService.GetByIdAsync(userReview.ProductId);
+            var result = await _manager.ExecuteInTransactionAsync(async ct =>
+            {
+                _manager.ClearTracker();
+                var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
 
-            userReview.Unapprove();
+                if (userReview.IsApproved == false)
+                    return OperationResult<UserReviewDto>.Failure("Bu değerlendirme zaten onaylı değil.", ResultType.ValidationError);
 
-            await _manager.SaveAsync();
+                var product = await _manager.Product.GetByIdAsync(userReview.ProductId, true, true);
 
-            await _auditLogService.LogAsync(
-                userId: userId,
-                userName: userName,
-                action: "Unapprove",
-                entityName: "UserReview",
-                entityId: userReviewId.ToString()
-            );
+                if (product == null)
+                    throw new ProductNotFoundException(userReview.ProductId);
 
-            _logger.LogInformation(
-                "User review unapproved. ReviewId: {ReviewId}, UnapprovedBy: {UserId}",
-                userReviewId, userId);
+                userReview.Unapprove();
 
-            return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla onaylanmadı.");
+                if (product.ReviewCount > 1)
+                {
+                    product.AverageRating = ((product.AverageRating * product.ReviewCount) - userReview.Rating) / (product.ReviewCount - 1);
+                    product.ReviewCount -= 1;
+                }
+                else
+                {
+                    product.AverageRating = 0;
+                    product.ReviewCount = 0;
+                }
+
+                await _manager.SaveAsync();
+
+                return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla onaylanmadı.");
+            }, ct: ct);
+
+            if (result.IsSuccess && !ct.IsCancellationRequested)
+            {
+                await _auditLogService.LogAsync(
+                    userId: userId,
+                    userName: userName,
+                    action: "Unapprove",
+                    entityName: "UserReview",
+                    entityId: userReviewId.ToString()
+                );
+
+                _logger.LogInformation(
+                    "User review unapproved. ReviewId: {ReviewId}, UnapprovedBy: {UserId}",
+                    userReviewId, userId);
+            }
+
+            return result;
         }
 
         public async Task<OperationResult<UserReviewDto>> UpdateFeaturedStatusAsync(int userReviewId)
         {
             _manager.ClearTracker();
             var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
+
+            if (!userReview.IsApproved)
+            {
+                return OperationResult<UserReviewDto>.Failure("Sadece onaylanmış değerlendirmelerin öne çıkarılma durumu değiştirilebilir.", ResultType.ValidationError);
+            }
+
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
@@ -262,65 +299,89 @@ namespace Application.Services.Implementations
                 userReview.IsFeatured ? "Değerlendirme başarıyla öne çıkarıldı." : "Değerlendirmenin öne çıkarılması başarıyla iptal edildi.");
         }
 
-        public async Task<OperationResult<UserReviewDto>> UpdateAsync(UserReviewDtoForUpdate userReviewDto)
+        public async Task<OperationResult<UserReviewDto>> UpdateAsync(UserReviewDtoForUpdate userReviewDto, CancellationToken ct = default)
         {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var requestPath = _httpContextAccessor.HttpContext?.Request?.Path.ToString() ?? "";
+
+            string? oldImagePathToDelete = null;
+            bool deleteOldImage = false;
+            int oldRatingToRemove = 0;
+            int newRating = 0;
+
             try
             {
-                _manager.ClearTracker();
-                var userReview = await GetOneUserReviewForServiceAsync(userReviewDto.UserReviewId, true);
-                var oldImagePath = userReview.ReviewPictureUrl;
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-
-                if (userReview.UserId != userId)
+                var result = await _manager.ExecuteInTransactionAsync(async ct =>
                 {
-                    await _securityLogService.LogUnauthorizedAccessAsync(
-                        userId: userId,
-                        requestPath: _httpContextAccessor.HttpContext?.Request?.Path.ToString() ?? ""
-                    );
-                    throw new UnauthorizedAccessException("Bunun için yetkiniz yok.");
-                }
+                    _manager.ClearTracker();
 
-                var isImageUpdated =
-                    !string.IsNullOrWhiteSpace(userReviewDto.ReviewPictureUrl) &&
-                    userReviewDto.ReviewPictureUrl != userReview.ReviewPictureUrl;
+                    var userReview = await GetOneUserReviewForServiceAsync(userReviewDto.UserReviewId, true);
 
-                var product = await _productService.GetByIdAsync(userReview.ProductId);
-
-                var oldRatingToRemove = userReview.UpdateReview();
-
-                _mapper.Map(userReviewDto, userReview);
-
-                userReview.ValidateForUpdate();
-
-                if (oldRatingToRemove > 0 && product.ReviewCount > 0)
-                {
-                    if (product.ReviewCount > 1)
+                    if (userReview.UserId != userId)
                     {
-                        product.AverageRating = ((product.AverageRating * product.ReviewCount) - oldRatingToRemove) / (product.ReviewCount - 1);
-                        product.ReviewCount -= 1;
+                        await _securityLogService.LogUnauthorizedAccessAsync(userId: userId, requestPath: requestPath);
+                        return OperationResult<UserReviewDto>.Failure("Bunun için yetkiniz yok.", ResultType.Unauthorized);
                     }
-                    else
+
+                    var oldImagePath = userReview.ReviewPictureUrl;
+
+                    var isImageUpdated =
+                        !string.IsNullOrWhiteSpace(userReviewDto.ReviewPictureUrl) &&
+                        userReviewDto.ReviewPictureUrl != userReview.ReviewPictureUrl;
+
+                    var product = await _manager.Product.GetByIdAsync(userReview.ProductId, true, true);
+                    if (product == null)
+                        throw new ProductNotFoundException(userReview.ProductId);
+
+                    oldRatingToRemove = userReview.UpdateReview();
+
+                    _mapper.Map(userReviewDto, userReview);
+                    userReview.ValidateForUpdate();
+
+                    newRating = userReview.Rating;
+
+                    if (oldRatingToRemove > 0 && product.ReviewCount > 0)
                     {
-                        product.AverageRating = 0;
-                        product.ReviewCount = 0;
+                        if (product.ReviewCount > 1)
+                        {
+                            product.AverageRating =
+                                ((product.AverageRating * product.ReviewCount) - oldRatingToRemove) / (product.ReviewCount - 1);
+
+                            product.ReviewCount -= 1;
+                        }
+                        else
+                        {
+                            product.AverageRating = 0;
+                            product.ReviewCount = 0;
+                        }
                     }
-                }
 
-                var productEntity = _mapper.Map<Product>(product);
-                _manager.Product.UpdateEntity(productEntity);
+                    await _manager.SaveAsync();
 
-                await _manager.SaveAsync();
+                    if (isImageUpdated && !string.IsNullOrWhiteSpace(oldImagePath))
+                    {
+                        oldImagePathToDelete = oldImagePath;
+                        deleteOldImage = true;
+                    }
 
-                if (isImageUpdated && !string.IsNullOrWhiteSpace(oldImagePath))
+                    return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla güncellendi. Yeniden onay bekliyor.");
+                }, ct: ct);
+
+                if (result.IsSuccess && !ct.IsCancellationRequested)
                 {
-                    _fileService.Delete(oldImagePath);
+                    if (deleteOldImage && !string.IsNullOrWhiteSpace(oldImagePathToDelete))
+                    {
+                        _fileService.Delete(oldImagePathToDelete);
+                    }
+
+                    _logger.LogInformation(
+                        "User review updated. ReviewId: {ReviewId}, UserId: {UserId}, OldRating: {OldRating}, NewRating: {NewRating}, RequiresReapproval: true",
+                        userReviewDto.UserReviewId, userId, oldRatingToRemove, newRating);
+
+                    await _cache.RemoveAsync("userReviews:approvedCount", ct);
                 }
 
-                _logger.LogInformation(
-                    "User review updated. ReviewId: {ReviewId}, UserId: {UserId}, OldRating: {OldRating}, NewRating: {NewRating}, RequiresReapproval: true",
-                    userReviewDto.UserReviewId, userId, oldRatingToRemove, userReview.Rating);
-
-                return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla güncellendi. Yeniden onay bekliyor.");
+                return result;
             }
             catch (UserReviewValidationException ex)
             {
@@ -329,115 +390,141 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<UserReviewDto>> DeleteAsync(int userReviewId)
+        public async Task<OperationResult<UserReviewDto>> DeleteAsync(int userReviewId, CancellationToken ct = default)
         {
-            _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-            var imagePath = userReview.ReviewPictureUrl;
+            var requestPath = _httpContextAccessor.HttpContext?.Request?.Path.ToString() ?? "";
 
-            if (userReview.UserId != userId)
+            string? imagePathToDelete = null;
+
+            var result = await _manager.ExecuteInTransactionAsync(async ct =>
             {
-                await _securityLogService.LogUnauthorizedAccessAsync(
-                    userId: userId,
-                    requestPath: _httpContextAccessor.HttpContext?.Request?.Path.ToString() ?? ""
-                );
-                throw new UnauthorizedAccessException("Bunun için yetkiniz yok.");
+                _manager.ClearTracker();
+                var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
+                imagePathToDelete = userReview.ReviewPictureUrl;
+
+                if (userReview.UserId != userId)
+                {
+                    await _securityLogService.LogUnauthorizedAccessAsync(
+                        userId: userId,
+                        requestPath: _httpContextAccessor.HttpContext?.Request?.Path.ToString() ?? ""
+                    );
+                    return OperationResult<UserReviewDto>.Failure("Bunun için yetkiniz yok.", ResultType.Unauthorized);
+                }
+
+                var product = await _manager.Product.GetByIdAsync(userReview.ProductId, true, true);
+
+                if (product == null)
+                    throw new ProductNotFoundException(userReview.ProductId);
+
+                userReview.SoftDelete(userId);
+
+                if (product.ReviewCount > 1)
+                {
+                    product.AverageRating = ((product.AverageRating * product.ReviewCount) - userReview.Rating) / (product.ReviewCount - 1);
+                    product.ReviewCount -= 1;
+                }
+                else
+                {
+                    product.AverageRating = 0;
+                    product.ReviewCount = 0;
+                }
+
+                await _manager.SaveAsync();
+
+                return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
+            }, ct: ct); 
+
+            if (result.IsSuccess && !ct.IsCancellationRequested)
+            {
+                if (!string.IsNullOrWhiteSpace(imagePathToDelete))
+                {
+                    _fileService.Delete(imagePathToDelete);
+                }
+
+                _logger.LogInformation(
+                    "User review soft deleted. ReviewId: {ReviewId}, UserId: {UserId}",
+                    userReviewId, userId);
+
+                await _cache.RemoveByPrefixAsync("userReviews:", ct);
             }
 
-            var product = await _productService.GetByIdAsync(userReview.ProductId);
-
-            userReview.SoftDelete(userId);
-
-            if (product.ReviewCount > 1)
-            {
-                product.AverageRating = ((product.AverageRating * product.ReviewCount) - userReview.Rating) / (product.ReviewCount - 1);
-                product.ReviewCount -= 1;
-            }
-            else
-            {
-                product.AverageRating = 0;
-                product.ReviewCount = 0;
-            }
-
-            var productEntity = _mapper.Map<Product>(product);
-            _manager.Product.UpdateEntity(productEntity);
-
-            await _manager.SaveAsync();
-
-            if (!string.IsNullOrWhiteSpace(imagePath))
-            {
-                _fileService.Delete(imagePath);
-            }
-
-            _logger.LogInformation(
-                "User review soft deleted. ReviewId: {ReviewId}, UserId: {UserId}",
-                userReviewId, userId);
-
-            await _cache.RemoveByPrefixAsync("userReviews:");
-            return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
+            return result;
         }
 
-        public async Task<OperationResult<UserReviewDto>> DeleteAdminAsync(int userReviewId)
+        public async Task<OperationResult<UserReviewDto>> DeleteAdminAsync(int userReviewId, CancellationToken ct = default)
         {
-            _manager.ClearTracker();
-            var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
-            var imagePath = userReview.ReviewPictureUrl;
 
-            var product = await _productService.GetByIdAsync(userReview.ProductId);
+            string? imagePathToDelete = null;
 
-            userReview.SoftDelete(userId);
-
-            if (product.ReviewCount > 1)
+            var result = await _manager.ExecuteInTransactionAsync(async ct =>
             {
-                product.AverageRating = ((product.AverageRating * product.ReviewCount) - userReview.Rating) / (product.ReviewCount - 1);
-                product.ReviewCount -= 1;
-            }
-            else
+                _manager.ClearTracker();
+                var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
+
+                imagePathToDelete = userReview.ReviewPictureUrl;
+
+                var product = await _manager.Product.GetByIdAsync(userReview.ProductId, true, true);
+
+                if (product == null)
+                    throw new ProductNotFoundException(userReview.ProductId);
+
+                userReview.SoftDelete(userId);
+
+                if (product.ReviewCount > 1)
+                {
+                    product.AverageRating = ((product.AverageRating * product.ReviewCount) - userReview.Rating) / (product.ReviewCount - 1);
+                    product.ReviewCount -= 1;
+                }
+                else
+                {
+                    product.AverageRating = 0;
+                    product.ReviewCount = 0;
+                }
+
+                await _manager.SaveAsync();
+
+                return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
+            }, ct: ct);
+
+            if (result.IsSuccess && !ct.IsCancellationRequested)
             {
-                product.AverageRating = 0;
-                product.ReviewCount = 0;
+                await _auditLogService.LogAsync(
+                    userId: userId,
+                    userName: userName,
+                    action: "Delete",
+                    entityName: "UserReview",
+                    entityId: userReviewId.ToString()
+                );
+
+                if (!string.IsNullOrWhiteSpace(imagePathToDelete))
+                {
+                    _fileService.Delete(imagePathToDelete);
+                }
+
+                _logger.LogInformation(
+                    "User review deleted by admin. ReviewId: {ReviewId}, AdminId: {AdminId}",
+                    userReviewId, userId);
+
+                await _cache.RemoveByPrefixAsync("userReviews:", ct);
             }
 
-            var productEntity = _mapper.Map<Product>(product);
-            _manager.Product.UpdateEntity(productEntity);
-
-            await _manager.SaveAsync();
-
-            await _auditLogService.LogAsync(
-                userId: userId,
-                userName: userName,
-                action: "Delete",
-                entityName: "UserReview",
-                entityId: userReviewId.ToString()
-            );
-
-            if (!string.IsNullOrWhiteSpace(imagePath))
-            {
-                _fileService.Delete(imagePath);
-            }
-
-            _logger.LogInformation(
-                "User review deleted by admin. ReviewId: {ReviewId}, AdminId: {AdminId}",
-                userReviewId, userId);
-
-            await _cache.RemoveByPrefixAsync("userReviews:");
-            return OperationResult<UserReviewDto>.Success("Değerlendirme başarıyla silindi.");
+            return result;
         }
 
         public async Task<OperationResult<(VoteType?, int, int)>> SetVoteAsync(int userReviewId, VoteType? desired, CancellationToken ct = default)
         {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            if (userId == "System")
+                return OperationResult<(VoteType?, int, int)>.Failure("Giriş yapmalısınız.", ResultType.Unauthorized);
+
             var result = await _manager.ExecuteInTransactionAsync(async ct =>
             {
                 _manager.ClearTracker();
 
                 var userReview = await GetOneUserReviewForServiceAsync(userReviewId, true);
-
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                if (userId == "System")
-                    return OperationResult<(VoteType?, int, int)>.Failure("Giriş yapmalısınız.", ResultType.Unauthorized);
 
                 if (userReview.UserId == userId)
                 {
@@ -501,12 +588,19 @@ namespace Application.Services.Implementations
 
                 VoteType? current = desired;
 
+                return OperationResult<(VoteType?, int, int)>.Success((current, userReview.HelpfulCount, userReview.NotHelpfulCount), "Değerlendirme güncellendi.");
+            }, ct: ct);
+
+            VoteType? current = null;
+
+            if (result.IsSuccess)
+            {
+                current = result.Data.Item1;
+
                 _logger.LogInformation(
                     "User review vote set. ReviewId: {ReviewId}, UserId: {UserId}, Desired: {Desired}, Current: {Current}",
                     userReviewId, userId, desired, current);
-
-                return OperationResult<(VoteType?, int, int)>.Success((current, userReview.HelpfulCount, userReview.NotHelpfulCount), "Değerlendirme güncellendi.");
-            }, ct: ct);
+            }
 
             return result;
         }

@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Infrastructure.BackgroundJobs.Hangfire.Jobs.Outbox
 {
-    internal class OutboxDispatcherJob
+    public class OutboxDispatcherJob
     {
+        // Placeholder for future outbox integration.
+        // TODO: Dispatch integration events from outbox table.
+        public Task ExecuteAsync(CancellationToken ct = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

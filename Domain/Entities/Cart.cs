@@ -120,6 +120,11 @@
             Touch();
         }
 
+        public void MarkUpdated()
+        {
+            Touch();
+        }
+
         public decimal ComputeTotalValue() =>
             Lines.Sum(e => e.Price * e.Quantity);
 

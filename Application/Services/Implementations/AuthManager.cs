@@ -14,45 +14,42 @@ namespace Application.Services.Implementations
 {
     public class AuthManager : IAuthService
     {
-        private readonly RoleManager<Role> _roleManager;
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly ICacheService _cache;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
-        private readonly INotificationService _notificationService;
+        private readonly INotificationQueueService _notificationQueueService;
         private readonly ILogger<AuthManager> _logger;
         private readonly IRepositoryManager _manager;
         private readonly ISecurityLogService _securityLogService;
         private readonly ICaptchaService _captchaService;
-        private readonly IEmailService _emailService;
+        private readonly IEmailQueueService _emailQueueService;
 
         public AuthManager(
-            RoleManager<Role> roleManager,
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             ICacheService cache,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
-            INotificationService notificationService,
+            INotificationQueueService notificationQueueService,
             ILogger<AuthManager> logger,
             IRepositoryManager manager,
             ISecurityLogService securityLogService,
             ICaptchaService captchaService,
-            IEmailService emailService)
+            IEmailQueueService emailQueueService)
         {
-            _roleManager = roleManager;
             _userManager = userManager;
             _signInManager = signInManager;
             _cache = cache;
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
-            _notificationService = notificationService;
+            _notificationQueueService = notificationQueueService;
             _logger = logger;
             _manager = manager;
             _securityLogService = securityLogService;
             _captchaService = captchaService;
-            _emailService = emailService;
+            _emailQueueService = emailQueueService;
         }
 
         public async Task<AuthResult> AuthenticateAsync(AuthRequest authenticate)
@@ -135,16 +132,16 @@ namespace Application.Services.Implementations
         public async Task<IList<Claim>> BuildClaimsAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new InvalidOperationException($"User '{userId}' not found.");
+                ?? throw new UserNotFoundException(userId);
 
             var claims = new List<Claim>
-        {
-            new(ClaimTypes.Name,           user.UserName!),
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new("first_name",              user.FirstName),
-            new("last_name",               user.LastName),
-            new("identity_number",         user.IdentityNumber)
-        };
+            {
+                new(ClaimTypes.Name,           user.UserName!),
+                new(ClaimTypes.NameIdentifier, user.Id),
+                new("first_name",              user.FirstName),
+                new("last_name",               user.LastName),
+                new("identity_number",         user.IdentityNumber)
+            };
 
             var roles = await _userManager.GetRolesAsync(user);
             claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
@@ -152,50 +149,62 @@ namespace Application.Services.Implementations
             return claims;
         }
 
-        public async Task<RegisterResult> RegisterAsync(RegisterRequest register)
+        public async Task<RegisterResult> RegisterAsync(RegisterRequest register, CancellationToken ct = default)
         {
-            if (!register.SkipCaptcha && !await _captchaService.ValidateAsync(register.CaptchaToken))
-                return RegisterResult.Failure_CaptchaFailed();
+            RegisterResult? finalResult = null;
 
-            var user = new User
+            try
             {
-                UserName = register.RegisterDto.Email,
-                Email = register.RegisterDto.Email,
-                FirstName = register.RegisterDto.FirstName,
-                LastName = register.RegisterDto.LastName,
-                PhoneNumber = register.RegisterDto.PhoneNumber,
-                BirthDate = register.RegisterDto.BirthDate,
-                RegistrationIpAddress = register.IpAddress,
-                AcceptedTerms = register.RegisterDto.AcceptTerms,
-                TermsAcceptedDate = DateTime.UtcNow,
-                AcceptedMarketing = register.RegisterDto.AcceptMarketing,
-                MarketingAcceptedDate = register.RegisterDto.AcceptMarketing ? DateTime.UtcNow : null
-            };
+                await _manager.ExecuteInTransactionAsync(async ct =>
+                {
+                    if (!register.SkipCaptcha && !await _captchaService.ValidateAsync(register.CaptchaToken))
+                        throw new RegistrationException(RegisterResult.Failure_CaptchaFailed());
 
-            var createResult = await _userManager.CreateAsync(user, register.RegisterDto.Password);
+                    var user = new User
+                    {
+                        UserName = register.RegisterDto.Email,
+                        Email = register.RegisterDto.Email,
+                        FirstName = register.RegisterDto.FirstName,
+                        LastName = register.RegisterDto.LastName,
+                        PhoneNumber = register.RegisterDto.PhoneNumber,
+                        BirthDate = register.RegisterDto.BirthDate,
+                        RegistrationIpAddress = register.IpAddress,
+                        AcceptedTerms = register.RegisterDto.AcceptTerms,
+                        TermsAcceptedDate = DateTime.UtcNow,
+                        AcceptedMarketing = register.RegisterDto.AcceptMarketing,
+                        MarketingAcceptedDate = register.RegisterDto.AcceptMarketing ? DateTime.UtcNow : null
+                    };
 
-            if (!createResult.Succeeded)
+                    var createResult = await _userManager.CreateAsync(user, register.RegisterDto.Password);
+
+                    if (!createResult.Succeeded)
+                        throw new RegistrationException(
+                            RegisterResult.Failure_ValidationErrors(createResult.Errors.Select(e => e.Description)));
+
+                    var roleResult = await _userManager.AddToRoleAsync(user, "User");
+
+                    if (!roleResult.Succeeded)
+                        throw new RegistrationException(
+                            RegisterResult.Failure_ValidationErrors(roleResult.Errors.Select(e => e.Description)));
+
+                    var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var confirmationLink = register.ConfirmationLinkTemplate
+                        .Replace("{userId}", user.Id)
+                        .Replace("{token}", emailToken);
+
+                    finalResult = RegisterResult.Success(user.Id, user.Email!, confirmationLink);
+                    return finalResult;
+                }, ct: ct);
+            }
+            catch (RegistrationException ex)
             {
-                var errors = createResult.Errors.Select(e => e.Description);
-                return RegisterResult.Failure_ValidationErrors(errors);
+                return ex.Result;
             }
 
-            var roleResult = await _userManager.AddToRoleAsync(user, "User");
+            if (finalResult?.Succeeded == true)
+                _emailQueueService.EnqueueConfirmationEmail(finalResult.Email!, finalResult.ConfirmationLink!);
 
-            if (!roleResult.Succeeded)
-            {
-                var errors = roleResult.Errors.Select(e => e.Description);
-                return RegisterResult.Failure_ValidationErrors(errors);
-            }
-
-            var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = register.ConfirmationLinkTemplate
-                .Replace("{userId}", user.Id)
-                .Replace("{token}", emailToken);
-
-            await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
-
-            return RegisterResult.Success(user.Id, user.Email, confirmationLink);
+            return finalResult!;
         }
 
         public async Task<ConfirmEmailResult> ConfirmEmailAsync(string userId, string token)
@@ -210,7 +219,7 @@ namespace Application.Services.Implementations
             if (!result.Succeeded || user.Email is null)
                 return ConfirmEmailResult.Failure_InvalidToken();
 
-            await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName);
+            _emailQueueService.EnqueueWelcomeEmail(user.Email, user.FirstName);
 
             return ConfirmEmailResult.Success(user.Email, user.FirstName);
         }
@@ -286,11 +295,11 @@ namespace Application.Services.Implementations
                 return OperationResult<UserDto>.Failure("Yeni şifre ve onay şifresi eşleşmiyor.", ResultType.ValidationError);
             }
 
-            await _notificationService.CreateAsync(new NotificationDtoForCreation
+            _notificationQueueService.EnqueueCreate(new NotificationDtoForCreation
             {
                 NotificationType = NotificationType.Settings,
                 Title = "Şifreniz güncellendi",
-                Description = $"Şifreniz {DateTime.Now.ToString()} tarihinde güncellendi.",
+                Description = $"Şifreniz {DateTime.Now} tarihinde güncellendi.",
                 UserId = userId
             });
 

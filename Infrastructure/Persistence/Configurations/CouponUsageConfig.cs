@@ -21,6 +21,7 @@ namespace Infrastructure.Persistence.Configurations
                 .HasDatabaseName("IX_CouponUsages_UserId");
 
             builder.HasIndex(cu => new { cu.CouponId, cu.UserId })
+                .IsUnique()
                 .HasDatabaseName("IX_CouponUsages_Coupon_User");
 
             builder.HasIndex(cu => cu.OrderId)

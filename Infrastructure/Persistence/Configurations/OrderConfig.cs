@@ -113,6 +113,10 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(o => o.AdminNotes)
                 .HasMaxLength(2000);
 
+            builder.Property(o => o.RowVersion)
+                .IsRowVersion()
+                .HasColumnName("xmin");
+
             builder.Property(o => o.DeletedByUserId)
                 .HasMaxLength(450);
 

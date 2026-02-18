@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using System.Security.Claims;
 
 namespace Application.Services.Implementations
@@ -22,9 +23,9 @@ namespace Application.Services.Implementations
         private readonly ICacheService _cache;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAuditLogService _auditLogService;
-        private readonly INotificationService _notificationService;
+        private readonly INotificationQueueService _notificationQueueService;
         private readonly IActivityService _activityService;
-        private readonly ILogger<AuthManager> _logger;
+        private readonly ILogger<UserManager> _logger;
         private readonly IRepositoryManager _manager;
 
         public UserManager(
@@ -34,9 +35,9 @@ namespace Application.Services.Implementations
             ICacheService cache,
             IHttpContextAccessor httpContextAccessor,
             IAuditLogService auditLogService,
-            INotificationService notificationService,
+            INotificationQueueService notificationQueueService,
             IActivityService activityService,
-            ILogger<AuthManager> logger,
+            ILogger<UserManager> logger,
             IRepositoryManager manager)
         {
             _roleManager = roleManager;
@@ -45,7 +46,7 @@ namespace Application.Services.Implementations
             _cache = cache;
             _httpContextAccessor = httpContextAccessor;
             _auditLogService = auditLogService;
-            _notificationService = notificationService;
+            _notificationQueueService = notificationQueueService;
             _activityService = activityService;
             _logger = logger;
             _manager = manager;
@@ -126,65 +127,76 @@ namespace Application.Services.Implementations
             return userDto;
         }
 
-        public async Task<OperationResult<UserDto>> CreateUserAsync(UserDtoForCreation userDto)
+        public async Task<OperationResult<UserDto>> CreateUserAsync(UserDtoForCreation userDto, CancellationToken ct = default)
         {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+            var user = _mapper.Map<User>(userDto);
+
             try
             {
-                var user = _mapper.Map<User>(userDto);
-
-                user.ValidateForCreation();
-
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
-
-                var result = await _userManager.CreateAsync(user, userDto.Password!);
-
-                if (!result.Succeeded)
+                var result = await _manager.ExecuteInTransactionAsync(async ct =>
                 {
-                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogWarning("User creation failed. Errors: {Errors}", errors);
-                    return OperationResult<UserDto>.Failure($"Kullanıcı oluşturulamadı: {errors}", ResultType.ValidationError);
+                    user.ValidateForCreation();
+
+                    var result = await _userManager.CreateAsync(user, userDto.Password!);
+
+                    if (!result.Succeeded)
+                    {
+                        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                        throw new UserCreationException(OperationResult<UserDto>.Failure($"Kullanıcı oluşturulamadı: {errors}", ResultType.ValidationError));
+                    }
+
+                    if (userDto.RolesList?.Count > 0)
+                    {
+                        var roleResult = await _userManager.AddToRolesAsync(user, userDto.RolesList!);
+                        if (!roleResult.Succeeded)
+                        {
+                            var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                            throw new UserCreationException(OperationResult<UserDto>.Failure($"Roller atanamadı: {errors}", ResultType.ValidationError));
+                        }
+                    }
+
+                    return OperationResult<UserDto>.Success("Kullanıcı başarıyla oluşturuldu.");
+                }, ct: ct);
+
+                if (result.IsSuccess && !ct.IsCancellationRequested)
+                {
+                    await _auditLogService.LogAsync(
+                        userId: userId,
+                        userName: userName,
+                        action: "Create",
+                        entityName: "User",
+                        entityId: user.Id,
+                        newValues: new
+                        {
+                            user.Email,
+                            user.UserName,
+                            user.PhoneNumber,
+                            user.FirstName,
+                            user.LastName,
+                            userDto.RolesList
+                        }
+                    );
+
+                    await _activityService.LogAsync(
+                        "Yeni Üye",
+                        $"{user.FirstName} {user.LastName} siteye kayıt oldu.",
+                        "fa-user-plus",
+                        "text-green-500 bg-green-100",
+                        $"/admin/users/edit/{user.Id}"
+                    );
+
+                    await _cache.RemoveByPrefixAsync("users:");
+                    _logger.LogInformation("User created successfully. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
                 }
 
-                if (userDto.RolesList?.Count > 0)
-                {
-                    var roleResult = await _userManager.AddToRolesAsync(user, userDto.RolesList!);
-                    if (!roleResult.Succeeded)
-                    {
-                        var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
-                        _logger.LogWarning("Role assignment failed for user {UserId}. Errors: {Errors}", user.Id, errors);
-                        return OperationResult<UserDto>.Failure($"Roller atanamadı: {errors}", ResultType.ValidationError);
-                    }
-                }
-
-                await _auditLogService.LogAsync(
-                    userId: userId,
-                    userName: userName,
-                    action: "Create",
-                    entityName: "User",
-                    entityId: user.Id,
-                    newValues: new
-                    {
-                        user.Email,
-                        user.UserName,
-                        user.PhoneNumber,
-                        user.FirstName,
-                        user.LastName,
-                        userDto.RolesList
-                    }
-                );
-
-                await _activityService.LogAsync(
-                    "Yeni Üye",
-                    $"{user.FirstName} {user.LastName} siteye kayıt oldu.",
-                    "fa-user-plus",
-                    "text-green-500 bg-green-100",
-                    $"/admin/users/edit/{user.Id}"
-                );
-
-                await _cache.RemoveByPrefixAsync("users:");
-                _logger.LogInformation("User created successfully. UserId: {UserId}, Email: {Email}", user.Id, user.Email);
-                return OperationResult<UserDto>.Success("Kullanıcı başarıyla oluşturuldu.");
+                return result;
+            }
+            catch (UserCreationException ex)
+            {
+                _logger.LogWarning(ex.Result.Message);
+                return ex.Result;
             }
             catch (UserValidationException ex)
             {
@@ -222,11 +234,11 @@ namespace Application.Services.Implementations
                     return OperationResult<UserDto>.Failure($"Kullanıcı güncellenemedi: {errors}", ResultType.ValidationError);
                 }
 
-                await _notificationService.CreateAsync(new NotificationDtoForCreation
+                _notificationQueueService.EnqueueCreate(new NotificationDtoForCreation
                 {
                     NotificationType = NotificationType.Settings,
                     Title = "Profil bilgileriniz güncellendi",
-                    Description = $"Profil bilgileriniz {DateTime.Now.ToString()} tarihinde güncellendi.",
+                    Description = $"Profil bilgileriniz {DateTime.Now} tarihinde güncellendi.",
                     UserId = user.Id
                 });
 
@@ -256,77 +268,95 @@ namespace Application.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<UserDto>> UpdateUserForAdminAsync(UserDtoForUpdateAdmin userDtoForUpdate)
+        public async Task<OperationResult<UserDto>> UpdateUserForAdminAsync(UserDtoForUpdateAdmin userDtoForUpdate, CancellationToken ct = default)
         {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+
+            User? user = null;
+            IList<string>? roles = null;
+            object? oldValuesSnapshot = null;
+
             try
             {
-                var user = await GetOneUserForServiceAsync(userDtoForUpdate.Id, true);
-                var oldUser = user;
-                var roles = await _userManager.GetRolesAsync(user);
-
-                _mapper.Map(userDtoForUpdate, user);
-
-                user.ValidateForUpdate();
-
-                var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
-                var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
-
-                var result = await _userManager.UpdateAsync(user);
-
-                if (!result.Succeeded)
+                var result = await _manager.ExecuteInTransactionAsync(async ct =>
                 {
-                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogWarning("Admin user update failed for {UserId}. Errors: {Errors}", user.Id, errors);
-                    return OperationResult<UserDto>.Failure($"Kullanıcı güncellenemedi: {errors}", ResultType.ValidationError);
-                }
-
-                if (userDtoForUpdate.RolesList?.Count > 0)
-                {
-                    await _userManager.RemoveFromRolesAsync(user, roles);
-                    var roleResult = await _userManager.AddToRolesAsync(user, userDtoForUpdate.RolesList!);
-
-                    if (!roleResult.Succeeded)
-                    {
-                        var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
-                        _logger.LogWarning("Role update failed for user {UserId}. Errors: {Errors}", user.Id, errors);
-                        return OperationResult<UserDto>.Failure($"Roller güncellenemedi: {errors}", ResultType.ValidationError);
-                    }
-                }
-
-                await _notificationService.CreateAsync(new NotificationDtoForCreation
-                {
-                    NotificationType = NotificationType.Settings,
-                    Title = "Profil bilgileriniz güncellendi",
-                    Description = $"Profil bilgileriniz {DateTime.Now.ToString()} tarihinde güncellendi.",
-                    UserId = user.Id
-                });
-
-                await _auditLogService.LogAsync(
-                    userId: userId,
-                    userName: userName,
-                    action: "Update",
-                    entityName: "User",
-                    entityId: user.Id,
-                    oldValues: new
-                    {
-                        oldUser.Email,
-                        oldUser.PhoneNumber,
-                        oldUser.FirstName,
-                        oldUser.LastName,
-                        roles
-                    },
-                    newValues: new
+                    user = await GetOneUserForServiceAsync(userDtoForUpdate.Id, true);
+                    roles = await _userManager.GetRolesAsync(user);
+                    oldValuesSnapshot = new
                     {
                         user.Email,
                         user.PhoneNumber,
                         user.FirstName,
                         user.LastName,
-                        userDtoForUpdate.RolesList
-                    }
-                );
+                        Roles = roles.ToList()
+                    };
 
-                _logger.LogInformation("User updated by admin successfully. UserId: {UserId}, AdminId: {AdminId}", user.Id, userId);
-                return OperationResult<UserDto>.Success("Kullanıcı başarıyla güncellendi.");
+                    _mapper.Map(userDtoForUpdate, user);
+
+                    user.ValidateForUpdate();
+
+                    var result = await _userManager.UpdateAsync(user);
+
+                    if (!result.Succeeded)
+                    {
+                        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                        _logger.LogWarning("Admin user update failed for {UserId}. Errors: {Errors}", user.Id, errors);
+                        return OperationResult<UserDto>.Failure($"Kullanıcı güncellenemedi: {errors}", ResultType.ValidationError);
+                    }
+
+                    if (userDtoForUpdate.RolesList?.Count > 0)
+                    {
+                        await _userManager.RemoveFromRolesAsync(user, roles);
+                        var roleResult = await _userManager.AddToRolesAsync(user, userDtoForUpdate.RolesList!);
+
+                        if (!roleResult.Succeeded)
+                        {
+                            var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                            _logger.LogWarning("Role update failed for user {UserId}. Errors: {Errors}", user.Id, errors);
+                            return OperationResult<UserDto>.Failure($"Roller güncellenemedi: {errors}", ResultType.ValidationError);
+                        }
+                    }
+                    return OperationResult<UserDto>.Success("Kullanıcı başarıyla güncellendi.");
+                }, ct: ct);
+
+                if (result.IsSuccess && !ct.IsCancellationRequested)
+                {
+                    _notificationQueueService.EnqueueCreate(new NotificationDtoForCreation
+                    {
+                        NotificationType = NotificationType.Settings,
+                        Title = "Profil bilgileriniz güncellendi",
+                        Description = $"Profil bilgileriniz {DateTime.Now} tarihinde güncellendi.",
+                        UserId = user!.Id
+                    });
+
+                    await _auditLogService.LogAsync(
+                        userId: userId,
+                        userName: userName,
+                        action: "Update",
+                        entityName: "User",
+                        entityId: user.Id,
+                        oldValues: oldValuesSnapshot,
+                        newValues: new
+                        {
+                            user.Email,
+                            user.PhoneNumber,
+                            user.FirstName,
+                            user.LastName,
+                            userDtoForUpdate.RolesList
+                        }
+                    );
+
+                    _logger.LogInformation("User updated by admin successfully. UserId: {UserId}, AdminId: {AdminId}", user.Id, userId);
+                }
+
+                return result;
+
+            }
+            catch (UserUpdateException ex)
+            {
+                _logger.LogWarning(ex.Result.Message);
+                return ex.Result;
             }
             catch (UserValidationException ex)
             {
@@ -503,7 +533,7 @@ namespace Application.Services.Implementations
                 {
                     var errors = string.Join(", ", addResult.Errors.Select(e => e.Description));
                     _logger.LogWarning("Role assignment failed for user {UserId}. Errors: {Errors}", userId, errors);
-                    // Roll back: re-add original roles
+
                     await _userManager.AddToRolesAsync(user, currentRoles);
                     return OperationResult<UserDto>.Failure($"Roller atanamadı: {errors}", ResultType.ValidationError);
                 }
@@ -607,6 +637,14 @@ namespace Application.Services.Implementations
                 _logger.LogWarning(ex, "User validation failed during admin edit. UserId: {UserId}", dto.Id);
                 return OperationResult<UserDto>.Failure(ex.Message, ResultType.ValidationError);
             }
+        }
+
+        public async Task<IReadOnlyList<UserEmailLookupDto>> SearchUserEmailLookupAsync(string searchTerm, int take = 10, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Trim().Length < 2)
+                return [];
+
+            return await _manager.User.SearchEmailLookupAsync(searchTerm, take, trackChanges: false, ct);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿(function () {
     'use strict';
 
-    let cartItems = new Set(); // Sepetteki ürün ID'leri
+    let cartItems = new Set(); // Sepetteki ürün-varyant anahtarları
     let cartSyncInProgress = false;
     const CART_VERSION_KEY = 'cart_version';
 
@@ -20,6 +20,10 @@
             .filter(id => id && id.trim() !== '')
             .map(id => parseInt(id.trim()))
             .filter(id => !isNaN(id) && id > 0);
+    }
+
+    function getCartItemKey(productId, productVariantId) {
+        return `${productId}:${productVariantId}`;
     }
 
     async function postJSON(url, data) {
@@ -76,7 +80,7 @@
                 const cart = await response.json();
 
                 localStorage.setItem(CART_VERSION_KEY, cart.version);
-                cartItems = new Set(cart.lines.map(line => line.productId));
+                cartItems = new Set(cart.lines.map(line => getCartItemKey(line.productId, line.productVariantId)));
 
                 syncAllButtons();
 
@@ -94,7 +98,11 @@
             const productId = parseInt(btn.dataset.productId);
             const productVariantId = parseInt(btn.dataset.productVariantId);
 
-            if (cartItems.has(productId)) {
+            if (isNaN(productId) || isNaN(productVariantId)) {
+                return;
+            }
+
+            if (cartItems.has(getCartItemKey(productId, productVariantId))) {
                 convertToRemoveButton(btn, productId, productVariantId);
             }
         });
@@ -103,7 +111,11 @@
             const productId = parseInt(btn.dataset.productId);
             const productVariantId = parseInt(btn.dataset.productVariantId);
 
-            if (!cartItems.has(productId)) {
+            if (isNaN(productId) || isNaN(productVariantId)) {
+                return;
+            }
+
+            if (!cartItems.has(getCartItemKey(productId, productVariantId))) {
                 convertToAddButton(btn, productId, productVariantId);
             }
         });
@@ -116,7 +128,7 @@
 
             if (isSmall) {
                 cartActionDiv.innerHTML = `
-                <button type="button" class="remove-from-cart-btn w-full py-2 text-[0.6rem] border-none rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]" data-product-id="${productId}">
+                <button type="button" class="remove-from-cart-btn w-full py-2 text-[0.6rem] border-none rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]" data-product-id="${productId}" data-product-variant-id="${productVariantId}">
                     <span class="mr-1">Çıkar</span>
                     <i class="fas fa-trash-alt text-[10px]"></i>
                 </button>`;
@@ -143,7 +155,7 @@
 
             if (isSmall) {
                 cartActionDiv.innerHTML = `
-                <button type="button" class="add-to-cart-btn w-full py-2 text-[0.6rem] border-none rounded-xl bg-button text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]" data-product-id="${productId}">
+                <button type="button" class="add-to-cart-btn w-full py-2 text-[0.6rem] border-none rounded-xl bg-button text-white font-bold flex items-center justify-center gap-1 transition-all shadow-md uppercase cursor-pointer hover:scale-[1.02]" data-product-id="${productId}" data-product-variant-id="${productVariantId}">
                     <span class="mr-1">Ekle</span>
                     <i class="fas fa-cart-plus text-[10px]"></i>
                 </button>`;
@@ -374,8 +386,6 @@
         if (button.classList.contains('processing')) return;
         button.classList.add('processing');
 
-        updateCounter('cart-summary', +1);
-
         try {
             const data = {
                 productId: productId,
@@ -386,9 +396,12 @@
             const response = await postJSON('/api/cart/items', data);
 
             if (response.success) {
-                cartItems.add(productId);
+                cartItems.add(getCartItemKey(productId, productVariantId));
 
                 convertToRemoveButton(button, productId, productVariantId);
+                if (response.cart && Array.isArray(response.cart.lines)) {
+                    updateCartCounter(response.cart.lines.length);
+                }
 
                 showToast(response.message, response.type);
             } else {
@@ -396,7 +409,6 @@
             }
         } catch (error) {
             console.error('Sepete ekleme hatası:', error);
-            updateCounter('cart-summary', -1);
             showToast('Sepete eklenirken bir hata oluştu.', 'danger');
         } finally {
             button.classList.remove('processing');
@@ -416,15 +428,16 @@
         if (button.classList.contains('processing')) return;
         button.classList.add('processing');
 
-        updateCounter('cart-summary', -1);
-
         try {
             const response = await deleteJSON('/api/cart/items/' + productId + '/variants/' + productVariantId);
 
             if (response.success) {
-                cartItems.delete(productId);
+                cartItems.delete(getCartItemKey(productId, productVariantId));
 
                 convertToAddButton(button, productId, productVariantId);
+                if (response.cart && Array.isArray(response.cart.lines)) {
+                    updateCartCounter(response.cart.lines.length);
+                }
 
                 showToast(response.message, response.type);
             } else {
@@ -432,7 +445,6 @@
             }
         } catch (error) {
             console.error('Sepetten kaldırma hatası:', error);
-            updateCounter('cart-summary', +1);
             showToast('Sepetten çıkarılırken bir hata oluştu.', 'danger');
         } finally {
             button.classList.remove('processing');

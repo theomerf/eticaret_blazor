@@ -92,7 +92,7 @@ namespace Application.Services.Implementations
         public OperationResult DeleteMultipleAsync(List<string> storageKeys)
         {
             if (storageKeys.Count == 0)
-                return OperationResult.Failure("Geçerisz dosya yolları.", ResultType.ValidationError);
+                return OperationResult.Failure("Geçersiz dosya yolları.", ResultType.ValidationError);
 
             foreach (var storageKey in storageKeys)
             {

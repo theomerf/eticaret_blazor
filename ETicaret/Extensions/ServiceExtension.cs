@@ -132,6 +132,9 @@ namespace ETicaret.Extensions
             services.AddScoped<ISecurityLogService, SecurityLogManager>();
             services.AddScoped<IFileService, FileManager>();
             services.AddScoped<IEmailService, EmailManager>();
+            services.AddScoped<IEmailQueueService, EmailQueueService>();
+            services.AddScoped<INotificationQueueService, NotificationQueueService>();
+            services.AddScoped<IActivityQueueService, ActivityQueueService>();
             services.AddScoped<ICaptchaService, CaptchaManager>();
             services.AddSingleton<IHtmlSanitizerService, HtmlSanitizerManager>();
             services.AddHttpClient();

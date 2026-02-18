@@ -1,0 +1,900 @@
+
+@page "/admin/notifications"
+@attribute [Authorize(Roles = "Admin")]
+@using Application.DTOs
+@using Application.Queries.RequestParameters
+@using ETicaret.Extensions
+@using ETicaret.Models
+@using Domain.Entities
+@using NotificationTypeEntity = Domain.Entities.NotificationType
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
+@inherits OwningComponentBase<INotificationService>
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@layout AdminLayout
+@implements IDisposable
+
+<div class="flex flex-col">
+    <div class="hidden lg:grid lg:grid-cols-5 gap-x-2">
+        <div class="col-span-1 grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                <div class="w-10 h-10 rounded-full bg-blue-50 text-secondary flex items-center justify-center mb-2"><i class="fas fa-clipboard-list"></i></div>
+                <div class="text-xs text-gray-500 font-medium">Toplam</div>
+                @if (isLoading)
+                {
+                    <div class="flex items-center mt-2"><div class="w-5 h-5 border-4 border-gray-200 border-t-transparent rounded-full animate-spin"></div></div>
+                }
+                else
+                {
+                    <div class="text-lg font-bold text-gray-800">@model.TotalCount</div>
+                }
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2"><i class="fas fa-hourglass-half"></i></div>
+                <div class="text-xs text-gray-500 font-medium">Bekleyen</div>
+                @if (isLoading)
+                {
+                    <div class="flex items-center mt-2"><div class="w-5 h-5 border-4 border-gray-200 border-t-transparent rounded-full animate-spin"></div></div>
+                }
+                else
+                {
+                    <div class="text-lg font-bold text-gray-800">@pendingCount</div>
+                }
+            </div>
+        </div>
+
+        <div class="lg:col-span-4 lg:flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div>
+                <div id="notifications-list-top"></div>
+                <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-secondary flex items-center justify-center text-lg"><i class="fas fa-bell"></i></div>
+                    Bildirim Yönetimi
+                </h1>
+                <p class="text-gray-500 text-sm mt-1 ml-[52px]">Admin bildirimlerini görüntüleyin, filtreleyin ve yönetin.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                @if (!isLoading)
+                {
+                    <button @onclick="OpenCreateModal" class="bg-button hover:bg-button-hover text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Yeni Bildirim
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (!isLoading)
+    {
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 p-5">
+            <div class="flex flex-col md:flex-row gap-4 items-end justify-between">
+                <div class="flex flex-col md:flex-row gap-4 flex-1">
+                    <div class="w-full md:w-56">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Tip</label>
+                        <select @bind="model.FilterParams.NotificationType" class="block w-full h-11 rounded-lg border-gray-300 bg-gray-50 text-gray-900 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="">Tümü</option>
+                            @foreach (var type in Enum.GetValues<NotificationTypeEntity>())
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-56">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">İletim</label>
+                        <select value="@GetBoolFilterValue(model.FilterParams.IsSent)" @onchange="OnIsSentFilterChange" class="block w-full h-11 rounded-lg border-gray-300 bg-gray-50 text-gray-900 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="">Tümü</option>
+                            <option value="true">İletildi</option>
+                            <option value="false">Bekliyor</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button @onclick="ApplyFilters" class="flex-1 md:flex-none h-11 bg-button hover:bg-button-hover text-white font-medium px-6 rounded-lg transition-all hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2"><i class="fas fa-filter"></i> Filtrele</button>
+                    <button @onclick="ClearFilters" class="flex-1 md:flex-none h-11 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 rounded-lg transition-all hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2"><i class="fas fa-times"></i> Temizle</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="flex justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="flex flex-col items-center gap-3">
+                <div class="w-10 h-10 border-4 border-gray-200 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-gray-500 font-medium">Yükleniyor...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <AdminTable TItem="NotificationAdminGroupDto" Items="model.Notifications" Pagination="model.Pagination" OnPageChange="HandlePageChange" PageSize="@(model.FilterParams.PageSize)" OnPageSizeChange="HandlePageSizeChange">
+            <ToolbarContent>
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="relative flex-1 sm:max-w-md">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-search text-gray-400"></i></div>
+                        <input type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition duration-150 ease-in-out" placeholder="Başlık, açıklama veya e-posta ara..." value="@searchTerm" @oninput="OnSearchInput" @onkeydown="HandleSearchKeyDown">
+                    </div>
+
+                    <div class="hidden lg:flex items-center gap-2">
+                        <label for="notificationSortOptions" class="text-sm font-medium text-gray-700 whitespace-nowrap"><i class="fa-solid fa-sort mr-1 text-gray-400"></i>Sırala:</label>
+                        <select id="notificationSortOptions" class="block w-auto pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" value="@model.FilterParams.SortBy" @onchange="HandleSortChange">
+                            <option value="date_desc">En Yeni</option>
+                            <option value="date_asc">En Eski</option>
+                            <option value="schedule_asc">Planlı Yakın</option>
+                            <option value="schedule_desc">Planlı Uzak</option>
+                            <option value="status_desc">İletim Durumu</option>
+                        </select>
+                    </div>
+                </div>
+            </ToolbarContent>
+
+            <HeaderTemplate>
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bildirim</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Alıcılar</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">İletim</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kalan Süre</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlem</th>
+                </tr>
+            </HeaderTemplate>
+
+            <RowTemplate Context="n">
+                <td class="px-4 py-3">
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate" title="@n.Title">@TruncateText(n.Title, 56)</p>
+                        <p class="text-xs text-gray-500 truncate" title="@n.Description">@TruncateText(n.Description, 84)</p>
+                        <p class="text-xs text-gray-400 mt-1">@n.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+                    </div>
+                </td>
+
+                <td class="px-4 py-3 hidden md:table-cell">
+                    @if (n.SentToAllActiveUsers)
+                    {
+                        <span class="text-sm text-emerald-700 font-medium">Tüm aktif kullanıcılar</span>
+                    }
+                    else
+                    {
+                        <span class="text-sm text-gray-700 font-medium">@n.RecipientCount alıcı</span>
+                    }
+                </td>
+
+                <td class="px-4 py-3"><span class="px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full @GetStatusBadge(n)">@GetStatusText(n)</span></td>
+                <td class="px-4 py-3">
+                    <div data-tooltip="@($"{GetProgressPercent(n)}% tamamlandı")" class="tooltip">
+                        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="h-2 rounded-full @GetProgressClass(n)" style="@GetProgressWidthStyle(n)"></div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-600 mt-1">@GetRemainingText(n)</div>
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <button @onclick="() => OpenDetailModal(n)" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors font-medium text-xs">
+                        <i class="fas fa-eye"></i> Detaylar
+                    </button>
+                </td>
+            </RowTemplate>
+        </AdminTable>
+    }
+</div>
+@if (showDetailModal && selectedGroup != null)
+{
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" @onclick="CloseDetailModal">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden" @onclick:stopPropagation>
+            <div class="px-6 py-4 border-b border-primary/80 bg-primary flex items-center justify-between shrink-0">
+                <h3 class="text-lg font-bold text-white">Bildirim Detayı</h3>
+                <button @onclick="CloseDetailModal" class="p-1.5 rounded-lg hover:bg-white/10 text-white/90"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-3 overflow-y-auto overflow-x-hidden">
+                <div class="rounded-xl border border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50 p-4 space-y-3">
+                    <div>
+                        <div class="text-xs text-gray-500 font-semibold mb-1">Başlık</div>
+                        <div class="text-sm font-semibold text-gray-800">@selectedGroup.Title</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500 font-semibold mb-1">İçerik</div>
+                        <div class="text-sm text-gray-700 leading-6">@selectedGroup.Description</div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1">
+                        <div class="rounded-lg bg-white border border-gray-100 p-2.5">
+                            <div class="text-[11px] text-gray-500">Durum</div>
+                            <div class="text-xs font-semibold text-gray-700 mt-0.5">@GetStatusText(selectedGroup)</div>
+                        </div>
+                        <div class="rounded-lg bg-white border border-gray-100 p-2.5">
+                            <div class="text-[11px] text-gray-500">Oluşturulma</div>
+                            <div class="text-xs font-semibold text-gray-700 mt-0.5">@selectedGroup.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                        </div>
+                        <div class="rounded-lg bg-white border border-gray-100 p-2.5">
+                            <div class="text-[11px] text-gray-500">Planlı</div>
+                            <div class="text-xs font-semibold text-gray-700 mt-0.5">@GetScheduledText(selectedGroup)</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (selectedGroup.SentToAllActiveUsers)
+                {
+                    <div class="mt-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm border border-emerald-100">Gönderilen kişiler: Tüm aktif kullanıcılar</div>
+                }
+                else
+                {
+                    <div class="mt-4">
+                        <div class="text-xs font-semibold text-gray-500 mb-2">Gönderilen E-postalar</div>
+                        @if (isDetailLoading)
+                        {
+                            <div class="text-sm text-gray-500">Yükleniyor...</div>
+                        }
+                        else if (groupRecipients.Any())
+                        {
+                            <div class="grid grid-cols-1 gap-2">
+                                @foreach (var r in groupRecipients)
+                                {
+                                    <div class="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2 min-w-0">
+                                        <span class="text-xs text-gray-700 truncate min-w-0 flex-1">@r.Email</span>
+                                        <div class="flex items-center gap-1.5 shrink-0">
+                                            <span data-tooltip="Bildirim kullanıcıya iletildi mi?" class="tooltip tooltip-modal-fit px-2 py-0.5 rounded-full text-[11px] font-semibold @(r.IsSent ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200")">
+                                                @(r.IsSent ? "İletildi" : "Bekliyor")
+                                            </span>
+                                            <span data-tooltip="Kullanıcı bildirimi okudu mu?" class="tooltip tooltip-modal-fit px-2 py-0.5 rounded-full text-[11px] font-semibold @(r.IsRead ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-gray-50 text-gray-700 border border-gray-200")">
+                                                @(r.IsRead ? "Okundu" : "Okunmadı")
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-sm text-gray-500">Alıcı bulunamadı.</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@if (showCreateModal)
+{
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" @onclick="CloseCreateModal">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" @onclick:stopPropagation>
+            <div class="px-6 py-4 border-b border-primary/80 bg-primary flex items-center justify-between sticky top-0">
+                <h3 class="text-lg font-bold text-white">Yeni Bildirim</h3>
+                <button @onclick="CloseCreateModal" class="p-1.5 rounded-lg hover:bg-white/10 text-white/90"><i class="fas fa-times"></i></button>
+            </div>
+
+            <EditForm EditContext="createEditContext" OnSubmit="HandleCreateSubmit" class="p-6 space-y-4">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-red-500 text-xs" />
+
+                <div class="flex items-center gap-3">
+                    <input id="sendToAll" type="checkbox" checked="@createModel.SendToAllUsers" @onchange="OnSendToAllChanged" class="rounded border-gray-300 text-primary" />
+                    <label for="sendToAll" class="text-sm font-medium text-gray-700">Herkese gönder</label>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input id="sendImmediately" type="checkbox" checked="@sendImmediately" @onchange="OnSendImmediatelyChanged" class="rounded border-gray-300 text-primary" />
+                    <label for="sendImmediately" class="text-sm font-medium text-gray-700">Direkt gönder (planlama kapalı)</label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bildirim Tipi</label>
+                        <InputSelect @bind-Value="createModel.NotificationType" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            @foreach (var type in Enum.GetValues<NotificationTypeEntity>())
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    @if (!sendImmediately)
+                    {
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Planlı İletim</label>
+                            <input type="datetime-local" value="@scheduledForLocal" @onchange="OnScheduledForChanged" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                        </div>
+                    }
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Batch Boyutu</label>
+                        <InputNumber @bind-Value="createModel.BatchSize" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Başlık</label>
+                    <InputText @bind-Value="createModel.Title" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                    <InputTextArea @bind-Value="createModel.Description" rows="4" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                </div>
+
+                @if (!createModel.SendToAllUsers)
+                {
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <div class="text-sm font-semibold text-gray-800">Alıcı Ekle (e-posta ile)</div>
+                        <input type="text" value="@recipientSearchText" @oninput="OnRecipientSearchInput" placeholder="En az 2 karakter ile e-posta ara" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+
+                        @if (isSuggestionLoading)
+                        {
+                            <div class="text-xs text-gray-500">Öneriler yükleniyor...</div>
+                        }
+                        else if (suggestions.Any())
+                        {
+                            <div class="max-h-36 overflow-y-auto border border-gray-100 rounded-lg p-2 space-y-1">
+                                @foreach (var s in suggestions)
+                                {
+                                    <button type="button" @onclick="() => AddRecipient(s)" class="w-full text-left p-2 rounded-lg hover:bg-gray-50 text-sm text-gray-700">@s.Email</button>
+                                }
+                            </div>
+                        }
+
+                        <div class="flex flex-wrap gap-2">
+                            @if (selectedRecipients.Any())
+                            {
+                                @foreach (var r in selectedRecipients.Values)
+                                {
+                                    <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs">
+                                        @r.Email
+                                        <button type="button" @onclick="() => RemoveRecipient(r.Id)" class="text-blue-700"><i class="fas fa-times"></i></button>
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-xs text-gray-500">Henüz alıcı eklenmedi.</span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @onclick="CloseCreateModal" class="px-4 py-2 rounded-lg border border-gray-300 text-sm">Vazgeç</button>
+                    <button type="submit" disabled="@isSaving" class="px-4 py-2 rounded-lg bg-button text-white text-sm disabled:opacity-50">Kuyruğa Al</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div id="loadingOverlay"
+     class="fixed inset-0 bg-black/30 z-[9999] flex justify-center items-center backdrop-blur-sm transition-opacity duration-300 @(showLoadingOverlay ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")">
+    <div class="bg-white rounded-2xl p-6 text-center shadow-2xl transform transition-transform duration-300 @(showLoadingOverlay ? "scale-100" : "scale-95")">
+        <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <div class="text-gray-800 font-semibold">Filtreler uygulanıyor...</div>
+    </div>
+</div>
+@code {
+    private IUserService? _userService;
+
+    private NotificationListViewModelAdmin model = new();
+    private NotificationRequestParametersAdmin _lastParams = new();
+
+    private Timer? _debounceTimer;
+    private Timer? _recipientDebounceTimer;
+    private Timer? _liveUpdateTimer;
+    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _recipientCts;
+    private CancellationTokenSource? _postCreateRefreshCts;
+    private DateTime? _nextScheduledReloadAtUtc;
+    private bool _isLiveRefreshRunning;
+
+    private bool isLoading = true;
+    private bool showLoadingOverlay = false;
+    private bool isSaving;
+    private bool isSuggestionLoading;
+    private bool isDetailLoading;
+
+    private int sentCount;
+    private int pendingCount;
+    private string searchTerm = string.Empty;
+
+    private bool showCreateModal;
+    private NotificationDtoForBulkCreation createModel = BuildCreateModel();
+    private EditContext? createEditContext;
+    private string scheduledForLocal = string.Empty;
+    private bool sendImmediately = true;
+    private string recipientSearchText = string.Empty;
+    private List<UserEmailLookupDto> suggestions = [];
+    private Dictionary<string, UserEmailLookupDto> selectedRecipients = [];
+
+    private bool showDetailModal;
+    private NotificationAdminGroupDto? selectedGroup;
+    private List<NotificationRecipientDto> groupRecipients = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userService = ScopedServices.GetRequiredService<IUserService>();
+
+        model.FilterParams = Navigation.BindFromQuery<NotificationRequestParametersAdmin>();
+        if (string.IsNullOrWhiteSpace(model.FilterParams.SortBy))
+            model.FilterParams.SortBy = "date_desc";
+
+        searchTerm = model.FilterParams.SearchTerm ?? string.Empty;
+
+        _cts = new CancellationTokenSource();
+        await LoadNotifications(_cts.Token);
+        StartLiveUpdateTimer();
+
+        isLoading = false;
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var newParams = Navigation.BindFromQuery<NotificationRequestParametersAdmin>();
+
+        if (_lastParams != null && _lastParams.Equals(newParams))
+            return;
+
+        _lastParams = newParams with { };
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        await InvokeAsync(async () =>
+        {
+            showLoadingOverlay = true;
+            StateHasChanged();
+
+            model.FilterParams = newParams;
+            if (string.IsNullOrWhiteSpace(model.FilterParams.SortBy))
+                model.FilterParams.SortBy = "date_desc";
+
+            searchTerm = model.FilterParams.SearchTerm ?? string.Empty;
+
+            await LoadNotifications(token);
+
+            if (token.IsCancellationRequested)
+                return;
+
+            showLoadingOverlay = false;
+            StateHasChanged();
+            await JSRuntime.InvokeVoidAsync("scrollToElement", "notifications-list-top");
+        });
+    }
+
+    private async Task LoadNotifications(CancellationToken ct)
+    {
+        if (model.FilterParams.PageSize == 0)
+            model.FilterParams.PageSize = 10;
+
+        var result = await Service.GetAllAdminAsync(model.FilterParams, ct);
+
+        model = new NotificationListViewModelAdmin
+        {
+            Notifications = result.notifications,
+            Pagination = new Pagination
+            {
+                CurrentPage = model.FilterParams.PageNumber,
+                ItemsPerPage = model.FilterParams.PageSize,
+                TotalItems = result.count
+            },
+            TotalCount = result.count,
+            FilterParams = model.FilterParams
+        };
+
+        sentCount = result.sentCount;
+        pendingCount = result.pendingCount;
+        RecalculateNextScheduledReloadAtUtc();
+    }
+
+    private void UpdateUrl()
+    {
+        var url = model.FilterParams.ToQueryString("/admin/notifications");
+        Navigation.NavigateTo(url!);
+    }
+
+    private async Task ApplyFilters()
+    {
+        model.FilterParams = model.FilterParams with { PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task ClearFilters()
+    {
+        model.FilterParams = new NotificationRequestParametersAdmin { SortBy = "date_desc" };
+        searchTerm = string.Empty;
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSortChange(ChangeEventArgs e)
+    {
+        model.FilterParams = model.FilterParams with { SortBy = e.Value?.ToString(), PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageChange(int page)
+    {
+        model.FilterParams = model.FilterParams with { PageNumber = page };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageSizeChange(int size)
+    {
+        model.FilterParams = model.FilterParams with { PageSize = size, PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(async _ =>
+        {
+            await InvokeAsync(() =>
+            {
+                model.FilterParams = model.FilterParams with { SearchTerm = searchTerm, PageNumber = 1 };
+                UpdateUrl();
+            });
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter")
+            return;
+
+        model.FilterParams = model.FilterParams with { PageNumber = 1 };
+        UpdateUrl();
+        await Task.CompletedTask;
+    }
+
+    private static string GetBoolFilterValue(bool? value)
+        => value.HasValue ? value.Value.ToString().ToLower() : string.Empty;
+
+    private void OnIsSentFilterChange(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        model.FilterParams = model.FilterParams with
+        {
+            IsSent = string.IsNullOrWhiteSpace(value) ? null : bool.Parse(value)
+        };
+    }
+
+    private void OpenCreateModal()
+    {
+        createModel = BuildCreateModel();
+        createEditContext = new EditContext(createModel);
+        scheduledForLocal = string.Empty;
+        sendImmediately = true;
+        recipientSearchText = string.Empty;
+        suggestions = [];
+        selectedRecipients = [];
+        showCreateModal = true;
+    }
+
+    private async Task HandleCreateSubmit(EditContext _)
+    {
+        SyncSelectedRecipientsToModel();
+        createModel.ScheduledFor = sendImmediately ? null : ParseScheduledUtc(scheduledForLocal);
+
+        if (createEditContext is null)
+            return;
+
+        if (!createEditContext.Validate())
+            return;
+
+        isSaving = true;
+        var result = await Service.CreateBulkNotificationAsync(createModel);
+        isSaving = false;
+
+        await JSRuntime.InvokeVoidAsync("showToast", result.Message, result.IsSuccess ? "success" : "error");
+        if (result.IsSuccess)
+        {
+            await CloseCreateModal();
+            await ReloadList();
+            StartPostCreateRefreshLoop();
+        }
+    }
+
+    private async Task ReloadList()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        await LoadNotifications(_cts.Token);
+        StateHasChanged();
+    }
+
+    private void StartPostCreateRefreshLoop()
+    {
+        _postCreateRefreshCts?.Cancel();
+        _postCreateRefreshCts?.Dispose();
+        _postCreateRefreshCts = new CancellationTokenSource();
+        var token = _postCreateRefreshCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            for (var i = 0; i < 6; i++)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), token);
+                    if (token.IsCancellationRequested)
+                        break;
+
+                    await InvokeAsync(async () => await ReloadList());
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
+        }, token);
+    }
+
+    private Task CloseCreateModal()
+    {
+        showCreateModal = false;
+        return Task.CompletedTask;
+    }
+
+    private void OnSendToAllChanged(ChangeEventArgs e)
+    {
+        createModel.SendToAllUsers = (bool?)e.Value == true;
+        if (createModel.SendToAllUsers)
+            createModel.UserIds = [];
+        else
+            SyncSelectedRecipientsToModel();
+
+        NotifyUserIdsChanged();
+    }
+
+    private async Task OnRecipientSearchInput(ChangeEventArgs e)
+    {
+        recipientSearchText = e.Value?.ToString() ?? string.Empty;
+        _recipientDebounceTimer?.Dispose();
+
+        if (recipientSearchText.Trim().Length < 2)
+        {
+            suggestions = [];
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _recipientDebounceTimer = new Timer(async _ => await SearchSuggestionsAsync(), null, 350, Timeout.Infinite);
+    }
+
+    private async Task SearchSuggestionsAsync()
+    {
+        if (_userService == null)
+            return;
+
+        _recipientCts?.Cancel();
+        _recipientCts?.Dispose();
+        _recipientCts = new CancellationTokenSource();
+
+        try
+        {
+            isSuggestionLoading = true;
+            await InvokeAsync(StateHasChanged);
+
+            var result = await _userService.SearchUserEmailLookupAsync(recipientSearchText, 10, _recipientCts.Token);
+            suggestions = result.Where(x => !selectedRecipients.ContainsKey(x.Id)).ToList();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            isSuggestionLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void AddRecipient(UserEmailLookupDto user)
+    {
+        if (!selectedRecipients.ContainsKey(user.Id))
+            selectedRecipients[user.Id] = user;
+
+        recipientSearchText = string.Empty;
+        suggestions = [];
+        SyncSelectedRecipientsToModel();
+        NotifyUserIdsChanged();
+    }
+
+    private void RemoveRecipient(string userId)
+    {
+        selectedRecipients.Remove(userId);
+        SyncSelectedRecipientsToModel();
+        NotifyUserIdsChanged();
+    }
+
+    private void SyncSelectedRecipientsToModel()
+    {
+        createModel.UserIds = createModel.SendToAllUsers ? [] : selectedRecipients.Keys.ToList();
+    }
+
+    private void NotifyUserIdsChanged()
+    {
+        createEditContext?.NotifyFieldChanged(new FieldIdentifier(createModel, nameof(NotificationDtoForBulkCreation.UserIds)));
+    }
+
+    private async Task OpenDetailModal(NotificationAdminGroupDto group)
+    {
+        selectedGroup = group;
+        showDetailModal = true;
+        groupRecipients = [];
+
+        if (group.SentToAllActiveUsers)
+            return;
+
+        isDetailLoading = true;
+        groupRecipients = (await Service.GetGroupRecipientsAsync(group.GroupId, 300)).ToList();
+        isDetailLoading = false;
+    }
+
+    private Task CloseDetailModal()
+    {
+        showDetailModal = false;
+        selectedGroup = null;
+        groupRecipients = [];
+        return Task.CompletedTask;
+    }
+
+    private void OnScheduledForChanged(ChangeEventArgs e)
+    {
+        scheduledForLocal = e.Value?.ToString() ?? string.Empty;
+    }
+
+    private void OnSendImmediatelyChanged(ChangeEventArgs e)
+    {
+        sendImmediately = (bool?)e.Value == true;
+        if (sendImmediately)
+            scheduledForLocal = string.Empty;
+    }
+
+    private static NotificationDtoForBulkCreation BuildCreateModel() => new()
+    {
+        NotificationType = NotificationTypeEntity.System,
+        Title = string.Empty,
+        Description = string.Empty,
+        UserIds = [],
+        BatchSize = 1000
+    };
+
+    private static DateTime? ParseScheduledUtc(string? scheduledLocal)
+    {
+        if (string.IsNullOrWhiteSpace(scheduledLocal)) return null;
+        if (!DateTime.TryParse(scheduledLocal, out var parsedLocal)) return null;
+        return DateTime.SpecifyKind(parsedLocal, DateTimeKind.Local).ToUniversalTime();
+    }
+
+    private void StartLiveUpdateTimer()
+    {
+        _liveUpdateTimer?.Dispose();
+        _liveUpdateTimer = new Timer(async _ => await HandleLiveUpdateTickAsync(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task HandleLiveUpdateTickAsync()
+    {
+        try
+        {
+            if (_isLiveRefreshRunning)
+                return;
+
+            var nowUtc = DateTime.UtcNow;
+            var shouldReload = _nextScheduledReloadAtUtc.HasValue && nowUtc >= _nextScheduledReloadAtUtc.Value;
+
+            if (shouldReload)
+            {
+                _isLiveRefreshRunning = true;
+                await InvokeAsync(async () =>
+                {
+                    await ReloadList();
+                });
+            }
+            else
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        finally
+        {
+            _isLiveRefreshRunning = false;
+        }
+    }
+
+    private void RecalculateNextScheduledReloadAtUtc()
+    {
+        _nextScheduledReloadAtUtc = model.Notifications
+            .Where(n => !n.IsSent && n.ScheduledFor.HasValue && n.ScheduledFor.Value > DateTime.UtcNow)
+            .Select(n => n.ScheduledFor!.Value)
+            .OrderBy(d => d)
+            .FirstOrDefault();
+
+        if (_nextScheduledReloadAtUtc == default)
+            _nextScheduledReloadAtUtc = null;
+    }
+
+    private static string GetStatusText(NotificationAdminGroupDto n)
+    {
+        if (n.IsSent) return "İletildi";
+        if (n.ScheduledFor.HasValue && n.ScheduledFor.Value > DateTime.UtcNow)
+            return $"Zamanlandı ({n.ScheduledFor.Value.ToLocalTime():dd.MM.yyyy HH:mm})";
+        if (n.ScheduledFor.HasValue) return "Gönderim Bekliyor";
+        return "Kuyrukta";
+    }
+
+    private static string GetStatusBadge(NotificationAdminGroupDto n)
+    {
+        if (n.IsSent) return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+        if (n.ScheduledFor.HasValue && n.ScheduledFor.Value > DateTime.UtcNow) return "bg-blue-50 text-blue-700 border border-blue-200";
+        if (n.ScheduledFor.HasValue) return "bg-amber-50 text-amber-700 border border-amber-200";
+        return "bg-gray-50 text-gray-700 border border-gray-200";
+    }
+
+    private static int GetProgressPercent(NotificationAdminGroupDto n)
+    {
+        if (n.IsSent || !n.ScheduledFor.HasValue) return 100;
+        var total = (n.ScheduledFor.Value - n.CreatedAt).TotalSeconds;
+        if (total <= 0) return 100;
+        var elapsed = (DateTime.UtcNow - n.CreatedAt).TotalSeconds;
+        return Math.Clamp((int)Math.Round((elapsed / total) * 100), 0, 100);
+    }
+
+    private static string GetProgressClass(NotificationAdminGroupDto n)
+    {
+        if (n.IsSent) return "bg-emerald-500";
+        if (n.ScheduledFor.HasValue && n.ScheduledFor.Value <= DateTime.UtcNow) return "bg-amber-500";
+        return "bg-blue-500";
+    }
+
+    private static string GetProgressWidthStyle(NotificationAdminGroupDto n)
+    {
+        return $"width: {GetProgressPercent(n)}%;";
+    }
+
+    private static string GetRemainingText(NotificationAdminGroupDto n)
+    {
+        if (n.IsSent) return "Tamamlandı";
+        if (!n.ScheduledFor.HasValue) return "Anlık gönderim kuyruğunda";
+        var r = n.ScheduledFor.Value - DateTime.UtcNow;
+        if (r <= TimeSpan.Zero) return "Planlanan zaman geçti, gönderim bekliyor";
+        if (r.TotalDays >= 1) return $"{(int)r.TotalDays} gün {r.Hours} saat kaldı";
+        if (r.TotalHours >= 1) return $"{(int)r.TotalHours} saat {r.Minutes} dk kaldı";
+        return $"{Math.Max(1, r.Minutes)} dk kaldı";
+    }
+
+    private static string GetScheduledText(NotificationAdminGroupDto n)
+    {
+        return n.ScheduledFor.HasValue
+            ? n.ScheduledFor.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            : "Anlık";
+    }
+
+    private static string TruncateText(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        if (value.Length <= maxLength)
+            return value;
+
+        return value.Substring(0, maxLength).TrimEnd() + "...";
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        _debounceTimer?.Dispose();
+        _recipientDebounceTimer?.Dispose();
+        _liveUpdateTimer?.Dispose();
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _recipientCts?.Cancel();
+        _recipientCts?.Dispose();
+        _postCreateRefreshCts?.Cancel();
+        _postCreateRefreshCts?.Dispose();
+    }
+}

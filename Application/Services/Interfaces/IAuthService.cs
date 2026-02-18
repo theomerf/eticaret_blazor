@@ -9,7 +9,7 @@ namespace Application.Services.Interfaces
     {
         Task<AuthResult> AuthenticateAsync(AuthRequest authenticateDto);
         Task<IList<Claim>> BuildClaimsAsync(string userId);
-        Task<RegisterResult> RegisterAsync(RegisterRequest register);
+        Task<RegisterResult> RegisterAsync(RegisterRequest register, CancellationToken ct = default);
         Task<ConfirmEmailResult> ConfirmEmailAsync(string userId, string token);
         Task LogoutAsync(string userId, string userName);
 

@@ -1,0 +1,19 @@
+using Domain.Entities;
+
+namespace Application.DTOs
+{
+    public record NotificationAdminDto
+    {
+        public int NotificationId { get; set; }
+        public NotificationType NotificationType { get; set; }
+        public string Title { get; set; } = null!;
+        public string Description { get; set; } = null!;
+        public bool IsRead { get; set; }
+        public bool IsSent { get; set; }
+        public DateTime? ScheduledFor { get; set; }
+        public string UserId { get; set; } = null!;
+        public string? UserEmail { get; set; }
+        public string? CreatedByUserId { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

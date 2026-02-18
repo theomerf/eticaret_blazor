@@ -155,6 +155,19 @@ namespace Infrastructure.Persistence.Repositories.Implementations
             return orders;
         }
 
+        public async Task<IReadOnlyList<Order>> GetPaymentPendingBeforeAsync(DateTime utcBefore, int take, bool trackChanges)
+        {
+            return await FindAllByCondition(
+                    o => o.PaymentStatus == PaymentStatus.Pending &&
+                         o.OrderStatus == OrderStatus.Pending &&
+                         o.OrderedAt <= utcBefore,
+                    trackChanges)
+                .Include(o => o.Lines)
+                .OrderBy(o => o.OrderedAt)
+                .Take(take)
+                .ToListAsync();
+        }
+
         public async Task<int> CountAsync()
         {
             var count = await CountAsync(false);

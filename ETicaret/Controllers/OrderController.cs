@@ -39,7 +39,10 @@ namespace ETicaret.Controllers
         }
 
         private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-        private string GetUserEmail() => User.FindFirstValue(ClaimTypes.Name) ?? "";
+        private string GetUserEmail() =>
+            User.FindFirstValue(ClaimTypes.Email) ??
+            User.FindFirstValue(ClaimTypes.Name) ??
+            "";
         private string GetIdentityNumber() => User.FindFirstValue("identity_number") ?? "";
 
         public async Task<IActionResult> Checkout()
@@ -167,6 +170,9 @@ namespace ETicaret.Controllers
                 {
                     _logger.LogError("Payment initiation failed. OrderId: {OrderId}, Error: {Error}",
                         orderId, paymentResult.Message);
+
+                    await _orderService.CancelAsync(orderId, "Ödeme başlatılamadı, sipariş otomatik iptal edildi.");
+
                     TempData["toastContent"] = "Ödeme başlatılamadı: " + paymentResult.Message;
                     TempData["toastType"] = "error";
 

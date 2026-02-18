@@ -39,6 +39,11 @@ namespace ETicaret.Controllers.Api
         public async Task<IActionResult> GetCartVersion()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "Oturum bulunamadı." });
+            }
+
             var version = await _cartService.GetVersionAsync(userId!);
 
             return Ok(new { version });
@@ -238,6 +243,11 @@ namespace ETicaret.Controllers.Api
             }
 
             var serviceResult = await _cartService.RemoveItemAsync(userId, productId, variantId);
+            if (!serviceResult.IsSuccess)
+            {
+                return BadRequest(new { success = false, message = serviceResult.Message, type = "danger" });
+            }
+
             var dbCart = await _cartService.GetByUserIdAsync(userId);
 
             SyncSessionCart(dbCart);

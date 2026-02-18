@@ -5,7 +5,7 @@
     var favouriteIds = ViewBag.FavouriteIds as List<int>;
 
     var cart = Context.RequestServices.GetRequiredService<Cart>();
-    var isInCart = cart?.Lines?.Any(l => l.ProductId == Model?.ProductId) ?? false;
+    var isInCart = cart?.Lines?.Any(l => l.ProductId == Model?.ProductId && l.ProductVariantId == Model?.DefaultVariantId) ?? false;
 }
 
 <div class="my-1 sm:my-2 md:my-3 px-0.5 sm:px-2.5 [perspective:1000px]">

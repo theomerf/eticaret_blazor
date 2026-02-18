@@ -14,12 +14,12 @@ namespace Application.Services.Interfaces
         Task<IEnumerable<UserReviewDto>> GetByProductIdAsync(int productId);
         Task<IEnumerable<UserReviewDto>> GetByUserIdAsync(string userId);
         Task<OperationResult<UserReviewDto>> CreateAsync(UserReviewDtoForCreation userReview);
-        Task<OperationResult<UserReviewDto>> ApproveAsync(int userReviewId);
-        Task<OperationResult<UserReviewDto>> UnapproveAsync(int userReviewId);
+        Task<OperationResult<UserReviewDto>> ApproveAsync(int userReviewId, CancellationToken ct = default);
+        Task<OperationResult<UserReviewDto>> UnapproveAsync(int userReviewId, CancellationToken ct = default);
         Task<OperationResult<UserReviewDto>> UpdateFeaturedStatusAsync(int userReviewId);
-        Task<OperationResult<UserReviewDto>> DeleteAsync(int userReviewId);
-        Task<OperationResult<UserReviewDto>> DeleteAdminAsync(int userReviewId);
-        Task<OperationResult<UserReviewDto>> UpdateAsync(UserReviewDtoForUpdate userReview);
+        Task<OperationResult<UserReviewDto>> DeleteAsync(int userReviewId, CancellationToken ct = default);
+        Task<OperationResult<UserReviewDto>> DeleteAdminAsync(int userReviewId, CancellationToken ct = default);
+        Task<OperationResult<UserReviewDto>> UpdateAsync(UserReviewDtoForUpdate userReview, CancellationToken ct = default);
         Task<OperationResult<(VoteType?, int, int)>> SetVoteAsync(int userReviewId, VoteType? desired, CancellationToken ct = default);
     }
 }

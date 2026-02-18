@@ -1,5 +1,4 @@
 using Application.Common.Exceptions;
-using Application.Common.Models;
 using Application.DTOs;
 using Application.Queries.RequestParameters;
 using Application.Repositories.Interfaces;
@@ -61,7 +60,7 @@ namespace Application.Services.Implementations
                 "campaigns:activeCount",
                 async token =>
                 {
-                    return await _manager.Coupon.CountOfActiveAsync(token);
+                    return await _manager.Campaign.CountOfActiveAsync(token);
                 },
                 absoluteExpiration: TimeSpan.FromMinutes(5),
                 slidingExpiration: TimeSpan.FromMinutes(2),
@@ -220,7 +219,7 @@ namespace Application.Services.Implementations
                     "Campaign updated successfully. CampaignId: {CampaignId}, User: {UserId}",
                     campaign.CampaignId, userId);
 
-                await _cache.RemoveByPrefixAsync("userReviews:");
+                await _cache.RemoveByPrefixAsync("campaigns:");
                 return OperationResult<CampaignDto>.Success("Kampanya başarıyla güncellendi.");
             }
             catch (CampaignValidationException ex)
@@ -256,7 +255,7 @@ namespace Application.Services.Implementations
                 "Campaign soft deleted. CampaignId: {CampaignId}, User: {UserId}",
                 campaignId, userId);
 
-            await _cache.RemoveByPrefixAsync("userReviews:");
+            await _cache.RemoveByPrefixAsync("campaigns:");
             return OperationResult<CampaignDto>.Success("Kampanya başarıyla silindi.");
         }
 
@@ -291,7 +290,7 @@ namespace Application.Services.Implementations
                 "Campaign activated. CampaignId: {CampaignId}, User: {UserId}",
                 campaignId, userId);
 
-            await _cache.RemoveByPrefixAsync("userReviews:");
+            await _cache.RemoveByPrefixAsync("campaigns:");
             return OperationResult<CampaignDto>.Success("Kampanya aktif edildi.");
         }
 
@@ -326,7 +325,7 @@ namespace Application.Services.Implementations
                 "Campaign deactivated. CampaignId: {CampaignId}, User: {UserId}",
                 campaignId, userId);
 
-            await _cache.RemoveByPrefixAsync("userReviews:");
+            await _cache.RemoveByPrefixAsync("campaigns:");
             return OperationResult<CampaignDto>.Success("Kampanya deaktif edildi.");
         }
 

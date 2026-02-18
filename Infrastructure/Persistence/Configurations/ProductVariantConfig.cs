@@ -43,6 +43,10 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(v => v.Sku)
                 .HasMaxLength(50);
 
+            builder.Property(v => v.RowVersion)
+                .IsRowVersion()
+                .HasColumnName("xmin");
+
             builder.Ignore(p => p.Discount);
             
             builder.HasQueryFilter(v => !v.IsDeleted);

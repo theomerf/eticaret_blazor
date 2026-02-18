@@ -24,6 +24,7 @@ namespace Domain.Entities
         public int Stock { get; set; }
         public string? Gtin { get; set; }
         public string? Sku { get; set; }
+        public uint RowVersion { get; private set; }
         
         public bool IsActive { get; set; } = true;
         public bool IsDefault { get; set; } = false;

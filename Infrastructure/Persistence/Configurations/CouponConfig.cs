@@ -24,6 +24,10 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(c => c.MaxDiscountAmount)
                 .HasPrecision(18, 2);
 
+            builder.Property(c => c.RowVersion)
+                .IsRowVersion()
+                .HasColumnName("xmin");
+
             builder.Property(c => c.DeletedByUserId)
                 .HasMaxLength(450);
 

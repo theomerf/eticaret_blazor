@@ -80,7 +80,7 @@
                             <CartItem Line="@line"
                                       OnQuantityIncrease="async () => await HandleQuantityIncrease(line)"
                                       OnQuantityDecrease="async () => await HandleQuantityDecrease(line)"
-                                      OnRemove="async () => await HandleRemoveItem(line)" IsUpdating="@IsLineUpdating(line.ProductId)" />
+                                      OnRemove="async () => await HandleRemoveItem(line)" IsUpdating="@IsLineUpdating(line.ProductId, line.ProductVariantId)" />
                         }
                     </div>
 
@@ -131,7 +131,7 @@
 
 @code {
     private bool _initialLoadComplete = false;
-    private HashSet<int> _updatingProducts = new();
+    private HashSet<string> _updatingLines = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,19 +143,19 @@
 
     private async Task HandleQuantityIncrease(CartLineDto lineDto)
     {
-        _updatingProducts.Add(lineDto.ProductId);
+        _updatingLines.Add(GetLineKey(lineDto.ProductId, lineDto.ProductVariantId));
         StateHasChanged();
 
         await CartState.SetQuantityAsync(lineDto.ProductId, lineDto.ProductVariantId, lineDto.Quantity + 1);
 
-        _updatingProducts.Remove(lineDto.ProductId);
+        _updatingLines.Remove(GetLineKey(lineDto.ProductId, lineDto.ProductVariantId));
 
         StateHasChanged();
     }
 
     private async Task HandleQuantityDecrease(CartLineDto lineDto)
     {
-        _updatingProducts.Add(lineDto.ProductId);
+        _updatingLines.Add(GetLineKey(lineDto.ProductId, lineDto.ProductVariantId));
         StateHasChanged();
 
         var newQuantity = lineDto.Quantity - 1;
@@ -168,7 +168,7 @@
             await CartState.SetQuantityAsync(lineDto.ProductId, lineDto.ProductVariantId, newQuantity);
         }
 
-        _updatingProducts.Remove(lineDto.ProductId);
+        _updatingLines.Remove(GetLineKey(lineDto.ProductId, lineDto.ProductVariantId));
 
 
         StateHasChanged();
@@ -176,19 +176,21 @@
 
     private async Task HandleRemoveItem(CartLineDto lineDto)
     {
-        _updatingProducts.Add(lineDto.ProductId);
+        _updatingLines.Add(GetLineKey(lineDto.ProductId, lineDto.ProductVariantId));
         StateHasChanged();
 
         await CartState.RemoveItemAsync(lineDto.ProductId, lineDto.ProductVariantId);
 
-        _updatingProducts.Remove(lineDto.ProductId);
+        _updatingLines.Remove(GetLineKey(lineDto.ProductId, lineDto.ProductVariantId));
 
         await NavbarBadgeUpdateAsync();
 
         StateHasChanged();
     }
 
-    private bool IsLineUpdating(int productId) => _updatingProducts.Contains(productId);
+    private bool IsLineUpdating(int productId, int variantId) => _updatingLines.Contains(GetLineKey(productId, variantId));
+
+    private static string GetLineKey(int productId, int variantId) => $"{productId}:{variantId}";
 
     private async Task ClearCart()
     {
