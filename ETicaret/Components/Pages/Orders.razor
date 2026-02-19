@@ -1,471 +1,563 @@
-﻿@page "/account/orders"
-@using System.Security.Claims
+@page "/account/orders"
+@attribute [Authorize]
 @using Application.DTOs
 @using Domain.Entities
 @inject IOrderService OrderService
+@inject IUserReviewService UserReviewService
+@inject IFileService FileService
 @inject IJSRuntime JSRuntime
+@inject IAccountStateService AccountStateService
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-<AccountLayout>
-    <div class="space-y-6" data-blazor-loaded="true">
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-4 sm:p-6">
-            <div class="flex items-center justify-between gap-2">
-                <h2 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-shopping-bag text-blue-600 text-sm sm:text-base"></i>
+<div class="space-y-6" data-blazor-loaded="true">
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-4 sm:p-6">
+        <div class="flex items-center justify-between gap-2">
+            <h2 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-shopping-bag text-blue-600 text-sm sm:text-base"></i>
+                </div>
+                <span class="truncate">Siparişlerim</span>
+            </h2>
+            @if (orders != null && orders.Any())
+            {
+                <div class="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-50 to-cyan-50 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-blue-100 flex-shrink-0">
+                    <i class="fas fa-box text-blue-600 text-xs sm:text-sm"></i>
+                    <span class="text-xs sm:text-sm font-bold text-blue-700">@orders.Count()</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (ordersLoading)
+    {
+        <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
+            <div class="relative">
+                <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+                <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
+            </div>
+            <p class="text-gray-500 mt-6 font-medium">Siparişleriniz yükleniyor...</p>
+        </div>
+    }
+    else if (orders != null && orders.Any())
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <div class="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-white/20 backdrop-blur-sm w-14 h-14 rounded-xl flex items-center justify-center text-3xl">
+                        <i class="fas fa-shopping-bag"></i>
                     </div>
-                    <span class="truncate">Siparişlerim</span>
-                </h2>
-                @if (orders != null && orders.Any())
-                {
-                    <div class="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-50 to-cyan-50 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-blue-100 flex-shrink-0">
-                        <i class="fas fa-box text-blue-600 text-xs sm:text-sm"></i>
-                        <span class="text-xs sm:text-sm font-bold text-blue-700">@orders.Count()</span>
+                    <div class="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
+                        Toplam
                     </div>
-                }
+                </div>
+                <div class="text-4xl font-bold mb-1">@orders.Count()</div>
+                <div class="text-blue-100 text-sm font-medium">Toplam Sipariş</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-white/20 backdrop-blur-sm w-14 h-14 rounded-xl flex items-center justify-center text-3xl">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
+                        Harcama
+                    </div>
+                </div>
+                <div class="text-4xl font-bold mb-1">
+                    @orders.Sum(order => order.TotalAmount).ToString("N2") ₺
+                </div>
+                <div class="text-purple-100 text-sm font-medium">Toplam Harcama</div>
             </div>
         </div>
 
-        @if (ordersLoading)
-        {
-            <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
-                <div class="relative">
-                    <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
-                    <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
-                </div>
-                <p class="text-gray-500 mt-6 font-medium">Siparişleriniz yükleniyor...</p>
-            </div>
-        }
-        else if (orders != null && orders.Any())
-        {
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                <div class="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="bg-white/20 backdrop-blur-sm w-14 h-14 rounded-xl flex items-center justify-center text-3xl">
-                            <i class="fas fa-shopping-bag"></i>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
-                            Toplam
-                        </div>
-                    </div>
-                    <div class="text-4xl font-bold mb-1">@orders.Count()</div>
-                    <div class="text-blue-100 text-sm font-medium">Toplam Sipariş</div>
-                </div>
+        <div class="grid gap-5">
+            @foreach (var order in orders)
+            {
+                var isExpanded = expandedOrderIds.Contains(order.OrderId);
+                var orderDetails = orderDetailsCache.ContainsKey(order.OrderId) ? orderDetailsCache[order.OrderId] : null;
+                var isLoadingDetails = loadingOrderIds.Contains(order.OrderId);
 
-                <div class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="bg-white/20 backdrop-blur-sm w-14 h-14 rounded-xl flex items-center justify-center text-3xl">
-                            <i class="fas fa-wallet"></i>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
-                            Harcama
-                        </div>
-                    </div>
-                    <div class="text-4xl font-bold mb-1">
-                        @orders.Sum(order => order.TotalAmount).ToString("N2") ₺
-                    </div>
-                    <div class="text-purple-100 text-sm font-medium">Toplam Harcama</div>
-                </div>
-            </div>
-
-            <!-- Orders List -->
-            <div class="grid gap-5">
-                @foreach (var order in orders)
-                {
-                    var isExpanded = expandedOrderIds.Contains(order.OrderId);
-                    var orderDetails = orderDetailsCache.ContainsKey(order.OrderId) ? orderDetailsCache[order.OrderId] : null;
-                    var isLoadingDetails = loadingOrderIds.Contains(order.OrderId);
-
-                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1">
-                        <div class="p-6">
-                            <!-- Order Header -->
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3 sm:gap-4 pb-5 border-b border-gray-100">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-14 h-14 rounded-xl @GetStatusBgClass(order.OrderStatus) flex items-center justify-center text-2xl shrink-0 shadow-sm">
-                                        <i class="fas @GetStatusIcon(order.OrderStatus)"></i>
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-gray-800 text-lg mb-1">Sipariş #@order.OrderNumber</div>
-                                        <div class="text-sm text-gray-500 flex items-center gap-2">
-                                            <i class="far fa-calendar-alt"></i>
-                                            <span>@order.OrderedAt.ToString("dd MMMM yyyy HH:mm")</span>
-                                        </div>
-                                    </div>
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1">
+                    <div class="p-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3 sm:gap-4 pb-5 border-b border-gray-100">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-xl @GetStatusBgClass(order.OrderStatus) flex items-center justify-center text-2xl shrink-0 shadow-sm">
+                                    <i class="fas @GetStatusIcon(order.OrderStatus)"></i>
                                 </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wide shadow-sm @GetStatusBadgeClass(order.OrderStatus)">
-                                        <i class="fas @GetStatusBadgeIcon(order.OrderStatus)"></i>
-                                        @GetStatusText(order.OrderStatus)
-                                    </span>
-                                    <button @onclick="() => ToggleOrderDetails(order.OrderId)"
-                                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-50 to-slate-50 hover:from-blue-50 hover:to-cyan-50 border border-gray-200 hover:border-blue-300 flex items-center justify-center transition-all transform hover:scale-105">
-                                        <i class="fas fa-chevron-@(isExpanded ? "up" : "down") text-gray-600"></i>
-                                    </button>
+                                <div>
+                                    <div class="font-bold text-gray-800 text-lg mb-1">Sipariş #@order.OrderNumber</div>
+                                    <div class="text-sm text-gray-500 flex items-center gap-2">
+                                        <i class="far fa-calendar-alt"></i>
+                                        <span>@order.OrderedAt.ToLocalTime().ToString("dd MMMM yyyy HH:mm")</span>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wide shadow-sm @GetStatusBadgeClass(order.OrderStatus)">
+                                    <i class="fas @GetStatusBadgeIcon(order.OrderStatus)"></i>
+                                    @GetStatusText(order.OrderStatus)
+                                </span>
+                                <button @onclick="() => ToggleOrderDetails(order.OrderId)"
+                                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-50 to-slate-50 hover:from-blue-50 hover:to-cyan-50 border border-gray-200 hover:border-blue-300 flex items-center justify-center transition-all transform hover:scale-105">
+                                    <i class="fas fa-chevron-@(isExpanded ? "up" : "down") text-gray-600"></i>
+                                </button>
+                            </div>
+                        </div>
 
-                            <!-- Order Summary & Product Images (Collapsed View) -->
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                <!-- Product Thumbnails -->
-                                @if (orderDetails != null && orderDetails.Lines.Any())
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            @if (order.ProductImageUrls.Any())
+                            {
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center -space-x-2">
+                                        @foreach (var imageUrl in order.ProductImageUrls.Take(4))
+                                        {
+                                            <div class="w-12 h-12 rounded-xl border-2 border-white bg-gray-50 overflow-hidden shadow-md ring-1 ring-gray-100 hover:scale-110 transition-transform">
+                                                @if (!string.IsNullOrEmpty(imageUrl))
+                                                {
+                                                    <img src="@imageUrl" alt="Sipariş ürünü" class="w-full h-full object-cover" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-slate-100">
+                                                        <i class="fas fa-image text-gray-300"></i>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        @if (order.ProductImageUrls.Count > 4)
+                                        {
+                                            <div class="w-12 h-12 rounded-xl border-2 border-white bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center shadow-md ring-1 ring-blue-100">
+                                                <span class="text-xs font-bold text-blue-600">+@(order.ProductImageUrls.Count - 4)</span>
+                                            </div>
+                                        }
+                                    </div>
+                                    <span class="text-sm text-gray-500">@order.ProductImageUrls.Count ürün</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
+                                    <i class="fas fa-box"></i>
+                                    <span>Sipariş Detayları</span>
+                                </div>
+                            }
+
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <div class="text-right bg-gradient-to-r from-blue-50 to-cyan-50 px-5 py-3 rounded-xl border border-blue-100">
+                                    <span class="text-xs text-gray-600 block mb-1">Toplam</span>
+                                    <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                                        @order.TotalAmount.ToString("N2") ₺
+                                    </span>
+                                </div>
+
+                                @if (CanCancelOrder(order))
                                 {
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex items-center -space-x-2">
-                                            @foreach (var line in orderDetails.Lines.Take(4))
-                                            {
-                                                <div class="w-12 h-12 rounded-xl border-2 border-white bg-gray-50 overflow-hidden shadow-md ring-1 ring-gray-100 hover:scale-110 transition-transform">
+                                    <button @onclick="() => CancelOrder(order.OrderId)"
+                                            class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md">
+                                        <i class="fas fa-times-circle"></i>
+                                        İptal Et
+                                    </button>
+                                }
+                                @if (CanRefundOrder(order))
+                                {
+                                    <button @onclick="() => RefundOrder(order.OrderId)"
+                                            class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 text-orange-600 font-semibold hover:from-orange-100 hover:to-amber-100 transition-all shadow-sm hover:shadow-md">
+                                        <i class="fas fa-undo"></i>
+                                        İade Et
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expanded Details -->
+                    @if (isExpanded)
+                    {
+                        <div class="border-t border-gray-100 bg-gradient-to-br from-gray-50/50 to-slate-50/50 p-6">
+                            @if (isLoadingDetails)
+                            {
+                                <div class="flex items-center justify-center py-8">
+                                    <div class="relative">
+                                        <div class="w-12 h-12 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+                                    </div>
+                                    <p class="text-gray-500 ml-4">Detaylar yükleniyor...</p>
+                                </div>
+                            }
+                            else if (orderDetails != null)
+                            {
+                                <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm mb-5">
+                                    <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                                            <i class="fas fa-box-open text-blue-600 text-sm"></i>
+                                        </div>
+                                        Sipariş İçeriği
+                                    </h4>
+                                    <div class="space-y-3">
+                                        @foreach (var line in orderDetails.Lines)
+                                        {
+                                            <div class="flex items-center gap-4 p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
+                                                <div class="w-16 h-16 bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
                                                     @if (!string.IsNullOrEmpty(line.ImageUrl))
                                                     {
-                                                        <img src="@line.ImageUrl" alt="@line.ProductName" class="w-full h-full object-cover" />
+                                                        <img src="@line.ImageUrl" alt="@line.ProductName" class="w-full h-full object-cover">
                                                     }
                                                     else
                                                     {
-                                                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-slate-100">
-                                                            <i class="fas fa-image text-gray-300"></i>
-                                                        </div>
+                                                        <i class="fas fa-image text-gray-300 text-2xl"></i>
                                                     }
                                                 </div>
-                                            }
-                                            @if (orderDetails.Lines.Count() > 4)
-                                            {
-                                                <div class="w-12 h-12 rounded-xl border-2 border-white bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center shadow-md ring-1 ring-blue-100">
-                                                    <span class="text-xs font-bold text-blue-600">+@(orderDetails.Lines.Count() - 4)</span>
+                                                <div class="flex-1">
+                                                    <h5 class="font-bold text-gray-900 mb-1">@line.ProductName</h5>
+                                                    @if (!string.IsNullOrEmpty(line.VariantColor) || !string.IsNullOrEmpty(line.VariantSize))
+                                                    {
+                                                        <div class="flex items-center gap-2 mb-2">
+                                                            @if (!string.IsNullOrEmpty(line.VariantColor))
+                                                            {
+                                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg text-xs font-semibold text-purple-700">
+                                                                    <i class="fas fa-palette text-purple-500"></i>
+                                                                    @line.VariantColor
+                                                                </span>
+                                                            }
+                                                            @if (!string.IsNullOrEmpty(line.VariantSize))
+                                                            {
+                                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-700">
+                                                                    <i class="fas fa-ruler text-blue-500"></i>
+                                                                    @line.VariantSize
+                                                                </span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    @if (line.VariantSpecifications != null && line.VariantSpecifications.Any())
+                                                    {
+                                                        <div class="flex flex-wrap gap-2 mb-2">
+                                                            @foreach (var spec in line.VariantSpecifications)
+                                                            {
+                                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-100 rounded-lg text-xs font-semibold text-gray-600">
+                                                                    <span class="font-bold text-gray-500">@spec.Key:</span> @spec.Value
+                                                                </span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    <div class="flex items-center gap-3 text-sm">
+                                                        <span class="text-gray-500">Birim: @((line.DiscountPrice ?? line.ActualPrice).ToString("N2")) ₺</span>
+                                                        <span class="text-gray-400">×</span>
+                                                        <span class="font-semibold text-blue-600">@line.Quantity adet</span>
+                                                    </div>
+                                                    @if (CanWriteReview(order, line.ProductId))
+                                                    {
+                                                        <button @onclick="() => OpenReviewModal(line.ProductId, line.ProductName, line.ImageUrl)"
+                                                                class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 text-amber-700 text-xs font-semibold hover:from-amber-100 hover:to-orange-100 transition-all">
+                                                            <i class="fas fa-pen"></i>
+                                                            Değerlendir
+                                                        </button>
+                                                    }
+                                                    else if (order.OrderStatus == OrderStatus.Delivered && HasReviewed(line.ProductId))
+                                                    {
+                                                        <span class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 text-emerald-700 text-xs font-semibold">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            Değerlendirildi
+                                                        </span>
+                                                    }
                                                 </div>
-                                            }
-                                        </div>
-                                        <span class="text-sm text-gray-500">@orderDetails.Lines.Count() ürün</span>
+                                                <div class="text-right">
+                                                    <div class="text-lg font-bold text-gray-900">
+                                                        @(((line.DiscountPrice ?? line.ActualPrice) * line.Quantity).ToString("N2")) ₺
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
-                                }
-                                else
-                                {
-                                    <div class="flex items-center gap-2 text-sm text-gray-500">
-                                        <i class="fas fa-box"></i>
-                                        <span>Sipariş Detayları</span>
-                                    </div>
-                                }
-
-                                <!-- Price & Actions -->
-                                <div class="flex items-center gap-3 flex-wrap">
-                                    <div class="text-right bg-gradient-to-r from-blue-50 to-cyan-50 px-5 py-3 rounded-xl border border-blue-100">
-                                        <span class="text-xs text-gray-600 block mb-1">Toplam</span>
-                                        <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                                            @order.TotalAmount.ToString("N2") ₺
-                                        </span>
-                                    </div>
-
-                                    @if (CanCancelOrder(order))
-                                    {
-                                        <button @onclick="() => CancelOrder(order.OrderId)"
-                                                class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md">
-                                            <i class="fas fa-times-circle"></i>
-                                            İptal Et
-                                        </button>
-                                    }
-                                    @if (CanRefundOrder(order))
-                                    {
-                                        <button @onclick="() => RefundOrder(order.OrderId)"
-                                                class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 text-orange-600 font-semibold hover:from-orange-100 hover:to-amber-100 transition-all shadow-sm hover:shadow-md">
-                                            <i class="fas fa-undo"></i>
-                                            İade Et
-                                        </button>
-                                    }
                                 </div>
-                            </div>
-                        </div>
 
-                        <!-- Expanded Details -->
-                        @if (isExpanded)
-                        {
-                            <div class="border-t border-gray-100 bg-gradient-to-br from-gray-50/50 to-slate-50/50 p-6">
-                                @if (isLoadingDetails)
-                                {
-                                    <div class="flex items-center justify-center py-8">
-                                        <div class="relative">
-                                            <div class="w-12 h-12 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+                                <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-100 mb-5">
+                                    <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                                            <i class="fas fa-receipt text-blue-600 text-sm"></i>
                                         </div>
-                                        <p class="text-gray-500 ml-4">Detaylar yükleniyor...</p>
-                                    </div>
-                                }
-                                else if (orderDetails != null)
-                                {
-                                    <!-- Order Items -->
-                                    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm mb-5">
-                                        <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
-                                                <i class="fas fa-box-open text-blue-600 text-sm"></i>
+                                        Fiyat Detayları
+                                    </h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Ara Toplam</span>
+                                            <span class="font-semibold text-gray-900">@orderDetails.SubTotal.ToString("N2") ₺</span>
+                                        </div>
+                                        @if (orderDetails.CouponDiscountAmount.HasValue && orderDetails.CouponDiscountAmount.Value > 0)
+                                        {
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-green-600">Kupon İndirimi (@orderDetails.CouponCode)</span>
+                                                <span class="font-semibold text-green-600">-@orderDetails.CouponDiscountAmount.Value.ToString("N2") ₺</span>
                                             </div>
-                                            Sipariş İçeriği
+                                        }
+                                        @if (orderDetails.CampaignDiscountTotal.HasValue && orderDetails.CampaignDiscountTotal.Value > 0)
+                                        {
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-green-600">Kampanya İndirimi</span>
+                                                <span class="font-semibold text-green-600">-@orderDetails.CampaignDiscountTotal.Value.ToString("N2") ₺</span>
+                                            </div>
+                                        }
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Kargo</span>
+                                            <span class="font-semibold text-gray-900">@(orderDetails.ShippingCost == 0 ? "Ücretsiz" : orderDetails.ShippingCost.ToString("N2") + " ₺")</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">KDV (%18)</span>
+                                            <span class="font-semibold text-gray-900">@orderDetails.TaxAmount.ToString("N2") ₺</span>
+                                        </div>
+                                        <div class="flex justify-between pt-3 border-t border-blue-200">
+                                            <span class="font-bold text-gray-900">Toplam</span>
+                                            <span class="text-xl font-bold text-blue-600">@orderDetails.TotalAmount.ToString("N2") ₺</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+                                        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+                                                <i class="fas fa-map-marker-alt text-emerald-600 text-sm"></i>
+                                            </div>
+                                            Teslimat Adresi
                                         </h4>
-                                        <div class="space-y-3">
-                                            @foreach (var line in orderDetails.Lines)
+                                        <div class="text-sm text-gray-700 space-y-1 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
+                                            <p class="font-semibold text-gray-800">@orderDetails.FirstName @orderDetails.LastName</p>
+                                            <p>@orderDetails.Phone</p>
+                                            <p>@orderDetails.AddressLine</p>
+                                            <p>@orderDetails.District / @orderDetails.City</p>
+                                            @if (!string.IsNullOrEmpty(orderDetails.PostalCode))
                                             {
-                                                <div class="flex items-center gap-4 p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
-                                                    <div class="w-16 h-16 bg-white rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                                                        @if (!string.IsNullOrEmpty(line.ImageUrl))
-                                                        {
-                                                            <img src="@line.ImageUrl" alt="@line.ProductName" class="w-full h-full object-cover">
-                                                        }
-                                                        else
-                                                        {
-                                                            <i class="fas fa-image text-gray-300 text-2xl"></i>
-                                                        }
-                                                    </div>
-                                                    <div class="flex-1">
-                                                        <h5 class="font-bold text-gray-900 mb-1">@line.ProductName</h5>
-                                                        @if (!string.IsNullOrEmpty(line.VariantColor) || !string.IsNullOrEmpty(line.VariantSize))
-                                                        {
-                                                            <div class="flex items-center gap-2 mb-2">
-                                                                @if (!string.IsNullOrEmpty(line.VariantColor))
-                                                                {
-                                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg text-xs font-semibold text-purple-700">
-                                                                        <i class="fas fa-palette text-purple-500"></i>
-                                                                        @line.VariantColor
-                                                                    </span>
-                                                                }
-                                                                @if (!string.IsNullOrEmpty(line.VariantSize))
-                                                                {
-                                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-700">
-                                                                        <i class="fas fa-ruler text-blue-500"></i>
-                                                                        @line.VariantSize
-                                                                    </span>
-                                                                }
-                                                            </div>
-                                                        }
-                                                        @if (line.VariantSpecifications != null && line.VariantSpecifications.Any())
-                                                        {
-                                                            <div class="flex flex-wrap gap-2 mb-2">
-                                                                @foreach (var spec in line.VariantSpecifications)
-                                                                {
-                                                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-100 rounded-lg text-xs font-semibold text-gray-600">
-                                                                        <span class="font-bold text-gray-500">@spec.Key:</span> @spec.Value
-                                                                    </span>
-                                                                }
-                                                            </div>
-                                                        }
-                                                        <div class="flex items-center gap-3 text-sm">
-                                                            <span class="text-gray-500">Birim: @((line.DiscountPrice ?? line.ActualPrice).ToString("N2")) ₺</span>
-                                                            <span class="text-gray-400">×</span>
-                                                            <span class="font-semibold text-blue-600">@line.Quantity adet</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="text-right">
-                                                        <div class="text-lg font-bold text-gray-900">
-                                                            @(((line.DiscountPrice ?? line.ActualPrice) * line.Quantity).ToString("N2")) ₺
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <p class="font-medium text-gray-700">@orderDetails.PostalCode</p>
                                             }
                                         </div>
                                     </div>
 
-                                    <!-- Price Breakdown -->
-                                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-100 mb-5">
-                                        <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center">
-                                                <i class="fas fa-receipt text-blue-600 text-sm"></i>
+                                    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+                                        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                                                <i class="fas fa-credit-card text-purple-600 text-sm"></i>
                                             </div>
-                                            Fiyat Detayları
+                                            Ödeme Bilgileri
                                         </h4>
-                                        <div class="space-y-2">
-                                            <div class="flex justify-between text-sm">
-                                                <span class="text-gray-600">Ara Toplam</span>
-                                                <span class="font-semibold text-gray-900">@orderDetails.SubTotal.ToString("N2") ₺</span>
+                                        <div class="text-sm text-gray-700 space-y-2 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
+                                            <div class="flex justify-between">
+                                                <span>Ödeme Yöntemi:</span>
+                                                <span class="font-semibold">@orderDetails.PaymentMethod</span>
                                             </div>
-                                            @if (orderDetails.CouponDiscountAmount.HasValue && orderDetails.CouponDiscountAmount.Value > 0)
-                                            {
-                                                <div class="flex justify-between text-sm">
-                                                    <span class="text-green-600">Kupon İndirimi (@orderDetails.CouponCode)</span>
-                                                    <span class="font-semibold text-green-600">-@orderDetails.CouponDiscountAmount.Value.ToString("N2") ₺</span>
-                                                </div>
-                                            }
-                                            @if (orderDetails.CampaignDiscountTotal.HasValue && orderDetails.CampaignDiscountTotal.Value > 0)
-                                            {
-                                                <div class="flex justify-between text-sm">
-                                                    <span class="text-green-600">Kampanya İndirimi</span>
-                                                    <span class="font-semibold text-green-600">-@orderDetails.CampaignDiscountTotal.Value.ToString("N2") ₺</span>
-                                                </div>
-                                            }
-                                            <div class="flex justify-between text-sm">
-                                                <span class="text-gray-600">Kargo</span>
-                                                <span class="font-semibold text-gray-900">@(orderDetails.ShippingCost == 0 ? "Ücretsiz" : orderDetails.ShippingCost.ToString("N2") + " ₺")</span>
-                                            </div>
-                                            <div class="flex justify-between text-sm">
-                                                <span class="text-gray-600">KDV (%18)</span>
-                                                <span class="font-semibold text-gray-900">@orderDetails.TaxAmount.ToString("N2") ₺</span>
-                                            </div>
-                                            <div class="flex justify-between pt-3 border-t border-blue-200">
-                                                <span class="font-bold text-gray-900">Toplam</span>
-                                                <span class="text-xl font-bold text-blue-600">@orderDetails.TotalAmount.ToString("N2") ₺</span>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <!-- Delivery & Payment Info -->
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Delivery Address -->
-                                        <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-                                            <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
-                                                    <i class="fas fa-map-marker-alt text-emerald-600 text-sm"></i>
-                                                </div>
-                                                Teslimat Adresi
-                                            </h4>
-                                            <div class="text-sm text-gray-700 space-y-1 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
-                                                <p class="font-semibold text-gray-800">@orderDetails.FirstName @orderDetails.LastName</p>
-                                                <p>@orderDetails.Phone</p>
-                                                <p>@orderDetails.AddressLine</p>
-                                                <p>@orderDetails.District / @orderDetails.City</p>
-                                                @if (!string.IsNullOrEmpty(orderDetails.PostalCode))
-                                                {
-                                                    <p class="font-medium text-gray-700">@orderDetails.PostalCode</p>
-                                                }
-                                            </div>
-                                        </div>
-
-                                        <!-- Payment Info -->
-                                        <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-                                            <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                                                    <i class="fas fa-credit-card text-purple-600 text-sm"></i>
-                                                </div>
-                                                Ödeme Bilgileri
-                                            </h4>
-                                            <div class="text-sm text-gray-700 space-y-2 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
+                                            @if (!string.IsNullOrEmpty(orderDetails.CardAssociation))
+                                            {
                                                 <div class="flex justify-between">
-                                                    <span>Ödeme Yöntemi:</span>
-                                                    <span class="font-semibold">@orderDetails.PaymentMethod</span>
+                                                    <span>Kart:</span>
+                                                    <span class="font-semibold">@orderDetails.CardAssociation @(orderDetails.CardType != null ? $"({orderDetails.CardType})" : "")</span>
                                                 </div>
+                                            }
 
-                                                @if (!string.IsNullOrEmpty(orderDetails.CardAssociation))
-                                                {
-                                                    <div class="flex justify-between">
-                                                        <span>Kart:</span>
-                                                        <span class="font-semibold">@orderDetails.CardAssociation @(orderDetails.CardType != null ? $"({orderDetails.CardType})" : "")</span>
-                                                    </div>
-                                                }
-
-                                                @if (!string.IsNullOrEmpty(orderDetails.CardFamily))
-                                                {
-                                                    <div class="flex justify-between">
-                                                        <span>Kart Programı:</span>
-                                                        <span class="font-semibold">@orderDetails.CardFamily</span>
-                                                    </div>
-                                                }
-
-                                                @if (!string.IsNullOrEmpty(orderDetails.BankName))
-                                                {
-                                                    <div class="flex justify-between">
-                                                        <span>Banka:</span>
-                                                        <span class="font-semibold">@orderDetails.BankName</span>
-                                                    </div>
-                                                }
-
-                                                @if (orderDetails.InstallmentCount.HasValue)
-                                                {
-                                                    <div class="flex justify-between">
-                                                        <span>Ödeme Planı:</span>
-                                                        <span class="font-semibold">@(orderDetails.InstallmentCount.Value == 1 ? "Tek Çekim" : $"{orderDetails.InstallmentCount.Value} Taksit")</span>
-                                                    </div>
-                                                }
-
-                                                @if (!string.IsNullOrEmpty(orderDetails.LastFourDigits))
-                                                {
-                                                    <div class="flex justify-between">
-                                                        <span>Kart No:</span>
-                                                        <span class="font-semibold">**** **** **** @orderDetails.LastFourDigits</span>
-                                                    </div>
-                                                }
-
-                                                <div class="flex justify-between pt-2 border-t border-gray-200 mt-2">
-                                                    <span>Durum:</span>
-                                                    <span class="@GetPaymentStatusClass(orderDetails.PaymentStatus)">
-                                                        @GetPaymentStatusText(orderDetails.PaymentStatus)
-                                                    </span>
+                                            @if (!string.IsNullOrEmpty(orderDetails.CardFamily))
+                                            {
+                                                <div class="flex justify-between">
+                                                    <span>Kart Programı:</span>
+                                                    <span class="font-semibold">@orderDetails.CardFamily</span>
                                                 </div>
-                                                
-                                                @if (!string.IsNullOrEmpty(orderDetails.PaymentTransactionId))
-                                                {
-                                                    <div class="text-xs text-gray-500 mt-1 text-right">
-                                                        Ref: @orderDetails.PaymentTransactionId
-                                                    </div>
-                                                }
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(orderDetails.BankName))
+                                            {
+                                                <div class="flex justify-between">
+                                                    <span>Banka:</span>
+                                                    <span class="font-semibold">@orderDetails.BankName</span>
+                                                </div>
+                                            }
+
+                                            @if (orderDetails.InstallmentCount.HasValue)
+                                            {
+                                                <div class="flex justify-between">
+                                                    <span>Ödeme Planı:</span>
+                                                    <span class="font-semibold">@(orderDetails.InstallmentCount.Value == 1 ? "Tek Çekim" : $"{orderDetails.InstallmentCount.Value} Taksit")</span>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(orderDetails.LastFourDigits))
+                                            {
+                                                <div class="flex justify-between">
+                                                    <span>Kart No:</span>
+                                                    <span class="font-semibold">**** **** **** @orderDetails.LastFourDigits</span>
+                                                </div>
+                                            }
+
+                                            <div class="flex justify-between pt-2 border-t border-gray-200 mt-2">
+                                                <span>Durum:</span>
+                                                <span class="@GetPaymentStatusClass(orderDetails.PaymentStatus)">
+                                                    @GetPaymentStatusText(orderDetails.PaymentStatus)
+                                                </span>
                                             </div>
+                                                
+                                            @if (!string.IsNullOrEmpty(orderDetails.PaymentTransactionId))
+                                            {
+                                                <div class="text-xs text-gray-500 mt-1 text-right">
+                                                    Ref: @orderDetails.PaymentTransactionId
+                                                </div>
+                                            }
                                         </div>
                                     </div>
-                                }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-20 px-4 text-center">
+            <div class="relative mb-8">
+                <div class="w-24 h-24 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-full flex items-center justify-center">
+                    <i class="fas fa-shopping-basket text-blue-400 text-4xl"></i>
+                </div>
+                <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center">
+                    <i class="fas fa-plus text-white text-xs"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-3">Henüz Siparişiniz Yok</h3>
+            <p class="text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">Tüm ihtiyaçlarınız için size özel ürünleri keşfetmeye başlayın ve ilk siparişinizi verin.</p>
+            <a href="products" class="px-6 sm:px-8 py-3 sm:py-4 bg-button hover:bg-button-hover text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2">
+                <i class="fas fa-shopping-bag"></i>
+                Alışverişe Başla
+            </a>
+        </div>
+    }
+</div>
+
+@if (showReviewModal)
+{
+    <div class="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" aria-hidden="true" @onclick="CloseReviewModal"></div>
+
+        <div class="relative bg-white rounded-t-3xl sm:rounded-3xl text-left shadow-2xl transform transition-all w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[85vh] flex flex-col animate-fadeIn" @onclick:stopPropagation>
+            <EditForm Model="reviewForCreation" OnValidSubmit="SubmitReviewAsync" style="display: contents;">
+                <DataAnnotationsValidator />
+
+                <div class="bg-primary px-6 py-5 border-b border-gray-100 flex-shrink-0 rounded-t-3xl sm:rounded-t-3xl">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold bg-white bg-clip-text text-transparent flex items-center gap-2" id="modal-title">
+                            <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                                <i class="fas fa-star text-blue-600 text-sm"></i>
+                            </div>
+                            Ürünü Değerlendir
+                        </h3>
+                        <button type="button" @onclick="CloseReviewModal" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto flex-1 space-y-4">
+                    <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200">
+                        @if (!string.IsNullOrWhiteSpace(reviewModalImageUrl))
+                        {
+                            <img src="@reviewModalImageUrl" alt="@reviewModalProductName" class="w-14 h-14 rounded-lg object-cover border border-gray-200" />
+                        }
+                        else
+                        {
+                            <div class="w-14 h-14 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                                <i class="fas fa-image text-gray-300"></i>
+                            </div>
+                        }
+                        <div class="min-w-0">
+                            <div class="text-xs text-gray-500">Ürün</div>
+                            <div class="text-sm font-semibold text-gray-800 truncate">@reviewModalProductName</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">Puan</label>
+                        <div class="flex items-center gap-1" @onmouseleave="ClearHoverRating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starValue = i;
+                                var activeRating = hoverRating > 0 ? hoverRating : reviewForCreation.Rating;
+                                var isFilled = starValue <= activeRating;
+                                <button type="button"
+                                        class="text-2xl transition-colors @(isFilled ? "text-amber-400" : "text-gray-300 hover:text-amber-300")"
+                                        @onmouseover="() => SetHoverRating(starValue)"
+                                        @onclick="() => ToggleRating(starValue)"
+                                        aria-label="@($"{starValue} yıldız")">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            }
+                        </div>
+                        <ValidationMessage For="@(() => reviewForCreation.Rating)" class="text-red-500 text-xs mt-1" />
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">Başlık</label>
+                        <InputText @bind-Value="reviewForCreation.ReviewTitle" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
+                        <ValidationMessage For="@(() => reviewForCreation.ReviewTitle)" class="text-red-500 text-xs mt-1" />
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">Yorumunuz</label>
+                        <InputTextArea @bind-Value="reviewForCreation.ReviewText" rows="4" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all" />
+                        <ValidationMessage For="@(() => reviewForCreation.ReviewText)" class="text-red-500 text-xs mt-1" />
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">Fotoğraf (opsiyonel)</label>
+                        <InputFile OnChange="HandleReviewImageChange" accept=".png,.jpg,.jpeg,.webp" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm" />
+                        @if (reviewImageFile != null)
+                        {
+                            <div class="mt-2 text-xs text-emerald-600 font-medium">
+                                <i class="fas fa-check-circle mr-1"></i>@reviewImageFile.Name
                             </div>
                         }
                     </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-20 px-4 text-center">
-                <div class="relative mb-8">
-                    <div class="w-24 h-24 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-full flex items-center justify-center">
-                        <i class="fas fa-shopping-basket text-blue-400 text-4xl"></i>
-                    </div>
-                    <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-full flex items-center justify-center">
-                        <i class="fas fa-plus text-white text-xs"></i>
-                    </div>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-800 mb-3">Henüz Siparişiniz Yok</h3>
-                <p class="text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">Tüm ihtiyaçlarınız için size özel ürünleri keşfetmeye başlayın ve ilk siparişinizi verin.</p>
-                <a href="products" class="px-6 sm:px-8 py-3 sm:py-4 bg-button hover:bg-button-hover text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2">
-                    <i class="fas fa-shopping-bag"></i>
-                    Alışverişe Başla
-                </a>
-            </div>
-        }
+
+                <div class="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 border-t border-gray-200 flex-shrink-0">
+                    <button type="button" class="px-6 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all" @onclick="CloseReviewModal">
+                        Vazgeç
+                    </button>
+                    <button type="submit" disabled="@isSubmittingReview" class="px-6 py-2.5 rounded-xl bg-button text-white font-semibold shadow-lg transition-all transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none hover:bg-button-hover hover:shadow-xl hover:-translate-y-0.5">
+                        @if (isSubmittingReview)
+                        {
+                            <i class="fas fa-spinner fa-spin mr-1"></i>
+                        }
+                        Gönder
+                    </button>
+                </div>
+            </EditForm>
+        </div>
     </div>
-</AccountLayout>
+}
 
 
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthStateTask { get; set; }
-
     private IEnumerable<OrderDto>? orders;
     private Dictionary<int, OrderWithDetailsDto> orderDetailsCache = new();
     private HashSet<int> expandedOrderIds = new();
     private HashSet<int> loadingOrderIds = new();
     private bool ordersLoading = true;
-    private string? userId;
+    private HashSet<int> reviewedProductIds = new();
+
+    private bool showReviewModal = false;
+    private bool isSubmittingReview = false;
+    private int hoverRating = 0;
+    private int reviewProductId;
+    private string reviewModalProductName = string.Empty;
+    private string? reviewModalImageUrl;
+    private IBrowserFile? reviewImageFile;
+    private UserReviewDtoForCreation reviewForCreation = new();
 
     protected override async Task OnInitializedAsync()
     {
         ordersLoading = true;
-
-        if (AuthStateTask != null)
-        {
-            var authState = await AuthStateTask;
-            var user = authState.User;
-
-            if (user.Identity?.IsAuthenticated == true)
-            {
-                userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(userId))
-        {
-            orders = await OrderService.GetByUserIdAsync(userId);
-
-            // Preload order details for all orders (for product images in collapsed view)
-            if (orders != null)
-            {
-                foreach (var order in orders)
-                {
-                    var details = await OrderService.GetByIdAsync(order.OrderId);
-                    if (details != null)
-                    {
-                        orderDetailsCache[order.OrderId] = details;
-                    }
-                }
-            }
-        }
+        await AccountStateService.LoadOrdersAsync(preloadOrderDetails: false);
+        await AccountStateService.LoadReviewsAsync();
+        orders = AccountStateService.Orders;
+        orderDetailsCache = AccountStateService.OrderDetailsCache.ToDictionary(x => x.Key, x => x.Value);
+        reviewedProductIds = AccountStateService.Reviews
+            .Select(r => r.ProductId)
+            .ToHashSet();
 
         ordersLoading = false;
     }
@@ -480,13 +572,16 @@
         {
             expandedOrderIds.Add(orderId);
 
-            if (!orderDetailsCache.ContainsKey(orderId) && !string.IsNullOrEmpty(userId))
+            if (!orderDetailsCache.ContainsKey(orderId))
             {
                 loadingOrderIds.Add(orderId);
                 StateHasChanged();
 
-                var order = await OrderService.GetByIdAsync(orderId);
-                orderDetailsCache[orderId] = order;
+                var order = await AccountStateService.GetOrderDetailsAsync(orderId);
+                if (order != null)
+                {
+                    orderDetailsCache[orderId] = order;
+                }
 
                 loadingOrderIds.Remove(orderId);
             }
@@ -565,13 +660,11 @@
 
     private bool CanRefundOrder(OrderDto order)
     {
-        // Teslim edilmiş ve ödeme tamamlanmış olmalı
         if (order.OrderStatus != OrderStatus.Delivered || order.PaymentStatus != PaymentStatus.Completed)
         {
             return false;
         }
 
-        // Teslimattan sonra 7 gün geçmemiş olmalı
         if (order.DeliveredAt.HasValue)
         {
             var daysSinceDelivery = (DateTime.UtcNow - order.DeliveredAt.Value).TotalDays;
@@ -583,13 +676,112 @@
 
     private bool CanCancelOrder(OrderDto order)
     {
-        // Sadece beklemede veya işleniyor durumundaki siparişler iptal edilebilir
         return order.OrderStatus == OrderStatus.Pending || order.OrderStatus == OrderStatus.Processing;
+    }
+
+    private bool HasReviewed(int productId) => reviewedProductIds.Contains(productId);
+
+    private bool CanWriteReview(OrderDto order, int productId)
+    {
+        return order.OrderStatus == OrderStatus.Delivered && !HasReviewed(productId);
+    }
+
+    private void OpenReviewModal(int productId, string productName, string? imageUrl)
+    {
+        if (HasReviewed(productId))
+        {
+            return;
+        }
+
+        reviewProductId = productId;
+        reviewModalProductName = productName;
+        reviewModalImageUrl = imageUrl;
+        reviewImageFile = null;
+        reviewForCreation = new UserReviewDtoForCreation
+        {
+            ProductId = productId,
+            Rating = 0
+        };
+        hoverRating = 0;
+        showReviewModal = true;
+    }
+
+    private void CloseReviewModal()
+    {
+        showReviewModal = false;
+        reviewImageFile = null;
+        reviewModalProductName = string.Empty;
+        reviewModalImageUrl = null;
+        reviewProductId = 0;
+        hoverRating = 0;
+    }
+
+    private void SetHoverRating(int rating)
+    {
+        hoverRating = rating;
+    }
+
+    private void ClearHoverRating()
+    {
+        hoverRating = 0;
+    }
+
+    private void ToggleRating(int rating)
+    {
+        reviewForCreation.Rating = reviewForCreation.Rating == rating ? 0 : rating;
+        hoverRating = 0;
+    }
+
+    private void HandleReviewImageChange(InputFileChangeEventArgs e)
+    {
+        reviewImageFile = e.File;
+    }
+
+    private async Task SubmitReviewAsync()
+    {
+        if (reviewProductId <= 0 || HasReviewed(reviewProductId))
+        {
+            return;
+        }
+
+        isSubmittingReview = true;
+
+        if (reviewImageFile != null)
+        {
+            using var fileReadStream = reviewImageFile.OpenReadStream(maxAllowedSize: 10_000_000);
+            var uploadResult = await FileService.UploadAsync(fileReadStream, reviewImageFile.Name, reviewImageFile.ContentType, "reviews");
+            if (!uploadResult.IsSuccess)
+            {
+                isSubmittingReview = false;
+                await JSRuntime.InvokeVoidAsync("showToast", uploadResult.Message, "error");
+                return;
+            }
+
+            reviewForCreation.ReviewPictureUrl = uploadResult.Data;
+        }
+
+        var result = await UserReviewService.CreateAsync(reviewForCreation);
+        isSubmittingReview = false;
+
+        if (result.IsSuccess)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
+            AccountStateService.InvalidateReviews();
+            await AccountStateService.LoadReviewsAsync(forceRefresh: true);
+            reviewedProductIds = AccountStateService.Reviews
+                .Select(r => r.ProductId)
+                .ToHashSet();
+            CloseReviewModal();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", result.Message, "error");
+        }
     }
 
     private async Task RefundOrder(int orderId)
     {
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bu siparişi iade etmek istediğinizden emin misiniz? İade işlemi geri alınamaz."))
+        if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu siparişi iade etmek istediğinizden emin misiniz? İade işlemi geri alınamaz."))
         {
             return;
         }
@@ -600,15 +792,12 @@
         {
             await JSRuntime.InvokeVoidAsync("showToast", "Sipariş iadesi başarıyla tamamlandı. İade tutarı hesabınıza yansıtılacaktır.", "success");
 
-            // Refresh orders
-            if (!string.IsNullOrEmpty(userId))
-            {
-                orders = await OrderService.GetByUserIdAsync(userId);
-
-                // Clear cache for this order
-                orderDetailsCache.Remove(orderId);
-                expandedOrderIds.Remove(orderId);
-            }
+            AccountStateService.InvalidateOrders();
+            AccountStateService.InvalidateOrderDetails(orderId);
+            await AccountStateService.LoadOrdersAsync(forceRefresh: true, preloadOrderDetails: false);
+            orders = AccountStateService.Orders;
+            orderDetailsCache = AccountStateService.OrderDetailsCache.ToDictionary(x => x.Key, x => x.Value);
+            expandedOrderIds.Remove(orderId);
 
             StateHasChanged();
         }
@@ -620,7 +809,7 @@
 
     private async Task CancelOrder(int orderId)
     {
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bu siparişi iptal etmek istediğinizden emin misiniz?"))
+        if (!await JSRuntime.InvokeAsync<bool>("showConfirm", "Bu siparişi iptal etmek istediğinizden emin misiniz?"))
         {
             return;
         }
@@ -632,15 +821,12 @@
         {
             await JSRuntime.InvokeVoidAsync("showToast", "Sipariş başarıyla iptal edildi.", "success");
 
-            // Refresh orders
-            if (!string.IsNullOrEmpty(userId))
-            {
-                orders = await OrderService.GetByUserIdAsync(userId);
-
-                // Clear cache for this order
-                orderDetailsCache.Remove(orderId);
-                expandedOrderIds.Remove(orderId);
-            }
+            AccountStateService.InvalidateOrders();
+            AccountStateService.InvalidateOrderDetails(orderId);
+            await AccountStateService.LoadOrdersAsync(forceRefresh: true, preloadOrderDetails: false);
+            orders = AccountStateService.Orders;
+            orderDetailsCache = AccountStateService.OrderDetailsCache.ToDictionary(x => x.Key, x => x.Value);
+            expandedOrderIds.Remove(orderId);
 
             StateHasChanged();
         }

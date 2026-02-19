@@ -66,7 +66,9 @@ namespace Application.Mappings
             CreateMap<Address, AddressDto>();
             CreateMap<AddressDtoForCreation, Address>();
             CreateMap<AddressDtoForUpdate, Address>();
-            CreateMap<Order, OrderDto>();
+            CreateMap<Order, OrderDto>()
+                .ForMember(dest => dest.ProductImageUrls, opt => opt.MapFrom(src =>
+                    src.Lines.Select(l => l.ImageUrl)));
             CreateMap<Order, OrderWithDetailsDto>();
             CreateMap<OrderDtoForCreation, Order>();
             CreateMap<OrderDtoForUpdate, Order>();

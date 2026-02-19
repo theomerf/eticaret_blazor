@@ -94,6 +94,7 @@ namespace Infrastructure.Persistence.Repositories.Implementations
                     OrderStatus = o.OrderStatus,
                     PaymentStatus = o.PaymentStatus,    
                     OrderedAt = o.OrderedAt,
+                    DeliveredAt = o.DeliveredAt,
                     TotalAmount = o.TotalAmount,
                     Currency = o.Currency,
                     Lines = o.Lines.Select(l => new OrderLine

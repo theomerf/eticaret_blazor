@@ -1,81 +1,88 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
-@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inherits LayoutComponentBase
 
-<div class="w-full">
-    <h1 class="page-title">Hesabım</h1>
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="w-full">
+            <h1 class="page-title">Hesabım</h1>
 
-    <div class="flex flex-col lg:flex-row gap-6">
-        @* Mobile Sidebar Toggle Button *@
-        <button @onclick="ToggleSidebar" class="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[1150] bg-white shadow-lg rounded-r-xl p-2 border border-l-0 border-gray-200">
-            <i class="fas @(isSidebarOpen ? "fa-chevron-left" : "fa-chevron-right") text-blue-600"></i>
-        </button>
+            <div class="flex flex-col lg:flex-row gap-6">
+                @* Mobile Sidebar Toggle Button *@
+                <button @onclick="ToggleSidebar" class="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[1150] bg-white shadow-lg rounded-r-xl p-2 border border-l-0 border-gray-200">
+                    <i class="fas @(isSidebarOpen ? "fa-chevron-left" : "fa-chevron-right") text-blue-600"></i>
+                </button>
 
-        @* Sidebar Overlay for Mobile *@
-        @if (isSidebarOpen)
-        {
-            <div class="lg:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-[1140]" @onclick="CloseSidebar"></div>
-        }
+                @* Sidebar Overlay for Mobile *@
+                @if (isSidebarOpen)
+                {
+                    <div class="lg:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-[1140]" @onclick="CloseSidebar"></div>
+                }
 
-        @* Sidebar *@ 
-        <div class="@(isSidebarOpen ? "translate-x-0" : "-translate-x-full") lg:translate-x-0 fixed lg:relative left-0 top-0 h-full lg:h-auto w-64 lg:w-64 shrink-0 z-[1160] transition-transform duration-300 ease-in-out">
-            <div class="bg-white rounded-none lg:rounded-2xl shadow-lg border-r lg:border border-gray-100/50 overflow-hidden lg:sticky lg:top-24 backdrop-blur-sm bg-white/95 h-full lg:h-auto">
-                <div class="p-5 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-cyan-50">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-2">
-                            <div class="w-1 h-4 bg-button rounded-full"></div>
-                            Hesap Menüsü
-                        </span>
-                        <button @onclick="CloseSidebar" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/50 text-gray-600 transition-colors">
-                            <i class="fas fa-times"></i>
-                        </button>
+                @* Sidebar *@
+                <div class="@(isSidebarOpen ? "translate-x-0" : "-translate-x-full") lg:translate-x-0 fixed lg:relative left-0 top-0 h-full lg:h-auto w-64 lg:w-64 shrink-0 z-[1160] transition-transform duration-300 ease-in-out">
+                    <div class="bg-white rounded-none lg:rounded-2xl shadow-lg border-r lg:border border-gray-100/50 overflow-hidden lg:sticky lg:top-24 backdrop-blur-sm bg-white/95 h-full lg:h-auto">
+                        <div class="p-5 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-cyan-50">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-2">
+                                    <div class="w-1 h-4 bg-button rounded-full"></div>
+                                    Hesap Menüsü
+                                </span>
+                                <button @onclick="CloseSidebar" class="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/50 text-gray-600 transition-colors">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <nav class="flex flex-col p-2 space-y-1">
+                            <NavLink href="/account/orders" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600 font-semibold shadow-sm" @onclick="CloseSidebar">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
+                                    <i class="fas fa-box text-sm"></i>
+                                </div>
+                                <span>Siparişlerim</span>
+                                <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
+                            </NavLink>
+    
+                            <NavLink href="/account" Match="NavLinkMatch.All" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-purple-50 to-pink-50 text-purple-600 font-semibold shadow-sm" @onclick="CloseSidebar">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
+                                    <i class="fas fa-user text-sm"></i>
+                                </div>
+                                <span>Kullanıcı Bilgilerim</span>
+                                <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
+                            </NavLink>
+
+                            <NavLink href="/account/reviews" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:text-amber-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-600 font-semibold shadow-sm" @onclick="CloseSidebar">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
+                                    <i class="fas fa-star text-sm"></i>
+                                </div>
+                                <span>Değerlendirmelerim</span>
+                                <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
+                            </NavLink>
+
+                            <NavLink href="/account/addresses" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 hover:text-emerald-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-600 font-semibold shadow-sm" @onclick="CloseSidebar">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
+                                    <i class="fas fa-map-marker-alt text-sm"></i>
+                                </div>
+                                <span>Adres Bilgilerim</span>
+                                <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
+                            </NavLink>
+                        </nav>
                     </div>
                 </div>
-                <nav class="flex flex-col p-2 space-y-1">
-                    <NavLink href="/account/orders" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600 font-semibold shadow-sm" @onclick="CloseSidebar">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
-                            <i class="fas fa-box text-sm"></i>
-                        </div>
-                        <span>Siparişlerim</span>
-                        <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
-                    </NavLink>
-    
-                    <NavLink href="/account" Match="NavLinkMatch.All" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-purple-50 to-pink-50 text-purple-600 font-semibold shadow-sm" @onclick="CloseSidebar">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
-                            <i class="fas fa-user text-sm"></i>
-                        </div>
-                        <span>Kullanıcı Bilgilerim</span>
-                        <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
-                    </NavLink>
 
-                    <NavLink href="/account/reviews" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:text-amber-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-600 font-semibold shadow-sm" @onclick="CloseSidebar">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
-                            <i class="fas fa-star text-sm"></i>
-                        </div>
-                        <span>Değerlendirmelerim</span>
-                        <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
-                    </NavLink>
-
-                    <NavLink href="/account/addresses" class="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 hover:text-emerald-600 transition-all duration-200" ActiveClass="bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-600 font-semibold shadow-sm" @onclick="CloseSidebar">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:shadow-md transition-all duration-200 shrink-0">
-                            <i class="fas fa-map-marker-alt text-sm"></i>
-                        </div>
-                        <span>Adres Bilgilerim</span>
-                        <i class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-auto"></i>
-                    </NavLink>
-                </nav>
+                <div class="flex-1">
+                    @Body
+                </div>
             </div>
         </div>
+    </Authorized>
+    <NotAuthorized>
+        @Body
+    </NotAuthorized>
+</AuthorizeView>
 
-        <div class="flex-1">
-            @ChildContent
-        </div>
-    </div>
-</div>
+
 
 @code {
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
     private bool isSidebarOpen = false;
 
     private void ToggleSidebar()

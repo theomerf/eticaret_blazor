@@ -18,8 +18,7 @@ namespace Application.DTOs
         public DateTime? DeliveredAt { get; set; }
         public decimal TotalAmount { get; set; }
         public string Currency { get; set; } = "TRY";
-        
-        public int LineCount { get; set; }
-        public string? FirstProductImage { get; set; }
+
+        public List<string> ProductImageUrls { get; set; } = [];
     }
 }

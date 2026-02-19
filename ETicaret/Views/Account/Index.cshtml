@@ -1,4 +1,4 @@
-﻿@using ETicaret.Components.Pages
+@using ETicaret.Components
 @{
     ViewData["Title"] = "Kullanıcı Bilgilerim";
     ViewData["UseBlazor"] = true;
@@ -22,5 +22,6 @@
 </div>
 
 <div id="blazor-container">
-    <component type="typeof(Account)" render-mode="Server" />
+    <component type="typeof(AccountApp)" render-mode="Server" />
 </div>
+

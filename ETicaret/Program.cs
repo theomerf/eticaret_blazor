@@ -143,6 +143,10 @@ try
     app.MapControllerRoute(
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}");
+    app.MapControllerRoute(
+        name: "account-spa",
+        pattern: "account/{*path}",
+        defaults: new { controller = "Account", action = "Index" });
 
     app.MapBlazorHub();
     app.MapRazorPages();

@@ -1,125 +1,126 @@
-﻿@using System.Security.Claims
+@page "/account/addresses"
+@attribute [Authorize]
 @using ETicaret.Models
 @using System.Text.Json
 @inject IAddressService AddressService
 @inject IJSRuntime JSRuntime
+@inject IAccountStateService AccountStateService
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-<AccountLayout>
-    <div class="space-y-6" data-blazor-loaded="true">
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-4 sm:p-6">
-            <div class="flex items-center justify-between gap-2">
-                <h2 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-map-marker-alt text-emerald-600 text-sm sm:text-base"></i>
-                    </div>
-                    <span class="truncate">Adres Bilgilerim</span>
-                </h2>
-                <button class="bg-button hover:bg-button-hover text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 flex-shrink-0 text-sm sm:text-base" @onclick="OpenAddModal">
-                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">Yeni Adres Ekle</span>
-                </button>
-            </div>
-        </div>
-
-        @if (isLoading)
-        {
-            <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
-                <div class="relative">
-                    <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
-                    <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
+<div class="space-y-6" data-blazor-loaded="true">
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-4 sm:p-6">
+        <div class="flex items-center justify-between gap-2">
+            <h2 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-map-marker-alt text-emerald-600 text-sm sm:text-base"></i>
                 </div>
-                <p class="text-gray-500 mt-6 font-medium">Adresleriniz yükleniyor...</p>
+                <span class="truncate">Adres Bilgilerim</span>
+            </h2>
+            <button class="bg-button hover:bg-button-hover text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 flex-shrink-0 text-sm sm:text-base" @onclick="OpenAddModal">
+                <i class="fas fa-plus"></i> <span class="hidden sm:inline">Yeni Adres Ekle</span>
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
+            <div class="relative">
+                <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+                <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
             </div>
-        }
-        else if (addresses != null && addresses.Any())
-        {
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                @foreach (var address in addresses)
-                {
-                    <div class="@(address.IsDefault ? "border-2 border-emerald-200 " : "border border-gray-200 hover:border-emerald-200") bg-white rounded-2xl p-6 border-2 border-emerald-200 shadow-lg relative group hover:shadow-xl transition-all hover:-translate-y-1">
+            <p class="text-gray-500 mt-6 font-medium">Adresleriniz yükleniyor...</p>
+        </div>
+    }
+    else if (addresses != null && addresses.Any())
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            @foreach (var address in addresses)
+            {
+                <div class="@(address.IsDefault ? "border-2 border-emerald-200 " : "border border-gray-200 hover:border-emerald-200") bg-white rounded-2xl p-6 border-2 border-emerald-200 shadow-lg relative group hover:shadow-xl transition-all hover:-translate-y-1">
+                    @if (address.IsDefault)
+                    {
+                        <div class="absolute top-4 right-4">
+                            <span class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1">
+                                <i class="fas fa-check-circle text-xs"></i>
+                                Varsayılan
+                            </span>
+                        </div>
+                    }
+
+                    <div class="mb-6 @(address.IsDefault ? "pt-2" : "")">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+                                <i class="fas fa-home @(address.IsDefault ? "text-emerald-600" : "text-blue-600")  text-xl"></i>
+                            </div>
+                            <h5 class="font-bold text-gray-800 text-lg">@address.Title</h5>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 text-sm text-gray-600 mb-6 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-user @(address.IsDefault ? "text-emerald-500" : "text-blue-500") mt-0.5 flex-shrink-0"></i>
+                            <p class="font-semibold text-gray-800">@address.FirstName @address.LastName</p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-location-dot @(address.IsDefault ? "text-emerald-500" : "text-blue-500") mt-0.5 flex-shrink-0"></i>
+                            <div>
+                                <p>@address.AddressLine</p>
+                                <p>@address.District / @address.City</p>
+                                <p class="font-medium text-gray-700">@address.PostalCode</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 pt-2 border-t border-gray-200">
+                            <i class="fas fa-phone @(address.IsDefault ? "text-emerald-500" : "text-blue-500")  flex-shrink-0"></i>
+                            <p class="font-medium text-gray-700">@address.Phone</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
                         @if (address.IsDefault)
                         {
-                            <div class="absolute top-4 right-4">
-                                <span class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1">
-                                    <i class="fas fa-check-circle text-xs"></i>
-                                    Varsayılan
-                                </span>
-                            </div>
+                            <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 text-blue-600 font-semibold hover:from-blue-100 hover:to-cyan-100 transition-all shadow-sm hover:shadow-md" @onclick="() => OpenEditModal(address)">
+                                <i class="fas fa-pen"></i>
+                                Düzenle
+                            </button>
+                            <button class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md" @onclick="() => HandleDeleteAddress(address.AddressId)">
+                                <i class="fas fa-trash"></i>
+                                Sil
+                            </button>
                         }
-
-                        <div class="mb-6 @(address.IsDefault ? "pt-2" : "")">
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
-                                    <i class="fas fa-home @(address.IsDefault ? "text-emerald-600" : "text-blue-600")  text-xl"></i>
-                                </div>
-                                <h5 class="font-bold text-gray-800 text-lg">@address.Title</h5>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 text-sm text-gray-600 mb-6 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
-                            <div class="flex items-start gap-2">
-                                <i class="fas fa-user @(address.IsDefault ? "text-emerald-500" : "text-blue-500") mt-0.5 flex-shrink-0"></i>
-                                <p class="font-semibold text-gray-800">@address.FirstName @address.LastName</p>
-                            </div>
-                            <div class="flex items-start gap-2">
-                                <i class="fas fa-location-dot @(address.IsDefault ? "text-emerald-500" : "text-blue-500") mt-0.5 flex-shrink-0"></i>
-                                <div>
-                                    <p>@address.AddressLine</p>
-                                    <p>@address.District / @address.City</p>
-                                    <p class="font-medium text-gray-700">@address.PostalCode</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 pt-2 border-t border-gray-200">
-                                <i class="fas fa-phone @(address.IsDefault ? "text-emerald-500" : "text-blue-500")  flex-shrink-0"></i>
-                                <p class="font-medium text-gray-700">@address.Phone</p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2">
-                            @if (address.IsDefault)
-                            {
-                                <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 text-blue-600 font-semibold hover:from-blue-100 hover:to-cyan-100 transition-all shadow-sm hover:shadow-md" @onclick="() => OpenEditModal(address)">
-                                    <i class="fas fa-pen"></i>
-                                    Düzenle
-                                </button>
-                                <button class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md" @onclick="() => HandleDeleteAddress(address.AddressId)">
-                                    <i class="fas fa-trash"></i>
-                                    Sil
-                                </button>
-                            }
-                            else
-                            {
-                                <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 text-blue-600 font-semibold hover:from-blue-100 hover:to-cyan-100 transition-all shadow-sm hover:shadow-md" @onclick="() => OpenEditModal(address)">
-                                    <i class="fas fa-pen"></i>
-                                    Düzenle
-                                </button>
-                                <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 text-emerald-600 font-semibold hover:from-emerald-100 hover:to-teal-100 transition-all shadow-sm hover:shadow-md whitespace-nowrap" @onclick="() => HandleMakeDefaultAddress(address.AddressId)">
-                                    <i class="fas fa-check-circle"></i>
-                                    Varsayılan
-                                </button>
-                                <button class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md" @onclick="() => HandleDeleteAddress(address.AddressId)">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            }
-                        </div>
+                        else
+                        {
+                            <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 text-blue-600 font-semibold hover:from-blue-100 hover:to-cyan-100 transition-all shadow-sm hover:shadow-md" @onclick="() => OpenEditModal(address)">
+                                <i class="fas fa-pen"></i>
+                                Düzenle
+                            </button>
+                            <button class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 text-emerald-600 font-semibold hover:from-emerald-100 hover:to-teal-100 transition-all shadow-sm hover:shadow-md whitespace-nowrap" @onclick="() => HandleMakeDefaultAddress(address.AddressId)">
+                                <i class="fas fa-check-circle"></i>
+                                Varsayılan
+                            </button>
+                            <button class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 text-red-600 font-semibold hover:from-red-100 hover:to-pink-100 transition-all shadow-sm hover:shadow-md" @onclick="() => HandleDeleteAddress(address.AddressId)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        }
                     </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100/50">
-                <div class="w-24 h-24 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100">
-                    <i class="fas fa-map-marked-alt text-emerald-200 text-4xl"></i>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Henüz Kayıtlı Adresiniz Yok</h3>
-                <p class="text-gray-500 max-w-md mx-auto mb-8">Sipariş verebilmek için en az bir teslimat adresi eklemeniz gerekmektedir.</p>
-                <button class="bg-button hover:bg-button-hover text-white px-6 sm:px-8 py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center gap-2" @onclick="OpenAddModal">
-                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">İlk Adresinizi Ekleyin</span><span class="sm:hidden">Adres Ekle</span>
-                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100/50">
+            <div class="w-24 h-24 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100">
+                <i class="fas fa-map-marked-alt text-emerald-200 text-4xl"></i>
             </div>
-        }
-    </div>
-</AccountLayout>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Henüz Kayıtlı Adresiniz Yok</h3>
+            <p class="text-gray-500 max-w-md mx-auto mb-8">Sipariş verebilmek için en az bir teslimat adresi eklemeniz gerekmektedir.</p>
+            <button class="bg-button hover:bg-button-hover text-white px-6 sm:px-8 py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center gap-2" @onclick="OpenAddModal">
+                <i class="fas fa-plus"></i> <span class="hidden sm:inline">İlk Adresinizi Ekleyin</span><span class="sm:hidden">Adres Ekle</span>
+            </button>
+        </div>
+    }
+</div>
 
 @if (showAddModal)
 {
@@ -210,7 +211,7 @@
                         </div>
 
                         <div class="md:col-span-2">
-                            @if (addresses.Count() > 1)
+                            @if (addresses?.Count() > 1)
                             {
                                 <label class="flex items-center gap-3 cursor-pointer p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 hover:from-emerald-100 hover:to-teal-100 transition-all">
                                     <InputCheckbox class="w-5 h-5 rounded border-2 border-emerald-500 text-emerald-600 focus:ring-2 focus:ring-emerald-500" @bind-Value="addressDtoForCreation.IsDefault" />
@@ -322,7 +323,7 @@
                         </div>
 
                         <div class="md:col-span-2">
-                            @if (addresses.Count() > 1)
+                            @if (addresses?.Count() > 1)
                             {
                                 <label class="flex items-center gap-3 cursor-pointer p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 hover:from-emerald-100 hover:to-teal-100 transition-all">
                                     <InputCheckbox class="w-5 h-5 rounded border-2 border-emerald-500 text-emerald-600 focus:ring-2 focus:ring-emerald-500" @bind-Value="addressDtoForUpdate.IsDefault" />
@@ -346,36 +347,18 @@
 }
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthStateTask { get; set; }
-
     private IEnumerable<AddressDto> addresses = new List<AddressDto>();
     private AddressDtoForCreation addressDtoForCreation = new();
     private AddressDtoForUpdate addressDtoForUpdate = new();
     private bool showAddModal = false;
     private bool showEditModal = false;
     private bool isLoading = true;
-    private string? userId;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-
-        if (AuthStateTask != null)
-        {
-            var authState = await AuthStateTask;
-            var user = authState.User;
-
-            if (user.Identity?.IsAuthenticated == true)
-            {
-                userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(userId))
-        {
-            addresses = await AddressService.GetByUserIdAsync(userId);
-        }
+        await AccountStateService.LoadAddressesAsync();
+        addresses = AccountStateService.Addresses;
 
         isLoading = false;
     }
@@ -410,10 +393,9 @@
         {
             CloseAddModal();
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
-            if (!string.IsNullOrEmpty(userId))
-            {
-                addresses = await AddressService.GetByUserIdAsync(userId);
-            }
+            AccountStateService.InvalidateAddresses();
+            await AccountStateService.LoadAddressesAsync(forceRefresh: true);
+            addresses = AccountStateService.Addresses;
         }
         else
         {
@@ -435,10 +417,9 @@
         {
             CloseEditModal();
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
-            if (!string.IsNullOrEmpty(userId))
-            {
-                addresses = await AddressService.GetByUserIdAsync(userId);
-            }
+            AccountStateService.InvalidateAddresses();
+            await AccountStateService.LoadAddressesAsync(forceRefresh: true);
+            addresses = AccountStateService.Addresses;
         }
         else
         {
@@ -451,18 +432,18 @@
     private void OpenEditModal(AddressDto address)
     {
         addressDtoForUpdate = new AddressDtoForUpdate
-            {
-                AddressId = address.AddressId,
-                Title = address.Title,
-                FirstName = address.FirstName,
-                LastName = address.LastName,
-                Phone = address.Phone,
-                City = address.City,
-                District = address.District,
-                PostalCode = address.PostalCode,
-                AddressLine = address.AddressLine,
-                IsDefault = address.IsDefault
-            };
+        {
+            AddressId = address.AddressId,
+            Title = address.Title,
+            FirstName = address.FirstName,
+            LastName = address.LastName,
+            Phone = address.Phone,
+            City = address.City,
+            District = address.District,
+            PostalCode = address.PostalCode,
+            AddressLine = address.AddressLine,
+            IsDefault = address.IsDefault
+        };
 
         _initialAddressJson = JsonSerializer.Serialize(addressDtoForUpdate);
         showEditModal = true;
@@ -484,10 +465,9 @@
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
-            if (!string.IsNullOrEmpty(userId))
-            {
-                addresses = await AddressService.GetByUserIdAsync(userId);
-            }
+            AccountStateService.InvalidateAddresses();
+            await AccountStateService.LoadAddressesAsync(forceRefresh: true);
+            addresses = AccountStateService.Addresses;
         }
         else
         {
@@ -501,10 +481,9 @@
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
-            if (!string.IsNullOrEmpty(userId))
-            {
-                addresses = await AddressService.GetByUserIdAsync(userId);
-            }
+            AccountStateService.InvalidateAddresses();
+            await AccountStateService.LoadAddressesAsync(forceRefresh: true);
+            addresses = AccountStateService.Addresses;
         }
         else
         {

@@ -292,24 +292,6 @@ namespace ETicaret.Controllers
         }
 
         [Authorize]
-        public IActionResult Orders()
-        {
-            return View();
-        }
-
-        [Authorize]
-        public IActionResult Reviews()
-        {
-            return View();
-        }
-
-        [Authorize]
-        public IActionResult Addresses()
-        {
-            return View();
-        }
-
-        [Authorize]
         public async Task<IActionResult> Favourites()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -3472,6 +3472,10 @@ a:hover {
   max-height: 0px;
 }
 
+.max-h-36 {
+  max-height: 9rem;
+}
+
 .max-h-60 {
   max-height: 15rem;
 }
@@ -3522,10 +3526,6 @@ a:hover {
 
 .max-h-full {
   max-height: 100%;
-}
-
-.max-h-36 {
-  max-height: 9rem;
 }
 
 .min-h-0 {
@@ -6239,6 +6239,10 @@ a:hover {
   line-height: 1.25rem;
 }
 
+.leading-6 {
+  line-height: 1.5rem;
+}
+
 .leading-\[1\.2\] {
   line-height: 1.2;
 }
@@ -6257,10 +6261,6 @@ a:hover {
 
 .leading-tight {
   line-height: 1.25;
-}
-
-.leading-6 {
-  line-height: 1.5rem;
 }
 
 .tracking-tight {

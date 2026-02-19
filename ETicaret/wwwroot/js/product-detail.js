@@ -55,74 +55,6 @@ function handleEscapeKey(event) {
 	}
 }
 
-window.updateStarVisuals = function (rating) {
-	const stars = document.querySelectorAll('#starRatingContainer .star-rating-btn');
-	stars.forEach(btn => {
-		const val = parseInt(btn.getAttribute('data-value'));
-		const icon = btn.querySelector('i');
-
-		if (val <= rating) {
-			btn.classList.remove('text-gray-300');
-			btn.classList.add('text-amber-400');
-			icon.classList.remove('far');
-			icon.classList.add('fas');
-		} else {
-			btn.classList.add('text-gray-300');
-			btn.classList.remove('text-amber-400');
-			icon.classList.remove('fas');
-			icon.classList.add('far');
-		}
-	});
-};
-
-window.setReviewRating = function (rating) {
-	const input = document.getElementById('hiddenRatingInput');
-	const display = document.getElementById('ratingDisplay');
-
-	if (!input) return;
-
-	let currentVal = parseInt(input.value);
-
-	let newVal = rating;
-	if (currentVal === rating) {
-		newVal = 0;
-	}
-
-	input.value = newVal;
-	if (display) display.innerText = newVal === 0 ? '-' : newVal;
-
-	updateStarVisuals(newVal);
-};
-
-window.hoverReviewRating = function (rating) {
-	updateStarVisuals(rating);
-	const display = document.getElementById('ratingDisplay');
-	if (display) display.innerText = rating;
-};
-
-window.resetVisualRating = function () {
-	const input = document.getElementById('hiddenRatingInput');
-	const display = document.getElementById('ratingDisplay');
-	if (!input) return;
-
-	const savedVal = parseInt(input.value);
-	updateStarVisuals(savedVal);
-	if (display) display.innerText = savedVal === 0 ? '-' : savedVal;
-};
-
-window.handleReviewImageSelect = function (input) {
-	const indicator = document.getElementById('imageUploadIndicator');
-	if (!indicator) return;
-
-	if (input.files && input.files[0]) {
-		indicator.classList.remove('hidden');
-		indicator.classList.add('flex');
-	} else {
-		indicator.classList.add('hidden');
-		indicator.classList.remove('flex');
-	}
-};
-
 function getFavoritesFromCookie() {
 	const value = `; ${document.cookie}`;
 	const parts = value.split(`; FavouriteProducts=`);
@@ -429,21 +361,6 @@ function updateActiveStates(key, value) {
 (function () {
 
 	async function initProductDetailPage() {
-		const starContainer = document.getElementById('starRatingContainer');
-		if (starContainer) {
-			starContainer.addEventListener('mouseleave', function () {
-				window.resetVisualRating();
-			});
-
-			const stars = starContainer.querySelectorAll('.star-rating-btn');
-			stars.forEach(btn => {
-				btn.addEventListener('mouseenter', function () {
-					const val = parseInt(this.getAttribute('data-value'));
-					window.hoverReviewRating(val);
-				});
-			});
-		}
-
 		const modal = document.getElementById('photoModal');
 		if (modal) {
 			modal.addEventListener('click', function (event) {
@@ -545,9 +462,6 @@ function updateActiveStates(key, value) {
 
 				targetContent.classList.remove('hidden');
 				targetContent.classList.add('block');
-
-				const form = document.getElementById('reviewForm');
-				clearValidationErrors(form);
 
 				setTimeout(() => {
 					targetContent.classList.remove('opacity-0');
@@ -732,93 +646,6 @@ function updateActiveStates(key, value) {
 		selectDefaultVariant();
 
 		document.addEventListener('click', async function (e) {
-			const reviewSubmitBtn = e.target.closest('.review-submit-btn');
-			if (!reviewSubmitBtn) return;
-
-			e.preventDefault();
-
-			const form = document.getElementById('reviewForm');
-			if (!form) return;
-
-			const titleInput = form.querySelector('[name="UserReviewForCreation.ReviewTitle"]');
-			const textInput = form.querySelector('[name="UserReviewForCreation.ReviewText"]');
-			const ratingInput = form.querySelector('[name="UserReviewForCreation.Rating"]');
-			const productIdInput = form.querySelector('[name="UserReviewForCreation.ProductId"]');
-			const fileInput = document.getElementById('reviewImageInput');
-
-			if (!ratingInput?.value || ratingInput.value === '0' || ratingInput.value === 0) {
-				clearValidationErrors(form);
-				handleValidationErrors(form, { errors: { "Rating": ["Lütfen değerlendirmenize puan verin."] } });
-				return;
-			}
-
-			const originalText = reviewSubmitBtn.innerHTML;
-			reviewSubmitBtn.disabled = true;
-			reviewSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Gönderiliyor...';
-
-			clearValidationErrors(form);
-
-			try {
-				const formData = new FormData();
-				formData.append('ReviewTitle', titleInput.value);
-				formData.append('ReviewText', textInput.value);
-				formData.append('Rating', ratingInput.value);
-				formData.append('ProductId', productIdInput.value);
-
-				if (fileInput && fileInput.files.length > 0) {
-					formData.append('file', fileInput.files[0]);
-				}
-
-				const response = await fetch('/api/account/create-review', {
-					method: 'POST',
-					body: formData
-				});
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					handleValidationErrors(form, errorData);
-					throw new Error('Validation failed');
-				}
-
-				const result = await response.json();
-
-				if (result.success) {
-					if (typeof showToast === 'function') showToast(result.message || 'Yorumunuz başarıyla eklendi!', 'success');
-
-					try {
-						const reviewsContainer = document.getElementById('reviews');
-						if (reviewsContainer && productIdInput.value) {
-							const componentResponse = await fetch(`/product-reviews/${productIdInput.value}`);
-							if (componentResponse.ok) {
-								const html = await componentResponse.text();
-								reviewsContainer.innerHTML = html;
-							} else {
-								setTimeout(() => window.location.reload(), 1000);
-							}
-						} else {
-							setTimeout(() => window.location.reload(), 1000);
-						}
-					} catch (refreshError) {
-						console.error(refreshError);
-						setTimeout(() => window.location.reload(), 1000);
-					}
-
-				} else {
-					handleValidationErrors(form, { message: result.message || 'Yorum eklenirken hata oluştu.' });
-					reviewSubmitBtn.disabled = false;
-					reviewSubmitBtn.innerHTML = originalText;
-				}
-			} catch (error) {
-				if (error.message !== 'Validation failed') {
-					console.error('Review submit error:', error);
-					showToast('Yorum gönderilirken bir hata oluştu.', 'danger');
-				}
-				reviewSubmitBtn.disabled = false;
-				reviewSubmitBtn.innerHTML = originalText;
-			}
-		});
-
-		document.addEventListener('click', async function (e) {
 			const button = e.target.closest('.pd-add-to-favs-btn');
 			if (!button) return;
 
@@ -926,19 +753,6 @@ function updateActiveStates(key, value) {
 
 
 	}
-
-	document.addEventListener('click', async function (event) {
-		if (!event.target.closest('.review-submit-btn')) return;
-
-		event.preventDefault();
-
-		const submitBtn = event.target.closest('.review-submit-btn');
-		if (submitBtn.classList.contains('loading')) return;
-
-		const form = document.getElementById('reviewForm');
-		if (!form) return;
-
-	});
 
 	document.addEventListener('click', async function (event) {
 		const clickedBtn = event.target.closest('.pd-add-cart-btn');
@@ -1143,90 +957,7 @@ function updateActiveStates(key, value) {
 		}
 	}
 
-	function clearValidationErrors(form) {
-		if (!form) return;
-
-		form.querySelectorAll('[data-valmsg-for]').forEach(span => {
-			span.innerText = '';
-			span.classList.remove('field-validation-error');
-			span.classList.add('field-validation-valid');
-		});
-
-		const summary = form.closest('div')?.querySelector('[data-valmsg-summary="true"]');
-		if (summary) {
-			const ul = summary.querySelector('ul');
-			if (ul) ul.innerHTML = '';
-			summary.classList.add('validation-summary-valid');
-			summary.classList.remove('validation-summary-errors');
-			summary.classList.add('hidden');
-		}
-	}
-
-	function handleValidationErrors(form, errorData) {
-		let generalErrors = [];
-
-		if (errorData.errors) {
-			for (const [key, messages] of Object.entries(errorData.errors)) {
-				let span = form.querySelector(`[data-valmsg-for="${key}"]`);
-
-				if (!span) {
-					span = form.querySelector(`[data-valmsg-for$=".${key}"]`);
-				}
-				if (!span) {
-					const inputs = form.querySelectorAll('[data-valmsg-for]');
-					for (let i = 0; i < inputs.length; i++) {
-						if (inputs[i].getAttribute('data-valmsg-for').endsWith('.' + key)) {
-							span = inputs[i];
-							break;
-						}
-					}
-				}
-
-				if (span) {
-					span.innerText = messages.join(' ');
-					span.classList.add('field-validation-error');
-					span.classList.remove('field-validation-valid');
-				} else {
-					generalErrors.push(...messages);
-				}
-			}
-		}
-
-		if (errorData.message) {
-			if (!errorData.errors || Object.keys(errorData.errors).length === 0) {
-				generalErrors.push(errorData.message);
-			}
-		}
-
-		if (errorData.errors && Object.keys(errorData.errors).length > 0 && form.querySelectorAll('.field-validation-error').length === 0 && generalErrors.length === 0) {
-			for (const [key, messages] of Object.entries(errorData.errors)) {
-				generalErrors.push(...messages);
-			}
-		}
-
-		if (generalErrors.length > 0) {
-			const summary = form.closest('div')?.querySelector('[data-valmsg-summary="true"]');
-			if (summary) {
-				let ul = summary.querySelector('ul');
-				if (!ul) {
-					ul = document.createElement('ul');
-					summary.appendChild(ul);
-				}
-				ul.innerHTML = '';
-				generalErrors.forEach(err => {
-					const li = document.createElement('li');
-					li.innerText = err;
-					ul.appendChild(li);
-				});
-
-				summary.classList.remove('validation-summary-valid');
-				summary.classList.add('validation-summary-errors');
-				summary.classList.remove('hidden');
-			}
-		}
-	}
-
-	if (document.readyState === 'loading') {
+		if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', initProductDetailPage);
 	} else {
 		initProductDetailPage();

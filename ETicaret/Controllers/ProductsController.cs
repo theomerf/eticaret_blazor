@@ -147,13 +147,7 @@ namespace ETicaret.Controllers
             return View(model);
         }
 
-        [HttpGet("product-reviews/{productId}")]
-        public IActionResult GetProductReviews([FromRoute(Name = "productId")] int productId)
-        {
-            return ViewComponent("ProductReviews", new { productId = productId });
-        }
-
-        public IActionResult SearchProduct([FromForm] String? searchQuery)
+        public IActionResult SearchProduct([FromForm] string? searchQuery)
         {
             return RedirectToAction("Index", new { SearchTerm = searchQuery });
         }

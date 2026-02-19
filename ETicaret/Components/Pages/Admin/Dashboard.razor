@@ -2,7 +2,6 @@
 @page "/admin/dashboard"
 @using Application.DTOs
 @using Microsoft.AspNetCore.Authorization
-@inject ETicaret.Services.INotificationService NotificationService
 @inherits OwningComponentBase
 @inject IJSRuntime JSRuntime
 @implements IDisposable
@@ -90,7 +89,6 @@
         _campaignService = ScopedServices.GetRequiredService<ICampaignService>();
         _couponService = ScopedServices.GetRequiredService<ICouponService>();
 
-        NotificationService.Clear();
         isLoading = true;
 
         if (AuthStateTask != null)

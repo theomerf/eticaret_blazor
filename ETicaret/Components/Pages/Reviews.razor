@@ -1,5 +1,5 @@
-﻿@page "/account/reviews"
-@using System.Security.Claims
+@page "/account/reviews"
+@attribute [Authorize]
 @using Application.DTOs
 @using Domain.Entities
 @using ETicaret.Models
@@ -9,85 +9,86 @@
 @inject IFileService FileService
 @inject IJSRuntime JSRuntime
 @inject ILogger<Reviews> _logger
+@inject IAccountStateService AccountStateService
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-<AccountLayout>
-    <div class="space-y-6" data-blazor-loaded="true">
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-4 sm:p-6">
-            <div class="flex items-center justify-between gap-2">
-                <h2 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-500 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-star text-amber-600 text-sm sm:text-base"></i>
-                    </div>
-                    <span class="truncate">Değerlendirmelerim</span>
-                </h2>
-                @if (userReviews != null && userReviews.Any())
-                {
-                    <div class="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-amber-100 flex-shrink-0">
-                        <i class="fas fa-comment-dots text-amber-600 text-xs sm:text-sm"></i>
-                        <span class="text-xs sm:text-sm font-bold text-amber-700">@userReviews.Count()</span>
-                    </div>
-                }
-            </div>
-        </div>
-
-        @if (isLoading)
-        {
-            <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
-                <div class="relative">
-                    <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
-                    <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
+<div class="space-y-6" data-blazor-loaded="true">
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-4 sm:p-6">
+        <div class="flex items-center justify-between gap-2">
+            <h2 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-500 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-star text-amber-600 text-sm sm:text-base"></i>
                 </div>
-                <p class="text-gray-500 mt-6 font-medium">Yorumlarınız yükleniyor...</p>
+                <span class="truncate">Değerlendirmelerim</span>
+            </h2>
+            @if (userReviews != null && userReviews.Any())
+            {
+                <div class="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-amber-100 flex-shrink-0">
+                    <i class="fas fa-comment-dots text-amber-600 text-xs sm:text-sm"></i>
+                    <span class="text-xs sm:text-sm font-bold text-amber-700">@userReviews.Count()</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg border border-gray-100/50 py-16">
+            <div class="relative">
+                <div class="w-16 h-16 border-4 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+                <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1s;"></div>
             </div>
-        }
-        else if (userReviews != null && userReviews.Any())
-        {
-            <div class="grid gap-5">
-                @foreach (var review in userReviews)
-                {
-                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-6 transition-all hover:shadow-xl hover:-translate-y-1">
-                        <div class="flex flex-col md:flex-row gap-6">
-                            <div class="flex-1">
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
-                                    <div class="flex-1 w-full sm:w-auto">
-                                        <h4 class="font-bold text-gray-800 text-lg mb-2 flex items-center gap-2">
-                                            @if (review.Product != null)
-                                            {
-                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center shrink-0">
-                                                    <i class="fas fa-box text-blue-600 text-sm"></i>
-                                                </div>
-                                                <span>@review.Product.ProductName</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-gray-400">Ürün Bilgisi Yok</span>
-                                            }
-                                        </h4>
-                                        <div class="flex items-center gap-2 text-sm text-gray-500">
-                                            <div class="flex items-center gap-1">
-                                                <i class="far fa-calendar-alt ml-1"></i>
-                                                <span>@review.ReviewDate</span>
+            <p class="text-gray-500 mt-6 font-medium">Yorumlarınız yükleniyor...</p>
+        </div>
+    }
+    else if (userReviews != null && userReviews.Any())
+    {
+        <div class="grid gap-5">
+            @foreach (var review in userReviews)
+            {
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100/50 p-6 transition-all hover:shadow-xl hover:-translate-y-1">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-1">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+                                <div class="flex-1 w-full sm:w-auto">
+                                    <h4 class="font-bold text-gray-800 text-lg mb-2 flex items-center gap-2">
+                                        @if (review.Product != null)
+                                        {
+                                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center shrink-0">
+                                                <i class="fas fa-box text-blue-600 text-sm"></i>
                                             </div>
+                                            <span>@review.Product.ProductName</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-gray-400">Ürün Bilgisi Yok</span>
+                                        }
+                                    </h4>
+                                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                                        <div class="flex items-center gap-1">
+                                            <i class="far fa-calendar-alt ml-1"></i>
+                                            <span>@review.ReviewDate</span>
                                         </div>
                                     </div>
-                                    <div class="flex items-center gap-1.5 bg-gradient-to-r from-amber-50 to-orange-50 px-3 sm:px-4 py-2 rounded-xl border border-amber-100 shadow-sm shrink-0">
-                                        <span class="font-bold text-amber-700 text-lg">@review.Rating</span>
-                                        <i class="fas fa-star text-amber-400"></i>
-                                    </div>
                                 </div>
-
-                                <div class="mb-5 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
-                                    <h5 class="font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                        <i class="fas fa-quote-left text-blue-400 text-xs"></i>
-                                        @review.ReviewTitle
-                                    </h5>
-                                    <p class="text-gray-600 text-sm leading-relaxed">@review.ReviewText</p>
+                                <div class="flex items-center gap-1.5 bg-gradient-to-r from-amber-50 to-orange-50 px-3 sm:px-4 py-2 rounded-xl border border-amber-100 shadow-sm shrink-0">
+                                    <span class="font-bold text-amber-700 text-lg">@review.Rating</span>
+                                    <i class="fas fa-star text-amber-400"></i>
                                 </div>
+                            </div>
 
-                                @if (!string.IsNullOrEmpty(review.ReviewPictureUrl))
-                                {
-                                    <div class="mb-5">
-                                        <img src="@review.ReviewPictureUrl" alt="Review Image" class="h-32 w-auto rounded-xl border-2 border-gray-200 object-cover cursor-pointer hover:scale-105 transition-transform shadow-md" @onclick="() => ShowImagePreview(review.ReviewPictureUrl)">
+                            <div class="mb-5 bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-100">
+                                <h5 class="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <i class="fas fa-quote-left text-blue-400 text-xs"></i>
+                                    @review.ReviewTitle
+                                </h5>
+                                <p class="text-gray-600 text-sm leading-relaxed">@review.ReviewText</p>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(review.ReviewPictureUrl))
+                            {
+                                <div class="mb-5">
+                                    <img src="@review.ReviewPictureUrl" alt="Review Image" class="h-32 w-auto rounded-xl border-2 border-gray-200 object-cover cursor-pointer hover:scale-105 transition-transform shadow-md" @onclick="() => ShowImagePreview(review.ReviewPictureUrl)">
                                     </div>
                                 }
 
@@ -127,150 +128,131 @@
             </div>
         }
     </div>
-</AccountLayout>
 
-@if (showReviewModal)
-{
-    <div class="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" aria-hidden="true" @onclick="CloseReviewModal"></div>
+    @if (showReviewModal)
+    {
+        <div class="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" aria-hidden="true" @onclick="CloseReviewModal"></div>
 
-        <div class="relative bg-white rounded-t-3xl sm:rounded-3xl text-left shadow-2xl transform transition-all w-full sm:max-w-lg sm:max-w-[95vw] md:max-w-lg max-h-[90vh] sm:max-h-[85vh] flex flex-col animate-fadeIn">
-            <EditForm Model="reviewToUpdate" OnValidSubmit="HandleUpdateComment" style="display: contents;">
-                <DataAnnotationsValidator />
-                <div class="bg-primary px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex-shrink-0 rounded-t-3xl sm:rounded-t-3xl">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg sm:text-xl font-bold bg-white bg-clip-text text-transparent flex items-center gap-2" id="modal-title">
-                            <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-edit text-blue-600 text-sm"></i>
+            <div class="relative bg-white rounded-t-3xl sm:rounded-3xl text-left shadow-2xl transform transition-all w-full sm:max-w-lg sm:max-w-[95vw] md:max-w-lg max-h-[90vh] sm:max-h-[85vh] flex flex-col animate-fadeIn">
+                <EditForm Model="reviewToUpdate" OnValidSubmit="HandleUpdateComment" style="display: contents;">
+                    <DataAnnotationsValidator />
+                    <div class="bg-primary px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex-shrink-0 rounded-t-3xl sm:rounded-t-3xl">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg sm:text-xl font-bold bg-white bg-clip-text text-transparent flex items-center gap-2" id="modal-title">
+                                <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-edit text-blue-600 text-sm"></i>
+                                </div>
+                                Yorumu Düzenle
+                            </h3>
+                            <button type="button" @onclick="CloseReviewModal" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto flex-1">
+                        <div class="space-y-4 sm:space-y-5">
+                            <!-- Rating -->
+                            <div class="flex flex-col items-center justify-center p-4 sm:p-5 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border border-amber-100">
+                                <label class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                    Puanınız
+                                </label>
+                                <InputRadioGroup @bind-Value="reviewToUpdate.Rating">
+                                    <div class="flex flex-row-reverse gap-1 sm:gap-2">
+                                        @for (int i = 5; i >= 1; i--)
+                                        {
+                                            var starId = $"star-{i}";
+                                            <InputRadio Value="@i" class="peer hidden" id="@starId" />
+                                            <label for="@starId" class="cursor-pointer text-gray-300 peer-checked:text-amber-400 hover:text-amber-300 transition-all text-2xl sm:text-3xl hover:scale-110">
+                                                <i class="fas fa-star drop-shadow-sm"></i>
+                                            </label>
+                                        }
+                                    </div>
+                                </InputRadioGroup>
+                                <ValidationMessage For="@(() => reviewToUpdate.Rating)" class="text-red-500 text-xs mt-1" />
                             </div>
-                            Yorumu Düzenle
-                        </h3>
-                        <button type="button" @onclick="CloseReviewModal" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
-                            <i class="fas fa-times"></i>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Başlık
+                                </label>
+                                <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="reviewToUpdate.ReviewTitle" placeholder="Örn: Harika bir ürün!" />
+                                <ValidationMessage For="@(() => reviewToUpdate.ReviewTitle)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    Yorumunuz
+                                </label>
+                                <InputTextArea rows="3" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all" @bind-Value="reviewToUpdate.ReviewText" placeholder="Ürün deneyimlerinizi paylaşın..." />
+                                <ValidationMessage For="@(() => reviewToUpdate.ReviewText)" class="text-red-500 text-xs mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                    <i class="fas fa-image text-emerald-500 text-xs"></i>
+                                    Fotoğraf Ekle
+                                </label>
+                                <div class="flex items-center justify-center w-full">
+                                    <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-28 sm:h-36 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gradient-to-br from-gray-50 to-slate-50 hover:bg-gray-100 transition-all group">
+                                        <div class="flex flex-col items-center justify-center py-4">
+                                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white shadow-sm flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                                                <i class="fas fa-cloud-upload-alt text-blue-400 text-xl sm:text-2xl"></i>
+                                            </div>
+                                            <p class="mb-1 sm:mb-2 text-xs sm:text-sm font-semibold text-gray-700">Fotoğraf yüklemek için tıklayın</p>
+                                            <p class="text-xs text-gray-500">PNG veya JPG (MAX. 10MB)</p>
+                                        </div>
+                                        <InputFile id="dropzone-file" class="hidden" OnChange="@OnInputFileChange" accept=".png, .jpg, .jpeg" />
+                                    </label>
+                                </div>
+                                @if (reviewImageFile != null)
+                                {
+                                    <div class="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 flex items-center gap-2">
+                                        <i class="fas fa-check-circle text-emerald-600"></i>
+                                        <span class="text-sm font-semibold text-emerald-700 truncate">@reviewImageFile.Name</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 border-t border-gray-200 flex-shrink-0">
+                        <button type="button" class="px-6 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all" @onclick="CloseReviewModal">
+                            İptal
+                        </button>
+                        <button type="submit" disabled="@(JsonSerializer.Serialize(reviewToUpdate) == _initialReviewJson && reviewImageFile == null)" title="@(JsonSerializer.Serialize(reviewToUpdate) == _initialReviewJson && reviewImageFile == null ? "Kaydetmek için değişiklik yapın" : "")" class="px-6 py-2.5 rounded-xl bg-button text-white font-semibold shadow-lg transition-all transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none hover:bg-button-hover hover:shadow-xl hover:-translate-y-0.5">
+                            Onayla
                         </button>
                     </div>
-                </div>
-
-                <div class="bg-white px-4 sm:px-6 py-4 sm:py-6 overflow-y-auto flex-1">
-                    <div class="space-y-4 sm:space-y-5">
-                        <!-- Rating -->
-                        <div class="flex flex-col items-center justify-center p-4 sm:p-5 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border border-amber-100">
-                            <label class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                                Puanınız
-                            </label>
-                            <InputRadioGroup @bind-Value="reviewToUpdate.Rating">
-                                <div class="flex flex-row-reverse gap-1 sm:gap-2">
-                                    @for (int i = 5; i >= 1; i--)
-                                    {
-                                        var starId = $"star-{i}";
-                                        <InputRadio Value="@i" class="peer hidden" id="@starId" />
-                                        <label for="@starId" class="cursor-pointer text-gray-300 peer-checked:text-amber-400 hover:text-amber-300 transition-all text-2xl sm:text-3xl hover:scale-110">
-                                            <i class="fas fa-star drop-shadow-sm"></i>
-                                        </label>
-                                    }
-                                </div>
-                            </InputRadioGroup>
-                            <ValidationMessage For="@(() => reviewToUpdate.Rating)" class="text-red-500 text-xs mt-1" />
-                        </div>
-
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                Başlık
-                            </label>
-                            <InputText class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" @bind-Value="reviewToUpdate.ReviewTitle" placeholder="Örn: Harika bir ürün!" />
-                            <ValidationMessage For="@(() => reviewToUpdate.ReviewTitle)" class="text-red-500 text-xs mt-1" />
-                        </div>
-
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                Yorumunuz
-                            </label>
-                            <InputTextArea rows="3" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all" @bind-Value="reviewToUpdate.ReviewText" placeholder="Ürün deneyimlerinizi paylaşın..." />
-                            <ValidationMessage For="@(() => reviewToUpdate.ReviewText)" class="text-red-500 text-xs mt-1" />
-                        </div>
-
-                        <div>
-                            <label class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                <i class="fas fa-image text-emerald-500 text-xs"></i>
-                                Fotoğraf Ekle
-                            </label>
-                            <div class="flex items-center justify-center w-full">
-                                <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-28 sm:h-36 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gradient-to-br from-gray-50 to-slate-50 hover:bg-gray-100 transition-all group">
-                                    <div class="flex flex-col items-center justify-center py-4">
-                                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white shadow-sm flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
-                                            <i class="fas fa-cloud-upload-alt text-blue-400 text-xl sm:text-2xl"></i>
-                                        </div>
-                                        <p class="mb-1 sm:mb-2 text-xs sm:text-sm font-semibold text-gray-700">Fotoğraf yüklemek için tıklayın</p>
-                                        <p class="text-xs text-gray-500">PNG veya JPG (MAX. 10MB)</p>
-                                    </div>
-                                    <InputFile id="dropzone-file" class="hidden" OnChange="@OnInputFileChange" accept=".png, .jpg, .jpeg" />
-                                </label>
-                            </div>
-                            @if (reviewImageFile != null)
-                            {
-                                <div class="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 flex items-center gap-2">
-                                    <i class="fas fa-check-circle text-emerald-600"></i>
-                                    <span class="text-sm font-semibold text-emerald-700 truncate">@reviewImageFile.Name</span>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 border-t border-gray-200 flex-shrink-0">
-                    <button type="button" class="px-6 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all" @onclick="CloseReviewModal">
-                        İptal
-                    </button>
-                    <button type="submit" disabled="@(JsonSerializer.Serialize(reviewToUpdate) == _initialReviewJson && reviewImageFile == null)" title="@(JsonSerializer.Serialize(reviewToUpdate) == _initialReviewJson && reviewImageFile == null ? "Kaydetmek için değişiklik yapın" : "")" class="px-6 py-2.5 rounded-xl bg-button text-white font-semibold shadow-lg transition-all transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none hover:bg-button-hover hover:shadow-xl hover:-translate-y-0.5">
-                        Onayla
-                    </button>
-                </div>
-            </EditForm>
+                </EditForm>
+            </div>
         </div>
-    </div>
-}
+    }
 
-@if (showImageModal && !string.IsNullOrEmpty(selectedImageUrl))
-{
-    <div class="photo-modal fixed inset-0 z-[99999] bg-black/85 backdrop-blur-sm flex items-center justify-center p-5 transition-all duration-300" aria-labelledby="modal-title" role="dialog" aria-modal="true" @onclick="CloseImagePreview">
-        <div class="photo-modal-content relative bg-white rounded-2xl p-5 max-w-[90vw] max-h-[90vh] shadow-2xl overflow-hidden animate-scaleIn" @onclick:stopPropagation>
-            <button class="absolute top-1 right-1 w-10 h-10 bg-gradient-to-br from-red-400 to-orange-500 border-none rounded-full text-white text-lg font-bold cursor-pointer flex items-center justify-center shadow-lg transition-all duration-300 z-[10001] hover:scale-110 hover:shadow-xl" onclick="@CloseImagePreview">
-                <i class="fas fa-times"></i>
-            </button>
-            <img id="modalImage" class="w-full h-auto max-w-[800px] max-h-[600px] object-contain rounded-2xl block mx-auto" src="@selectedImageUrl" alt="Büyütülmüş Fotoğraf">
+    @if (showImageModal && !string.IsNullOrEmpty(selectedImageUrl))
+    {
+        <div class="photo-modal fixed inset-0 z-[99999] bg-black/85 backdrop-blur-sm flex items-center justify-center p-5 transition-all duration-300" aria-labelledby="modal-title" role="dialog" aria-modal="true" @onclick="CloseImagePreview">
+            <div class="photo-modal-content relative bg-white rounded-2xl p-5 max-w-[90vw] max-h-[90vh] shadow-2xl overflow-hidden animate-scaleIn" @onclick:stopPropagation>
+                <button class="absolute top-1 right-1 w-10 h-10 bg-gradient-to-br from-red-400 to-orange-500 border-none rounded-full text-white text-lg font-bold cursor-pointer flex items-center justify-center shadow-lg transition-all duration-300 z-[10001] hover:scale-110 hover:shadow-xl" onclick="@CloseImagePreview">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img id="modalImage" class="w-full h-auto max-w-[800px] max-h-[600px] object-contain rounded-2xl block mx-auto" src="@selectedImageUrl" alt="Büyütülmüş Fotoğraf">
+            </div>
         </div>
-    </div>
-}
+    }
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthStateTask { get; set; }
-
     private IEnumerable<UserReviewDto> userReviews = new List<UserReviewDto>();
     private UserReviewDtoForUpdate reviewToUpdate = new();
     private bool isLoading = true;
     private bool showReviewModal = false;
     private IBrowserFile? reviewImageFile;
-    private string? userId;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-
-        if (AuthStateTask != null)
-        {
-            var authState = await AuthStateTask;
-            var user = authState.User;
-
-            if (user.Identity?.IsAuthenticated == true)
-            {
-                userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(userId))
-        {
-            userReviews = await UserReviewService.GetByUserIdAsync(userId);
-        }
+        await AccountStateService.LoadReviewsAsync();
+        userReviews = AccountStateService.Reviews;
 
         isLoading = false;
     }
@@ -333,10 +315,9 @@
             return;
         }
 
-        if (!string.IsNullOrEmpty(userId))
-        {
-            userReviews = await UserReviewService.GetByUserIdAsync(userId);
-        }
+        AccountStateService.InvalidateReviews();
+        await AccountStateService.LoadReviewsAsync(forceRefresh: true);
+        userReviews = AccountStateService.Reviews;
 
         CloseReviewModal();
         await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
@@ -363,10 +344,9 @@
         if (result.IsSuccess)
         {
             await JSRuntime.InvokeVoidAsync("showToast", result.Message, "success");
-            if (!string.IsNullOrEmpty(userId))
-            {
-                userReviews = await UserReviewService.GetByUserIdAsync(userId);
-            }
+            AccountStateService.InvalidateReviews();
+            await AccountStateService.LoadReviewsAsync(forceRefresh: true);
+            userReviews = AccountStateService.Reviews;
         }
         else
         {

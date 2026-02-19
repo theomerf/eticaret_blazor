@@ -1,0 +1,51 @@
+@using ETicaret.Components.Layout
+
+<CascadingAuthenticationState>
+    <GlobalErrorBoundary>
+        <Router AppAssembly="@typeof(Program).Assembly">
+            <Found Context="routeData">
+                @if (IsAccountPage(routeData.PageType))
+                {
+                    <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(AccountLayout)">
+                        <Authorizing>
+                            <div class="flex items-center justify-center min-h-screen bg-gray-50">
+                                <div class="text-center">
+                                    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
+                                    <p class="mt-4 text-gray-600 font-medium">Yetkilendirme kontrol ediliyor...</p>
+                                </div>
+                            </div>
+                        </Authorizing>
+                        <NotAuthorized>
+                            @if (context.User.Identity?.IsAuthenticated == true)
+                            {
+                                <RedirectToNotFound />
+                            }
+                            else
+                            {
+                                <RedirectToLogin />
+                            }
+                        </NotAuthorized>
+                    </AuthorizeRouteView>
+                }
+                else
+                {
+                    <RedirectToCurrentPath />
+                }
+            </Found>
+            <NotFound>
+                <RedirectToNotFound />
+            </NotFound>
+        </Router>
+    </GlobalErrorBoundary>
+</CascadingAuthenticationState>
+
+@code {
+    private static bool IsAccountPage(Type pageType)
+    {
+        var routeAttributes = pageType.GetCustomAttributes(typeof(RouteAttribute), inherit: true)
+            .OfType<RouteAttribute>();
+
+        return routeAttributes.Any(route =>
+            route.Template.StartsWith("/account", StringComparison.OrdinalIgnoreCase));
+    }
+}
