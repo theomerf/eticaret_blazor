@@ -3,6 +3,7 @@
     public sealed class HangfireOptions
     {
         public bool Enabled { get; set; } = true;
+        public bool RecurringJobsEnabled { get; set; } = true;
 
         public string ConnectionStringName { get; set; } = "postgresqlconnection";
 

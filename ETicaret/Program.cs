@@ -148,7 +148,7 @@ try
     app.MapRazorPages();
     app.MapFallbackToPage("/admin/{**path}", "/_Host");
 
-    StartupJobs.Register(app.Services);
+    StartupJobs.Register(app.Services, app.Configuration);
 
     app.ConfigureAndCheckMigration();
     app.ConfigureLocalization();
