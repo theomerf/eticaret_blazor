@@ -937,6 +937,115 @@ function updateActiveStates(key, value) {
 		}
 	});
 
+	window.addEventListener('click', async function (e) {
+		const helpfulButton = e.target.closest('.helpful-btn');
+		const nothelpfulButton = e.target.closest('.nothelpful-btn');
+		if (!helpfulButton && !nothelpfulButton) return;
+
+		if ((helpfulButton && helpfulButton.classList.contains('loading')) || (nothelpfulButton && nothelpfulButton.classList.contains('loading'))) {
+			return;
+		}
+
+		if (!window.isAuthenticated) {
+			const currentUrl = window.location.pathname + window.location.search;
+			window.location.href = `/account/login?returnUrl=${encodeURIComponent(currentUrl)}`;
+			return;
+		}
+
+		const userReviewId = helpfulButton ? helpfulButton.getAttribute('data-review-id') : nothelpfulButton.getAttribute('data-review-id');
+		if (!userReviewId) return;
+
+		e.preventDefault();
+
+		if (helpfulButton) {
+			helpfulButton.classList.add('loading');
+            helpfulButton.classList.add('cursor-not-allowed');
+			helpfulButton.disabled = true;
+			const notHelpfulBtn = document.querySelector(".nothelpful-btn");
+			if (notHelpfulBtn) {
+				notHelpfulBtn.classList.add('loading');
+                notHelpfulBtn.classList.add('cursor-not-allowed');
+                notHelpfulBtn.disabled = true;
+			}
+		}
+		else if (nothelpfulButton) {
+            nothelpfulButton.classList.add('loading');
+            nothelpfulButton.classList.add('cursor-not-allowed');
+			nothelpfulButton.disabled = true;
+			const helpfulBtn = document.querySelector(".helpful-btn");
+			if (helpfulBtn) {
+				helpfulBtn.classList.add('loading');
+                helpfulBtn.classList.add('cursor-not-allowed');
+				helpfulBtn.disabled = true;
+			}
+		}
+
+		try {
+			const response = await fetch(`/api/products/reviews/vote`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					userReviewId: userReviewId,
+					isHelpful: helpfulButton ? true : false
+				})
+			});
+
+			if (response.status === 401) {
+				const currentUrl = window.location.pathname + window.location.search;
+				window.location.href = `/account/login?returnUrl=${encodeURIComponent(currentUrl)}`;
+				return;
+			}
+
+			if (!response.ok) throw new Error('Ağ hatası');
+
+			const result = await response.json();
+			if (result.success) {
+				const helpfulCountSpan = document.getElementById('helpful-count');
+				const notHelpfulCountSpan = document.getElementById('nothelpful-count');
+
+				if (helpfulCountSpan && notHelpfulCountSpan) {
+					helpfulCountSpan.innerText = result.data.helpfulCount;
+					notHelpfulCountSpan.innerText = result.data.notHelpfulCount;
+				}
+
+				if (typeof showToast === 'function') showToast(result.message, 'success');
+			} else {
+				if (typeof showToast === 'function') showToast(result.message, 'danger');
+			}
+		}
+		catch (error) {
+			console.error(error);
+			if (typeof showToast === 'function') showToast(error.message || 'Hata oluştu', 'danger');
+		}
+		finally {
+			const helpfulButton = e.target.closest('.helpful-btn');
+			const nothelpfulButton = e.target.closest('.nothelpful-btn');
+
+			if (helpfulButton) {
+				helpfulButton.classList.remove('loading');
+                helpfulButton.classList.remove('cursor-not-allowed');
+				helpfulButton.disabled = false;
+				const notHelpfulBtn = document.querySelector(".nothelpful-btn");
+				if (notHelpfulBtn) {
+					notHelpfulBtn.classList.remove('loading');
+                    notHelpfulBtn.classList.remove('cursor-not-allowed');
+					notHelpfulBtn.disabled = false;
+				}
+			}
+			else if (nothelpfulButton) {
+				nothelpfulButton.classList.remove('loading');
+                nothelpfulButton.classList.remove('cursor-not-allowed');
+				nothelpfulButton.disabled = false;
+				const helpfulBtn = document.querySelector(".helpful-btn");
+				if (helpfulBtn) {
+					helpfulBtn.classList.remove('loading');
+                    helpfulBtn.classList.remove('cursor-not-allowed');
+					helpfulBtn.disabled = false;
+				}
+			}
+		}
+	});
+
 	function resetButtonState(btn, content, remove, wasInCart) {
 		const loading = btn.querySelector('.btn-loading');
 		const removeLoading = btn.querySelector('.btn-remove-loading');

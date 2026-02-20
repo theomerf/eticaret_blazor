@@ -1,4 +1,7 @@
-﻿using Application.Services.Interfaces;
+﻿using Application.DTOs;
+using Application.Services.Interfaces;
+using Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ETicaret.Controllers.Api
@@ -8,14 +11,16 @@ namespace ETicaret.Controllers.Api
     public class ProductsApiController : ControllerBase
     {
         private readonly IProductService _productService;
+        private readonly IUserReviewService _userReviewService;
 
-        public ProductsApiController(IProductService productService)
+        public ProductsApiController(IProductService productService, IUserReviewService userReviewService)
         {
             _productService = productService;
+            _userReviewService = userReviewService;
         }
 
         [HttpGet("variants/{variantId}")]
-        public async Task<IActionResult> GetVariantAsync(int variantId)
+        public async Task<IActionResult> GetVariant(int variantId)
         {
             try
             {
@@ -54,6 +59,36 @@ namespace ETicaret.Controllers.Api
             {
                 return StatusCode(500, new { success = false, message = "Bir hata oluştu.", error = ex.Message });
             }
+        }
+
+        [HttpPost("reviews/vote")]
+        [Authorize]
+        public async Task<IActionResult> SetVote([FromBody] UserReviewVoteDtoForCreation voteDto)
+        {
+            var result = await _userReviewService.SetVoteAsync(voteDto.UserReviewId, (voteDto.IsHelpful ? VoteType.Helpful : VoteType.NotHelpful));
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = result.Message,
+                    type = result.Type,
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                type = result.Type,
+                data = new
+                {
+                    current = result.Data.Item1,
+                    helpfulCount = result.Data.Item2,
+                    notHelpfulCount = result.Data.Item3
+                }
+            });
         }
     }
 }

@@ -1,11 +1,9 @@
 ﻿@model ProductReviewsViewModel
 
-<!-- Yorum İstatistikleri -->
+@* Yorum İstatistikleri *@
 @await Component.InvokeAsync("RatingStars", new { userReviewsDto = Model?.UserReviews, Mode = "ratings" })
-<div data-new-review-count="@Model?.UserReviews?.Count() ?? 0"></div>
-<div data-new-average-rating="@(Model?.UserReviews?.Any() == true ? Model.UserReviews.Average(r => r.Rating) : 0)"></div>
 
-<!-- Yorum Listesi -->
+@* Yorum Listesi *@
 <div class="max-h-[400px] md:max-h-[600px] overflow-y-auto pr-2">
     <div class="flex flex-col gap-4 mt-6">
         @foreach (var review in Model?.UserReviews ?? Enumerable.Empty<UserReviewDto>())
@@ -54,8 +52,8 @@
                     
                     <div class="flex items-center gap-3 mt-auto pt-2 border-t border-gray-100">
                         <span class="text-gray-400 text-[10px] sm:text-xs font-medium">Bu yorum faydalı mı?</span>
-                        <button class="flex items-center gap-1 text-gray-500 hover:text-green-600 transition-colors text-xs font-semibold px-2 py-1 hover:bg-green-50 rounded"><i class="far fa-thumbs-up"></i> <span>(1)</span></button>
-                        <button class="flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors text-xs font-semibold px-2 py-1 hover:bg-red-50 rounded"><i class="far fa-thumbs-down"></i> <span>(0)</span></button>
+                        <button data-review-id="@review.UserReviewId" class="helpful-btn flex items-center gap-1 text-gray-500 hover:text-green-600 transition-colors text-xs font-semibold px-2 py-1 hover:bg-green-50 rounded"><i class="far fa-thumbs-up"></i> <span id="helpful-count">(@review.HelpfulCount)</span></button>
+                        <button data-review-id="@review.UserReviewId" class="nothelpful-btn flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors text-xs font-semibold px-2 py-1 hover:bg-red-50 rounded"><i class="far fa-thumbs-down"></i> <span id="nothelpful-count">(@review.NotHelpfulCount)</span></button>
                     </div>
                 </div>
             </div>

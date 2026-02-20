@@ -166,21 +166,10 @@ namespace ETicaret.Controllers
         }
 
         [Authorize]
-        [HttpPost]
+        [AcceptVerbs("GET", "POST")]
         public async Task<IActionResult> Logout([FromQuery(Name = "ReturnUrl")] string ReturnUrl = "/")
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userName = User.FindFirstValue(ClaimTypes.Name);
-
-            if (userId is not null && userName is not null)
-            {
-                Response.Cookies.Delete("FavouriteProducts");
-                HttpContext.Session.Clear();
-
-                await _signInManager.SignOutAsync();
-
-                await _authService.LogoutAsync(userId, userName);
-            }
+            await SignOutCurrentUserAsync();
 
             return Redirect(ReturnUrl);
         }
@@ -398,6 +387,23 @@ namespace ETicaret.Controllers
             {
                 Response.Cookies.Append("FavouriteProducts", cookieValue, cookieOptions);
             }
+        }
+
+        private async Task SignOutCurrentUserAsync()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userName = User.FindFirstValue(ClaimTypes.Name);
+
+            if (userId is null || userName is null)
+            {
+                return;
+            }
+
+            Response.Cookies.Delete("FavouriteProducts");
+            HttpContext.Session.Clear();
+
+            await _signInManager.SignOutAsync();
+            await _authService.LogoutAsync(userId, userName);
         }
     }
 }
