@@ -53,7 +53,7 @@ try
 
     if (!builder.Environment.IsDevelopment())
     {
-        var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+        var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
         builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
     }
 

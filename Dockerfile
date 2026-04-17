@@ -14,7 +14,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y libkrb5-3 libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 
-ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 10000
 
 COPY --from=build /app/out ./
 ENTRYPOINT ["dotnet", "ETicaret.dll"]
