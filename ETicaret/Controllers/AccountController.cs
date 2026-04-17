@@ -129,7 +129,7 @@ namespace ETicaret.Controllers
             var confirmationLinkTemplate = Url.Action(
                 "ConfirmEmail",
                 "Account",
-                new { userId = "{userId}", token = "{token}" },
+                new { userId = "__USER_ID__", token = "__TOKEN__" },
                 protocol: Request.Scheme)!;
 
             var dto = new RegisterDto

@@ -189,8 +189,8 @@ namespace Application.Services.Implementations
 
                     var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     var confirmationLink = register.ConfirmationLinkTemplate
-                        .Replace("{userId}", user.Id)
-                        .Replace("{token}", emailToken);
+                        .Replace("__USER_ID__", Uri.EscapeDataString(user.Id))
+                        .Replace("__TOKEN__", Uri.EscapeDataString(emailToken));
 
                     finalResult = RegisterResult.Success(user.Id, user.Email!, confirmationLink);
                     return finalResult;
@@ -317,7 +317,7 @@ namespace Application.Services.Implementations
 
         public async Task<OperationResult<UserDto>> VerifyEmailAsync(string userId)
         {
-            var user = await GetOneUserForServiceAsync(userId, false);
+            var user = await GetOneUserForServiceAsync(userId, true);
             var adminId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
             var adminName = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
@@ -326,8 +326,8 @@ namespace Application.Services.Implementations
                 return OperationResult<UserDto>.Failure("E-posta zaten doğrulanmış.", ResultType.ValidationError);
             }
 
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var result = await _userManager.ConfirmEmailAsync(user, token);
+            user.EmailConfirmed = true;
+            var result = await _userManager.UpdateAsync(user);
 
             if (!result.Succeeded)
             {
